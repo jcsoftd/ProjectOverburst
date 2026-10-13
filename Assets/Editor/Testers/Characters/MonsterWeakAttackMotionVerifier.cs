@@ -114,6 +114,92 @@ public static class MonsterWeakAttackMotionVerifier
             foreach (var go in dense) go.SetActive(false);
             wall.GetComponent<Collider>().enabled = true; Physics.SyncTransforms();
 
+            // Concave colliders can contain both the supporting floor and a blocking wall.
+            floor.SetActive(false); wall.SetActive(false);
+            var geometry = new List<GameObject>();
+            GameObject MeshFixture(string name, bool withFloor, float wallZ = float.NaN, float slope = 0, bool closed = false)
+            {
+                var vertices = new List<Vector3>(); var triangles = new List<int>();
+                void Quad(Vector3 a, Vector3 b, Vector3 c, Vector3 d)
+                {
+                    int first = vertices.Count; vertices.AddRange(new[] { a, b, c, d });
+                    triangles.AddRange(new[] { first, first + 1, first + 2, first, first + 2, first + 3 });
+                }
+                if (withFloor) Quad(new Vector3(-10, -10 * slope, -10), new Vector3(-10, 10 * slope, 10),
+                    new Vector3(10, 10 * slope, 10), new Vector3(10, -10 * slope, -10));
+                if (!float.IsNaN(wallZ)) Quad(new Vector3(-2, -1, wallZ), new Vector3(-2, 3, wallZ),
+                    new Vector3(2, 3, wallZ), new Vector3(2, -1, wallZ));
+                if (closed)
+                {
+                    float back = wallZ + .2f;
+                    Quad(new Vector3(2, -1, back), new Vector3(2, 3, back), new Vector3(-2, 3, back), new Vector3(-2, -1, back));
+                    Quad(new Vector3(-2, -1, back), new Vector3(-2, 3, back), new Vector3(-2, 3, wallZ), new Vector3(-2, -1, wallZ));
+                    Quad(new Vector3(2, -1, wallZ), new Vector3(2, 3, wallZ), new Vector3(2, 3, back), new Vector3(2, -1, back));
+                    Quad(new Vector3(-2, 3, wallZ), new Vector3(-2, 3, back), new Vector3(2, 3, back), new Vector3(2, 3, wallZ));
+                    Quad(new Vector3(-2, -1, back), new Vector3(-2, -1, wallZ), new Vector3(2, -1, wallZ), new Vector3(2, -1, back));
+                }
+                var mesh = new Mesh { name = name }; mesh.SetVertices(vertices); mesh.SetTriangles(triangles, 0);
+                mesh.RecalculateNormals(); mesh.RecalculateBounds(); owned.Add(mesh);
+                var go = new GameObject(name); owned.Add(go); geometry.Add(go); SceneManager.MoveGameObjectToScene(go, fixture);
+                go.transform.position = origin; go.AddComponent<MeshCollider>().sharedMesh = mesh;
+                Physics.SyncTransforms(); return go;
+            }
+            int closestWarnings = 0;
+            Application.LogCallback capture = (message, stack, type) => { if (message.Contains("Physics.ClosestPoint")) closestWarnings++; };
+            Application.logMessageReceived += capture;
+            try
+            {
+                var meshFloor = MeshFixture("ConcaveFloor", true);
+                Check("nonconvex floor permits travel", Mathf.Abs(Clip(.25f, 1, Vector3.forward * .3f, out _).z - .3f) < .0001f);
+                meshFloor.SetActive(false);
+                var meshWall = MeshFixture("ConcaveWall", false, .5f);
+                step = Clip(.25f, 1, Vector3.forward * .3f, out _);
+                Check("nonconvex wall clips travel", step.z > .2f && step.z < .23f);
+                meshWall.SetActive(false);
+                var combined = MeshFixture("FloorAndWall", true, .5f);
+                step = Clip(.25f, 1, Vector3.forward * .3f, out _);
+                Check("wall in supporting floor mesh still clips", step.z > .2f && step.z < .23f);
+                step = Clip(.45f, 1, Vector3.forward * .3f, out _);
+                Check("larger body cannot cross combined mesh wall", step.z >= 0 && step.z < .04f);
+                combined.SetActive(false);
+                var concaveOverlap = MeshFixture("ConcaveStartingOverlap", true, .2f);
+                Check("concave initial overlap cannot deepen", Clip(.25f, 1, Vector3.forward * .3f, out _) == Vector3.zero);
+                Check("concave initial overlap can escape", Mathf.Abs(Clip(.25f, 1, Vector3.back * .3f, out _).z + .3f) < .0001f);
+                concaveOverlap.SetActive(false);
+                var closedOverlap = MeshFixture("ClosedConcaveOverlap", true, .2f, closed: true);
+                Check("closed concave initial overlap cannot deepen", Clip(.25f, 1, Vector3.forward * .3f, out _) == Vector3.zero);
+                Check("closed concave initial overlap can escape", Mathf.Abs(Clip(.25f, 1, Vector3.back * .3f, out _).z + .3f) < .0001f);
+                closedOverlap.SetActive(false);
+                var paddedOverlap = MeshFixture("ClosedConcavePadding", true, .27f, closed: true);
+                Check("concave padding cannot enter the wall", Clip(.25f, 1, Vector3.forward * .3f, out _) == Vector3.zero);
+                Check("concave padding can move away", Mathf.Abs(Clip(.25f, 1, Vector3.back * .3f, out _).z + .3f) < .0001f);
+                paddedOverlap.SetActive(false);
+                var slope = MeshFixture("WalkableSlope", true, slope: .2f);
+                Check("walkable mesh slope allows tangent travel", Mathf.Abs(Clip(.25f, 1, Vector3.right * .3f, out _).x - .3f) < .0001f);
+                Check("wide body allows tangent travel on mesh slope", Mathf.Abs(Clip(.65f, 1, Vector3.right * .3f, out _).x - .3f) < .0001f);
+                slope.SetActive(false);
+                var terrainData = new TerrainData { heightmapResolution = 33, size = new Vector3(20, 2, 20) }; owned.Add(terrainData);
+                terrainData.SetHeights(0, 0, new float[33, 33]);
+                var terrain = new GameObject("FlatTerrain"); owned.Add(terrain); geometry.Add(terrain);
+                SceneManager.MoveGameObjectToScene(terrain, fixture); terrain.transform.position = origin - new Vector3(10, 0, 10);
+                terrain.AddComponent<TerrainCollider>().terrainData = terrainData; Physics.SyncTransforms();
+                Check("terrain floor permits travel", Mathf.Abs(Clip(.25f, 1, Vector3.forward * .3f, out _).z - .3f) < .0001f);
+                terrain.SetActive(false);
+                var pillar = new GameObject("CapsulePillar"); owned.Add(pillar); geometry.Add(pillar);
+                SceneManager.MoveGameObjectToScene(pillar, fixture); pillar.transform.position = origin + new Vector3(0, 1, .6f);
+                var pillarShape = pillar.AddComponent<CapsuleCollider>(); pillarShape.radius = .1f; pillarShape.height = 4;
+                Physics.SyncTransforms(); step = Clip(.25f, 1, Vector3.forward * .3f, out _);
+                Check("capsule pillar remains a blocker", step.z > .2f && step.z < .23f);
+                pillar.SetActive(false);
+                Check("floor queries avoid unsupported ClosestPoint warnings", closestWarnings == 0);
+            }
+            finally
+            {
+                Application.logMessageReceived -= capture;
+                foreach (var go in geometry) go.SetActive(false);
+                floor.SetActive(true); wall.SetActive(true); Physics.SyncTransforms();
+            }
+
             // Invoke the real one-writer path, then finish this scene's own physics
             // step before reading position. MovePosition is not treated as a hit pose.
             typeof(EnemyMeleeAttackController).GetField("activeWeakExecution", Fields).SetValue(melee, movingProfile);

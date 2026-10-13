@@ -4,6 +4,10 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class EnemySpawnService : MonoBehaviour
 {
+    private static readonly Unity.Profiling.ProfilerMarker AcquireMarker = new Unity.Profiling.ProfilerMarker("OVERBURST.MapSpawn.Detail.Acquire");
+    private static readonly Unity.Profiling.ProfilerMarker PrepareMarker = new Unity.Profiling.ProfilerMarker("OVERBURST.MapSpawn.Detail.Prepare");
+    private static readonly Unity.Profiling.ProfilerMarker ActivateMarker = new Unity.Profiling.ProfilerMarker("OVERBURST.MapSpawn.Detail.Activate");
+    private static readonly Unity.Profiling.ProfilerMarker FinalizeMarker = new Unity.Profiling.ProfilerMarker("OVERBURST.MapSpawn.Detail.Finalize");
     [SerializeField] private EnemyCatalog catalog;
     [SerializeField] private EnemyPoolService pool;
     private readonly System.Collections.Generic.Dictionary<string, EnemyDefinition> additionalDefinitions =
@@ -90,28 +94,39 @@ public sealed class EnemySpawnService : MonoBehaviour
         if (pool == null)
             return false;
 
-        EnemyActor rented = pool.Acquire(definition);
+        EnemyActor rented;
+        using (AcquireMarker.Auto()) rented = pool.Acquire(definition);
         if (rented == null)
             return false;
 
-        Transform actorTransform = rented.transform;
-        actorTransform.SetParent(request.Parent, false);
-        actorTransform.SetPositionAndRotation(request.Position, request.Rotation);
-        actorTransform.localScale = Vector3.one;
+        bool prepared;
+        using (PrepareMarker.Auto())
+        {
+            Transform actorTransform = rented.transform;
+            actorTransform.SetParent(request.Parent, false);
+            actorTransform.SetPositionAndRotation(request.Position, request.Rotation);
+            actorTransform.localScale = Vector3.one;
 
-        EnemyRuntimeStats stats = definition.ResolveRuntimeStats(
-            request.DifficultyMultiplier,
-            request.EncounterMultiplier);
-        stats = MapOptionPolicy.ApplyEnemyStats(stats, request.Encounter.Map);
-        if (!rented.PrepareForLease(definition, stats, request))
+            EnemyRuntimeStats stats = definition.ResolveRuntimeStats(
+                request.DifficultyMultiplier,
+                request.EncounterMultiplier);
+            stats = MapOptionPolicy.ApplyEnemyStats(stats, request.Encounter.Map);
+            prepared = rented.PrepareForLease(definition, stats, request);
+        }
+        if (!prepared)
         {
             pool.Release(rented);
             return false;
         }
 
-        rented.ConfigureRunFallGuard(request.Position);
-        rented.gameObject.SetActive(true);
-        if (!rented.FinalizeLeaseAfterActivation())
+        using (ActivateMarker.Auto())
+        {
+            rented.ConfigureRunFallGuard(request.Position);
+            rented.gameObject.SetActive(true);
+        }
+        bool finalized;
+        using (FinalizeMarker.Auto()) finalized = rented.FinalizeLeaseAfterActivation();
+        if (!finalized)
         {
             pool.Release(rented);
             return false;
