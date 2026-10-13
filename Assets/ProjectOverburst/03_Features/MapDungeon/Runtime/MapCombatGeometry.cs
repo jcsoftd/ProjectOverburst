@@ -59,8 +59,19 @@ public static class MapCombatGeometry
         public MojavePlace place;
         public CavePlatformLibrary spawnLibrary;
         public CavePlatformLibrary.Platform spawnPlatform;
+        public DesertSpawnData desertSpawnData;
+        public DesertSpawnData.Area desertSpawnArea;
+        public IEnumerable<(Vector3 position, long bodyMask)> BakedCandidates()
+        {
+            if (spawnPlatform != null)
+                foreach (var candidate in spawnPlatform.spawnPoints)
+                    yield return (boundary.transform.TransformPoint(candidate.position), candidate.bodyMask);
+            else if (desertSpawnArea != null)
+                foreach (var candidate in desertSpawnArea.points) yield return (candidate.position, candidate.bodyMask);
+        }
         public int BakedBodyIndex(EnemyDefinition definition, Body body)
         {
+            if (desertSpawnData && desertSpawnArea != null) return desertSpawnData.BodyIndex(definition, body);
             if (!spawnLibrary || spawnPlatform == null || spawnLibrary.spawnBodies == null
                 || spawnLibrary.spawnBodies.Length > 63 || boundary.transform.lossyScale != Vector3.one) return -1;
             for (int i = 0; i < spawnLibrary.spawnBodies.Length; i++)
@@ -261,6 +272,7 @@ public static class MapCombatGeometry
         else
         {
             var prepared = desert.GetComponent<DesertRunWorld>();
+            var spawnData = DesertSpawnData.Load(desert);
             for (int i = 0; i < desert.layout.places.Count; i++)
             {
                 var place = desert.layout.places[i];
@@ -268,7 +280,8 @@ public static class MapCombatGeometry
                 var center = prepared.AreaCenters[i];
                 sources.Add(new Source { index = i, name = place.name, center = center,
                     bounds = new Bounds(new Vector3(place.center.x, center.y, place.center.y), new Vector3(2 * radius, 6, 2 * radius)),
-                    scene = desert.gameObject.scene, desert = desert, place = place });
+                    scene = desert.gameObject.scene, desert = desert, place = place,
+                    desertSpawnData = spawnData, desertSpawnArea = spawnData ? spawnData.areas[i] : null });
             }
             foreach (var trail in desert.layout.trails) edges.Add(new Vector2Int(trail.from, trail.to));
         }
@@ -324,18 +337,17 @@ public static class MapCombatGeometry
             var reserved = new List<Vector3>(); var radii = new List<float>();
             var safeByDefinition = new Dictionary<EnemyDefinition, List<Vector3>>();
             var bakedDefinitions = new HashSet<EnemyDefinition>();
-            var bakedPoints = new List<CavePlatformLibrary.SpawnPoint>();
+            var bakedPoints = new List<(Vector3 position, long bodyMask)>();
             var groundSource = area.Ground.Source;
-            if (groundSource.spawnPlatform != null)
-                foreach (var candidate in groundSource.spawnPlatform.spawnPoints)
+            foreach (var candidate in groundSource.BakedCandidates())
                 {
                     if (watch.Elapsed.TotalMilliseconds >= 3) { yield return null; watch.Restart(); }
-                    var point = groundSource.boundary.transform.TransformPoint(candidate.position);
+                    var point = candidate.position;
                     if (candidate.bodyMask <= 0 || !SafeDistance(groundSource, point, entry)
                         || !NavMesh.SamplePosition(point, out var nav, .18f, NavMesh.AllAreas)
                         || !NavMesh.CalculatePath(area.Ground.Center, nav.position, NavMesh.AllAreas, path)
                         || path.status != NavMeshPathStatus.PathComplete) continue;
-                    bakedPoints.Add(new CavePlatformLibrary.SpawnPoint { position = point, bodyMask = candidate.bodyMask });
+                    bakedPoints.Add((point, candidate.bodyMask));
                 }
             for (int i = 0; i < area.Count; i++)
             {
