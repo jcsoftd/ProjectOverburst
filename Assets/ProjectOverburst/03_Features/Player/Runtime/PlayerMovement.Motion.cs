@@ -230,6 +230,9 @@ public partial class PlayerMovement
         jumpRequested = false; // 점프 소비
 
         pendingJumpVelocity = Mathf.Sqrt(Mathf.Max(0f, jumpHeight) * -2f * gravity); // 점프 속도
+#if UNITY_EDITOR
+        if (pendingJumpVelocity > 0f) PlayerVoiceAudition.Jump(gameObject);
+#endif
     }
 
     public void PrepareEvadeMotion()
