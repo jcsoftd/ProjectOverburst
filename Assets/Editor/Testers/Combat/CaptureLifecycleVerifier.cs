@@ -31,13 +31,41 @@ public static class CaptureLifecycleVerifier
 
     static CaptureLifecycleVerifier()
     {
-        EditorApplication.playModeStateChanged += State;
-        Application.logMessageReceived += Log;
         if (Active)
         {
             data = JObject.Parse(File.ReadAllText(Path.Combine(Output, "progress.json")));
-            EditorApplication.update += Tick;
+            Subscribe();
         }
+    }
+    static void Subscribe()
+    {
+        EditorApplication.update -= Tick; EditorApplication.update += Tick;
+        EditorApplication.playModeStateChanged -= State; EditorApplication.playModeStateChanged += State;
+        Application.logMessageReceived -= Log; Application.logMessageReceived += Log;
+    }
+    static void ReleaseReservation()
+    {
+        SessionState.SetBool(Key, false);
+        EditorApplication.update -= Tick;
+        EditorApplication.playModeStateChanged -= State;
+        Application.logMessageReceived -= Log;
+    }
+    static void RecoverDeferredFixture()
+    {
+        string path = SessionState.GetString(Key + ".deferredFixture", "");
+        if (string.IsNullOrEmpty(path)) return;
+        if (Busy()) throw new InvalidOperationException("Recover the fixture only in idle EditMode.");
+        if (!path.StartsWith("Assets/Editor/Testers/Combat/CaptureLifecycleFixture_", StringComparison.Ordinal))
+            throw new InvalidOperationException("Deferred fixture is outside this verifier's scope.");
+        if (AssetDatabase.IsValidFolder(path))
+        {
+            string guid = SessionState.GetString(Key + ".deferredGuid", "");
+            if (string.IsNullOrEmpty(guid) || AssetDatabase.AssetPathToGUID(path) != guid)
+                throw new InvalidOperationException("Deferred fixture GUID changed; preserve it for review.");
+            EditorFileRecycle.MoveAsset(path);
+        }
+        SessionState.EraseString(Key + ".deferredFixture");
+        SessionState.EraseString(Key + ".deferredGuid");
     }
     static Type CaptureType(string name) => typeof(AttackPoseCapture).Assembly.GetType(name, true);
     static FieldInfo Field(string name, string field) => CaptureType(name).GetField(field, BindingFlags.Static | BindingFlags.NonPublic);
@@ -83,6 +111,8 @@ public static class CaptureLifecycleVerifier
             foreach (string suffix in BoolKeys) booleans[suffix] = SessionState.GetBool(name + suffix, false);
             saved.Add(new JObject { ["name"] = name, ["strings"] = strings, ["bools"] = booleans });
         }
+        RecoverDeferredFixture();
+        SessionState.EraseString(Key + ".writeFailure");
         Directory.CreateDirectory(output); SessionState.SetString(Key + ".output", output);
         string fixture = "Assets/Editor/Testers/Combat/CaptureLifecycleFixture_" + Guid.NewGuid().ToString("N");
         data = new JObject { ["phase"] = "PREPARED", ["index"] = startIndex, ["account"] = Path.Combine(output, "Account"),
@@ -90,12 +120,12 @@ public static class CaptureLifecycleVerifier
             ["background"] = Application.runInBackground, ["scenes"] = Scenes(), ["savedCaptures"] = saved,
             ["cases"] = previousCases, ["errors"] = new JArray(), ["scope"] = "Native termination/return boundaries; visual capture and Player not run",
             ["resumedIndex"] = startIndex, ["priorEvidence"] = startIndex == 0 ? "" : "first-attempt-result.json (15 passed cases retained)" };
-        AssetDatabase.CreateFolder("Assets/Editor/Testers/Combat", Path.GetFileName(fixture));
+        data["fixtureGuid"] = AssetDatabase.CreateFolder("Assets/Editor/Testers/Combat", Path.GetFileName(fixture));
         Scene previous = SceneManager.GetActiveScene();
         Scene temporary = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
         try { if (!EditorSceneManager.SaveScene(temporary, fixture + "/Fixture.unity")) throw new IOException("Fixture save failed."); }
         finally { EditorSceneManager.CloseScene(temporary, true); SceneManager.SetActiveScene(previous); }
-        Persist(); SessionState.SetBool(Key, true); EditorApplication.update += Tick;
+        Persist(); SessionState.SetBool(Key, true); Subscribe();
         StartNext();
         return "RUNNING_NATIVE_CAPTURE_BOUNDARIES";
     }
@@ -166,7 +196,17 @@ public static class CaptureLifecycleVerifier
     static void Tick()
     {
         if (!Active) { EditorApplication.update -= Tick; return; }
-        if (Phase == "WAIT_IDLE") { if (!Busy()) StartNext(); return; }
+        if (Phase == "WAIT_IDLE")
+        {
+            if (EditorApplication.timeSinceStartup > Deadline)
+            {
+                ((JArray)data["errors"]).Add("Idle wait deadline exceeded.");
+                // Another execution may own the Editor now; release only our reservation.
+                Complete(deferCleanup: Busy());
+            }
+            else if (!Busy()) StartNext();
+            return;
+        }
         if (EditorApplication.timeSinceStartup > Deadline)
         {
             if (OwnsPlay() && EditorApplication.isPlayingOrWillChangePlaymode)
@@ -209,27 +249,49 @@ public static class CaptureLifecycleVerifier
         if (EditorApplication.isPlayingOrWillChangePlaymode) { Persist(); return; }
         Complete();
     }
-    static void Complete()
+    static void Complete(bool deferCleanup = false)
     {
-        if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Exit Play before completing.");
-        RestoreStartScene(); Application.runInBackground = (bool)data["background"];
-        foreach (JObject capture in (JArray)data["savedCaptures"])
+        if (EditorApplication.isPlayingOrWillChangePlaymode && !deferCleanup) throw new InvalidOperationException("Exit Play before completing.");
+        try
         {
-            string name = (string)capture["name"];
-            foreach (var property in ((JObject)capture["strings"]).Properties())
-                if ((string)property.Value == "<missing-lifecycle-key>") SessionState.EraseString(name + property.Name);
-                else SessionState.SetString(name + property.Name, (string)property.Value);
-            foreach (var property in ((JObject)capture["bools"]).Properties()) SessionState.SetBool(name + property.Name, (bool)property.Value);
+            data["cleanupDeferred"] = deferCleanup;
+            if (deferCleanup)
+            {
+                SessionState.SetString(Key + ".deferredFixture", (string)data["fixture"]);
+                SessionState.SetString(Key + ".deferredGuid", (string)data["fixtureGuid"] ?? "");
+                Debug.LogWarning("[CaptureLifecycleVerifier] Idle wait expired. Shared state was preserved; the fixture will be recovered before the next idle Run.");
+            }
+            else
+            {
+                RestoreStartScene(); Application.runInBackground = (bool)data["background"];
+                foreach (JObject capture in (JArray)data["savedCaptures"])
+                {
+                    string name = (string)capture["name"];
+                    foreach (var property in ((JObject)capture["strings"]).Properties())
+                        if ((string)property.Value == "<missing-lifecycle-key>") SessionState.EraseString(name + property.Name);
+                        else SessionState.SetString(name + property.Name, (string)property.Value);
+                    foreach (var property in ((JObject)capture["bools"]).Properties()) SessionState.SetBool(name + property.Name, (bool)property.Value);
+                }
+                try { EditorFileRecycle.MoveAsset((string)data["fixture"]); }
+                catch (Exception e) { ((JArray)data["errors"]).Add("Fixture cleanup failed: " + e.Message); }
+            }
+            data["phase"] = !deferCleanup && ((JArray)data["errors"]).Count == 0 && ((JArray)data["cases"]).Count == Modes.Length * Names.Length ? "PASS" : "FAIL";
+            data["finalEditMode"] = !EditorApplication.isPlayingOrWillChangePlaymode;
+            data["finalAccountReturned"] = !Busy() && !IsolatedSavePlayGuard.RequiresAccountChoice;
+            data["finalStartSceneRestored"] = AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene) == (string)data["startScene"];
+            try { Persist(); }
+            catch (Exception error) { RecordWriteFailure(error); }
+            try { File.WriteAllText(Path.Combine(Output, "result.json"), data.ToString()); }
+            catch (Exception error) { RecordWriteFailure(error); }
         }
-        try { EditorFileRecycle.MoveAsset((string)data["fixture"]); }
-        catch (Exception e) { ((JArray)data["errors"]).Add("Fixture cleanup failed: " + e.Message); }
-        data["phase"] = ((JArray)data["errors"]).Count == 0 && ((JArray)data["cases"]).Count == Modes.Length * Names.Length ? "PASS" : "FAIL";
-        data["finalEditMode"] = !EditorApplication.isPlayingOrWillChangePlaymode;
-        data["finalAccountReturned"] = !Busy() && !IsolatedSavePlayGuard.RequiresAccountChoice;
-        data["finalStartSceneRestored"] = AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene) == (string)data["startScene"];
-        Persist(); File.WriteAllText(Path.Combine(Output, "result.json"), data.ToString());
-        SessionState.SetBool(Key, false); EditorApplication.update -= Tick;
-        Application.logMessageReceived -= Log;
+        finally { ReleaseReservation(); }
+    }
+    static void RecordWriteFailure(Exception error)
+    {
+        data["phase"] = "FAIL";
+        ((JArray)data["errors"]).Add("Result write failed: " + error.Message);
+        SessionState.SetString(Key + ".writeFailure", error.ToString());
+        Debug.LogWarning("[CaptureLifecycleVerifier] Result write failed: " + error.Message);
     }
     sealed class ThrowingRoutine : IEnumerator, IDisposable
     {
