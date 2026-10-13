@@ -50,7 +50,6 @@ public sealed class ElementalReactionVfxRuntimeService : MonoBehaviour
     private Camera cachedCamera;
     private Camera validationCamera;
     private int lastCameraResolveFrame = -1;
-    private bool initialized;
     private bool subscribed;
     private int prewarmInstantiateCount;
 
@@ -117,7 +116,6 @@ public sealed class ElementalReactionVfxRuntimeService : MonoBehaviour
     private void Initialize(ElementalReactionVfxCatalog catalog)
     {
         ClearPool();
-        initialized = true;
         if (catalog == null || !catalog.RuntimeConsumerConnected)
             return;
 

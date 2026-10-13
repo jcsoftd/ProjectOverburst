@@ -19,16 +19,29 @@ public static class UiReviewCapture
     static readonly List<string> shots = new List<string>(), notes = new List<string>(), errors = new List<string>();
     static string Output => SessionState.GetString(Key + ".output", "");
     public static string Status => SessionState.GetString(Key + ".status", "NOT_RUN");
-    static UiReviewCapture() { EditorApplication.playModeStateChanged += State; }
+    static UiReviewCapture()
+    {
+        EditorApplication.playModeStateChanged += State;
+        if (SessionState.GetBool(Key + ".return", false)) EditorApplication.update += ReturnAccount;
+    }
 
     public static void Run(string output)
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Already playing");
         if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name != "PersistentScene") throw new InvalidOperationException("Persistent scene required");
+        IsolatedSavePlayGuard.ValidateDirectory(Path.Combine(output, "IsolatedAccount"));
+        if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable))
+            || !string.IsNullOrEmpty(IsolatedSavePlayGuard.ActiveDirectory)
+            || !string.IsNullOrEmpty(SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared", "")))
+            throw new InvalidOperationException("다른 실행의 격리 계정 준비가 남아 있습니다.");
         Directory.CreateDirectory(output);
         SessionState.SetString(Key + ".output", output);
         SessionState.EraseString(Key + ".env");
-        IsolatedSavePlayGuard.PrepareIsolatedPlay(Path.Combine(output, "IsolatedAccount"));
+        string isolated = Path.GetFullPath(Path.Combine(output, "IsolatedAccount"));
+        IsolatedSavePlayGuard.PrepareIsolatedPlay(isolated);
+        SessionState.SetString(Key + ".isolated", isolated);
+        SessionState.SetString(Key + ".returnStatus", "NOT_RETURNED");
+        SessionState.EraseString(Key + ".writeFailure");
         SessionState.SetBool(Key, true); SessionState.SetString(Key + ".status", "RUNNING");
         EditorApplication.EnterPlaymode();
     }
@@ -45,14 +58,25 @@ public static class UiReviewCapture
         }
         if (state == PlayModeStateChange.ExitingPlayMode)
         {
+            SessionState.SetBool(Key + ".return", OwnsPlay());
+            if (Status == "RUNNING") SessionState.SetString(Key + ".status", "STOPPED");
             EditorApplication.update -= Tick; Application.logMessageReceived -= Log;
-            while (stack.Count > 0) (stack.Pop() as IDisposable)?.Dispose();
-            (work as IDisposable)?.Dispose(); work = null;
-            Application.runInBackground = SessionState.GetBool(Key + ".background", false);
+            try
+            {
+                while (stack.Count > 0) DisposeWork(stack.Pop() as IDisposable);
+                DisposeWork(work as IDisposable);
+            }
+            finally { work = null; Application.runInBackground = SessionState.GetBool(Key + ".background", false); }
         }
         if (state == PlayModeStateChange.EnteredEditMode)
         {
-            Environment.SetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY", null); SessionState.EraseString(Key + ".env");
+            SessionState.EraseString(Key + ".env");
+            if (SessionState.GetBool(Key + ".return", false))
+            {
+                SessionState.SetString(Key + ".returnStatus", "PENDING");
+                EditorApplication.update -= ReturnAccount;
+                EditorApplication.update += ReturnAccount;
+            }
             SessionState.SetBool(Key, false);
         }
     }
@@ -78,9 +102,45 @@ public static class UiReviewCapture
     }
     static void Finish(string status)
     {
+        if (!SessionState.GetBool(Key, false) || Status != "RUNNING") return;
         SessionState.SetString(Key + ".status", status);
-        File.WriteAllText(Path.Combine(Output, "results.json"), JsonConvert.SerializeObject(new { status, screen = new[] { Screen.width, Screen.height }, shots, notes, errors }, Formatting.Indented));
-        EditorApplication.update -= Tick; EditorApplication.ExitPlaymode();
+        try
+        {
+            File.WriteAllText(Path.Combine(Output, "results.json"), JsonConvert.SerializeObject(new { status, screen = new[] { Screen.width, Screen.height }, shots, notes, errors }, Formatting.Indented));
+        }
+        catch (Exception error)
+        {
+            SessionState.SetString(Key + ".writeFailure", error.ToString());
+            SessionState.SetString(Key + ".status", "FAIL_WRITE " + status);
+            Debug.LogWarning("[" + Key + "] 결과 기록 실패: " + error.Message);
+        }
+        finally
+        {
+            EditorApplication.update -= Tick;
+            if (OwnsPlay() && EditorApplication.isPlayingOrWillChangePlaymode) EditorApplication.ExitPlaymode();
+        }
+    }
+
+    static bool OwnsPlay() => SessionState.GetBool(Key, false)
+        && !string.IsNullOrEmpty(IsolatedSavePlayGuard.ActiveDirectory)
+        && string.Equals(IsolatedSavePlayGuard.ActiveDirectory, SessionState.GetString(Key + ".isolated", ""), StringComparison.OrdinalIgnoreCase);
+
+    static void DisposeWork(IDisposable value)
+    {
+        try { value?.Dispose(); }
+        catch (Exception error) { errors.Add("CLEANUP_FAILED " + error); Debug.LogWarning("[" + Key + "] 캡처 자원 반환 실패: " + error.Message); }
+    }
+
+    static void ReturnAccount()
+    {
+        if (!SessionState.GetBool(Key + ".return", false)) { EditorApplication.update -= ReturnAccount; return; }
+        if (EditorApplication.isCompiling || EditorApplication.isUpdating) return;
+        EditorApplication.update -= ReturnAccount;
+        bool returned = IsolatedSavePlayGuard.TryUseRealAccountWhenIdle();
+        SessionState.SetBool(Key + ".return", false);
+        SessionState.SetString(Key + ".returnStatus", returned ? "RETURNED" : "BLOCKED_BY_OTHER_EXECUTION");
+        SessionState.EraseString(Key + ".isolated");
+        if (!returned) Debug.LogWarning("[" + Key + "] 일반 계정 반환을 완료하지 못했습니다. 다른 실행의 준비는 보존했습니다.");
     }
     static IEnumerator Wait(float seconds) { float until = Time.time + seconds; while (Time.time < until) yield return null; }
     static IEnumerator Shot(string name)

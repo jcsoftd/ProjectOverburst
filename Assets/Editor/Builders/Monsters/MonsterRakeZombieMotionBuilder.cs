@@ -141,6 +141,6 @@ public static class MonsterRakeZombieMotionBuilder
                 AssetDatabase.TryGetGUIDAndLocalFileIdentifier(clip,out string guid,out long localId);
                 receipts.Add(new JObject{["path"]=path,["clip"]=clip.name,["guid"]=guid,["localId"]=localId,["sha256"]=Hash(Path.Combine(project,path)),["sourceSha256"]=row["sourceSha256"].DeepClone(),["sourcePath"]=row["sourcePath"].DeepClone(),["fps"]=clip.frameRate,["seconds"]=clip.length,["human"]=clip.isHumanMotion,["loop"]=settings.loopTime,["bakeRootXZIntoPose"]=settings.loopBlendPositionXZ});}
             File.WriteAllText(Path.Combine(outputDirectory,"in-place-clips.json"),new JObject{["status"]="PASS_SAVED_HUMANOID_IN_PLACE_CLIPS",["entries"]=receipts,["originalSourcesChanged"]=false}.ToString());return "PASS_SAVED_HUMANOID_IN_PLACE_CLIPS";
-        }catch{foreach(string path in created)AssetDatabase.DeleteAsset(path);throw;}
+        }catch{foreach(string path in created)EditorFileRecycle.MoveAsset(path);throw;}
     }
 }

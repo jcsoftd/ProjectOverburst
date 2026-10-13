@@ -176,6 +176,6 @@ public static class BloodSweepVariationBuilder
             return AssetDatabase.LoadAssetAtPath<VisualEffectAsset>(path)
                 ?? throw new InvalidOperationException("Graph import failed: " + name);
         }
-        catch { AssetDatabase.DeleteAsset(path); throw; }
+        catch { EditorFileRecycle.MoveAsset(path); throw; }
     }
 }

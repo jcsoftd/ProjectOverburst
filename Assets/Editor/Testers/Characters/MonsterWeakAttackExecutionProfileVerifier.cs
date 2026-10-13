@@ -185,10 +185,10 @@ public static class MonsterWeakAttackExecutionProfileVerifier
         }
         finally
         {
-            if(AssetDatabase.LoadMainAssetAtPath(profilePath)!=null)AssetDatabase.DeleteAsset(profilePath);
-            if(fixtureCreated)AssetDatabase.DeleteAsset(abilityPath);else UnityEngine.Object.DestroyImmediate(fixture);
+            if(AssetDatabase.LoadMainAssetAtPath(profilePath)!=null)EditorFileRecycle.MoveAsset(profilePath);
+            if(fixtureCreated)EditorFileRecycle.MoveAsset(abilityPath);else UnityEngine.Object.DestroyImmediate(fixture);
             foreach(string path in folders.Distinct().OrderByDescending(p=>p.Length))
-                if(AssetDatabase.IsValidFolder(path) && Directory.GetFileSystemEntries(path).Length==0)AssetDatabase.DeleteAsset(path);
+                if(AssetDatabase.IsValidFolder(path) && Directory.GetFileSystemEntries(path).Length==0)EditorFileRecycle.MoveAsset(path);
         }
         check("native fixture assets cleaned",AssetDatabase.LoadMainAssetAtPath(abilityPath)==null && AssetDatabase.LoadMainAssetAtPath(profilePath)==null);
     }

@@ -236,7 +236,7 @@ namespace Overburst.EditorBalance
             finally
             {
                 window.DiscardChanges();Undo.RevertAllDownToGroup(group);
-                if(!AssetDatabase.DeleteAsset(Temp))throw new InvalidOperationException("Test asset cleanup failed");
+                if(!EditorFileRecycle.MoveAsset(Temp))throw new InvalidOperationException("Test asset cleanup failed");
             }
             Check(!File.Exists(Temp)&&!File.Exists(Temp+".meta"),"Temporary asset and meta returned");
         }

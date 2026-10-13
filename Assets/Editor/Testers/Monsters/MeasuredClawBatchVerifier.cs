@@ -126,7 +126,7 @@ public static class MeasuredClawBatchVerifier
                 (stage, asset) => { if (stage == "before-report") Directory.CreateDirectory(Path.Combine(report, "applied.json")); }); }
             catch (Exception) { }
             Check((string)JObject.Parse(File.ReadAllText(Path.Combine(report, "failure.json")))["status"] == "ASSETS_VERIFIED_REPORT_FAILED", "Report failure retains native-verified assets");
-            var reportDisk = Disk(); Directory.Delete(Path.Combine(report, "applied.json")); MonsterPresentationCalibrationBuilder.VerifyAndPublishMeasuredClawContacts(report);
+            var reportDisk = Disk(); EditorFileRecycle.MovePath(Path.Combine(report, "applied.json")); MonsterPresentationCalibrationBuilder.VerifyAndPublishMeasuredClawContacts(report);
             Check(Disk().SequenceEqual(reportDisk) && File.Exists(Path.Combine(report, "applied.json")), "Report-only recovery writes no asset"); Restore();
             var grouping = new SerializedObject(abilities[0]);
             grouping.FindProperty("executionMode").enumValueIndex = (int)EnemyAbilityExecutionMode.Projectile;
@@ -146,9 +146,9 @@ public static class MeasuredClawBatchVerifier
         finally
         {
             foreach (var copy in originals) Object.DestroyImmediate(copy);
-            if (AssetDatabase.IsValidFolder(fixture)) AssetDatabase.DeleteAsset(fixture);
+            if (AssetDatabase.IsValidFolder(fixture)) EditorFileRecycle.MoveAsset(fixture);
             string fixtureRoot = MonsterPresentationCalibrationBuilder.MeasuredFixtureRoot.TrimEnd('/');
-            if (Directory.Exists(fixtureRoot) && !Directory.EnumerateFileSystemEntries(fixtureRoot).Any()) AssetDatabase.DeleteAsset(fixtureRoot);
+            if (Directory.Exists(fixtureRoot) && !Directory.EnumerateFileSystemEntries(fixtureRoot).Any()) EditorFileRecycle.MoveAsset(fixtureRoot);
         }
         bool productPreserved = products.Select(Hash).SequenceEqual(productHashes)
             && MonsterPresentationCalibrationBuilder.MeasuredState(source) == productState[0]

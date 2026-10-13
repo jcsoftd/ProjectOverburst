@@ -92,7 +92,7 @@ public static class VfxLegacyCleanupUtility
         Record("Moved authoring source out of the game, preserving GUID.");
         foreach (string path in deleted)
         {
-            if (!AssetDatabase.DeleteAsset(path)) throw new IOException("Delete failed: " + path);
+            if (!EditorFileRecycle.MoveAsset(path)) throw new IOException("Delete failed: " + path);
             Record("Deleted " + path);
         }
         var result = Validate(output);

@@ -90,6 +90,16 @@ public static class IsolatedSavePlayGuard
         Debug.Log("[저장 경로] 다음 Play는 실제 계정을 사용합니다.");
     }
 
+    // 종료를 소유한 검증기만 호출한다. 다른 실행의 준비와 경로는 변경하지 않는다.
+    public static bool TryUseRealAccountWhenIdle()
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
+            || !string.IsNullOrEmpty(ActiveDirectory) || !string.IsNullOrEmpty(PreparedDirectory)
+            || !string.IsNullOrEmpty(CurrentDirectory)) return false;
+        UseRealAccount();
+        return !RequiresAccountChoice;
+    }
+
     [MenuItem("OVERBURST/Account/실제 계정으로 Play")]
     public static void EnterRealPlay()
     {

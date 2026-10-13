@@ -10,7 +10,7 @@ using Overburst.Persistence;
 public static class WeaponBalanceMigrationFixVerifier
 {
     const string Key="WeaponBalanceMigrationFix";
-    const string Root=@"D:\JC Program\유니티\개인프로젝트\프로젝트 오버버스트\개인파일\코덱스산출\Persistence\20260929_WeaponMigrationFix";
+    static string Root => Path.GetFullPath(Path.Combine(Application.dataPath, "../../개인파일/코덱스산출/Persistence/20260929_WeaponMigrationFix"));
     static double deadline;
     static int readyFrames;
     static readonly List<string> errors=new List<string>();

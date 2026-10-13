@@ -76,7 +76,7 @@ public static class MonsterTunerPlayVerifier
             bool preserved = actual == SessionState.GetString(Key + ".Scenes", "");
             File.WriteAllText(Path.Combine(Output, "play-return.json"), JsonConvert.SerializeObject(new { sceneDirtyPreserved = preserved, accountEnvironmentCleared = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY")), status = SessionState.GetString(Key + ".Status", "") }, Formatting.Indented));
             string root = SessionState.GetString(Key + ".Root", "");
-            if (root.StartsWith("Assets/Editor/Testers/Characters/MonsterTuner/Fixtures/Run_", StringComparison.Ordinal)) AssetDatabase.DeleteAsset(root);
+            if (root.StartsWith("Assets/Editor/Testers/Characters/MonsterTuner/Fixtures/Run_", StringComparison.Ordinal)) EditorFileRecycle.MoveAsset(root);
             SessionState.SetBool(Key, false);
         }
     }

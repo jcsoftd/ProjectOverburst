@@ -17,17 +17,30 @@ public static class AttackPoseCapture
     static readonly List<string> meta = new List<string>(), errors = new List<string>();
     static string Output => SessionState.GetString(Key + ".output", "");
     public static string Status => SessionState.GetString(Key + ".status", "NOT_RUN");
-    static AttackPoseCapture() { EditorApplication.playModeStateChanged += State; }
+    static AttackPoseCapture()
+    {
+        EditorApplication.playModeStateChanged += State;
+        if (SessionState.GetBool(Key + ".return", false)) EditorApplication.update += ReturnAccount;
+    }
 
     // ids: "|"-separated enemy ids; comboOnly: only abilities with more than one hit.
     public static void Run(string output, string tag, string ids, bool comboOnly)
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Already playing");
+        IsolatedSavePlayGuard.ValidateDirectory(Path.Combine(output, "IsolatedAccount"));
+        if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable))
+            || !string.IsNullOrEmpty(IsolatedSavePlayGuard.ActiveDirectory)
+            || !string.IsNullOrEmpty(SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared", "")))
+            throw new InvalidOperationException("다른 실행의 격리 계정 준비가 남아 있습니다.");
         Directory.CreateDirectory(output);
         SessionState.SetString(Key + ".output", output); SessionState.SetString(Key + ".tag", tag);
         SessionState.SetString(Key + ".ids", ids); SessionState.SetBool(Key + ".combo", comboOnly);
         SessionState.EraseString(Key + ".env");
-        IsolatedSavePlayGuard.PrepareIsolatedPlay(Path.Combine(output, "IsolatedAccount"));
+        string isolated = Path.GetFullPath(Path.Combine(output, "IsolatedAccount"));
+        IsolatedSavePlayGuard.PrepareIsolatedPlay(isolated);
+        SessionState.SetString(Key + ".isolated", isolated);
+        SessionState.SetString(Key + ".returnStatus", "NOT_RETURNED");
+        SessionState.EraseString(Key + ".writeFailure");
         SessionState.SetBool(Key, true); SessionState.SetString(Key + ".status", "RUNNING");
         EditorApplication.EnterPlaymode();
     }
@@ -55,14 +68,25 @@ public static class AttackPoseCapture
         }
         if (state == PlayModeStateChange.ExitingPlayMode)
         {
+            SessionState.SetBool(Key + ".return", OwnsPlay());
+            if (Status == "RUNNING") SessionState.SetString(Key + ".status", "STOPPED");
             EditorApplication.update -= Tick; Application.logMessageReceived -= Log;
-            while (stack.Count > 0) (stack.Pop() as IDisposable)?.Dispose();
-            (work as IDisposable)?.Dispose(); work = null;
-            Application.runInBackground = SessionState.GetBool(Key + ".background", false);
+            try
+            {
+                while (stack.Count > 0) DisposeWork(stack.Pop() as IDisposable);
+                DisposeWork(work as IDisposable);
+            }
+            finally { work = null; Application.runInBackground = SessionState.GetBool(Key + ".background", false); }
         }
         if (state == PlayModeStateChange.EnteredEditMode)
         {
-            Environment.SetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY", null); SessionState.EraseString(Key + ".env");
+            SessionState.EraseString(Key + ".env");
+            if (SessionState.GetBool(Key + ".return", false))
+            {
+                SessionState.SetString(Key + ".returnStatus", "PENDING");
+                EditorApplication.update -= ReturnAccount;
+                EditorApplication.update += ReturnAccount;
+            }
             SessionState.SetBool(Key, false); SessionState.SetBool(Key + ".follow", false); SessionState.SetString(Key + ".filter", "");
         }
     }
@@ -88,11 +112,47 @@ public static class AttackPoseCapture
     }
     static void Finish(string status)
     {
+        if (!SessionState.GetBool(Key, false) || Status != "RUNNING") return;
         SessionState.SetString(Key + ".status", status);
-        string tag = SessionState.GetString(Key + ".tag", "play");
-        File.WriteAllLines(Path.Combine(Output, "meta_" + tag + ".txt"), meta);
-        File.WriteAllLines(Path.Combine(Output, "status_" + tag + ".txt"), new[] { status }.Concat(errors.Take(20)));
-        EditorApplication.update -= Tick; EditorApplication.ExitPlaymode();
+        try
+        {
+            string tag = SessionState.GetString(Key + ".tag", "play");
+            File.WriteAllLines(Path.Combine(Output, "meta_" + tag + ".txt"), meta);
+            File.WriteAllLines(Path.Combine(Output, "status_" + tag + ".txt"), new[] { status }.Concat(errors.Take(20)));
+        }
+        catch (Exception error)
+        {
+            SessionState.SetString(Key + ".writeFailure", error.ToString());
+            SessionState.SetString(Key + ".status", "FAIL_WRITE " + status);
+            Debug.LogWarning("[" + Key + "] 결과 기록 실패: " + error.Message);
+        }
+        finally
+        {
+            EditorApplication.update -= Tick;
+            if (OwnsPlay() && EditorApplication.isPlayingOrWillChangePlaymode) EditorApplication.ExitPlaymode();
+        }
+    }
+
+    static bool OwnsPlay() => SessionState.GetBool(Key, false)
+        && !string.IsNullOrEmpty(IsolatedSavePlayGuard.ActiveDirectory)
+        && string.Equals(IsolatedSavePlayGuard.ActiveDirectory, SessionState.GetString(Key + ".isolated", ""), StringComparison.OrdinalIgnoreCase);
+
+    static void DisposeWork(IDisposable value)
+    {
+        try { value?.Dispose(); }
+        catch (Exception error) { errors.Add("CLEANUP_FAILED " + error); Debug.LogWarning("[" + Key + "] 캡처 자원 반환 실패: " + error.Message); }
+    }
+
+    static void ReturnAccount()
+    {
+        if (!SessionState.GetBool(Key + ".return", false)) { EditorApplication.update -= ReturnAccount; return; }
+        if (EditorApplication.isCompiling || EditorApplication.isUpdating) return;
+        EditorApplication.update -= ReturnAccount;
+        bool returned = IsolatedSavePlayGuard.TryUseRealAccountWhenIdle();
+        SessionState.SetBool(Key + ".return", false);
+        SessionState.SetString(Key + ".returnStatus", returned ? "RETURNED" : "BLOCKED_BY_OTHER_EXECUTION");
+        SessionState.EraseString(Key + ".isolated");
+        if (!returned) Debug.LogWarning("[" + Key + "] 일반 계정 반환을 완료하지 못했습니다. 다른 실행의 준비는 보존했습니다.");
     }
     static IEnumerator Wait(float s) { float until = Time.time + s; while (Time.time < until) yield return null; }
 

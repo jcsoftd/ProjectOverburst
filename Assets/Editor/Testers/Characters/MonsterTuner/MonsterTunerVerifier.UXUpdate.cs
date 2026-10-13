@@ -211,7 +211,7 @@ public static partial class MonsterTunerVerifier
             EditorApplication.update -= Run;
             if (review != null) review.Close(); if (window != null) window.CloseVerification();
             MonsterTunerWriter.FixtureRoot = null;
-            if (AssetDatabase.IsValidFolder(fixture)) AssetDatabase.DeleteAsset(fixture);
+            if (AssetDatabase.IsValidFolder(fixture)) EditorFileRecycle.MoveAsset(fixture);
             EditorPrefs.SetFloat("Overburst.MonsterTuner.ListWidth", listWidth); EditorPrefs.SetFloat("Overburst.MonsterTuner.DetailWidth", detailWidth);
             File.WriteAllText(Path.Combine(UXOutput, "ux-verification.json"), Newtonsoft.Json.JsonConvert.SerializeObject(new { success, error, count = Checks.Count, checks = Checks }, Newtonsoft.Json.Formatting.Indented));
             Progress(success ? "complete" : "failed");

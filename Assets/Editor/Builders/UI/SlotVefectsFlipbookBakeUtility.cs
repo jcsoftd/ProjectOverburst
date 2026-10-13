@@ -75,7 +75,7 @@ public static class SlotVefectsFlipbookBakeUtility
 
         try
         {
-            File.Delete(requestPath);
+            EditorFileRecycle.MovePath(requestPath);
         }
         catch (IOException)
         {

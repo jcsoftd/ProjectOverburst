@@ -44,7 +44,7 @@ public static class FrankWarriorRootMotionDirectionAuditUtility
         if (!File.Exists(fullPath))
             return;
 
-        File.Delete(fullPath);
+        EditorFileRecycle.MovePath(fullPath);
         try
         {
             RunOnceFromCommandLine();

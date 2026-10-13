@@ -134,9 +134,9 @@ public static partial class MonsterTunerVerifier
             {
                 if (window != null) window.CloseVerification();
                 foreach (var owned in new Object[] { persisted, recovered, motionSession, workingProfile }) if (owned != null) { Undo.ClearUndo(owned); Object.DestroyImmediate(owned); }
-                foreach (string path in new[] { recoveryA, recoveryB }) if (!string.IsNullOrEmpty(path) && File.Exists(path)) File.Delete(path);
-                AssetDatabase.DeleteAsset(root);
-                if (AssetDatabase.IsValidFolder(fixtures) && Directory.GetFileSystemEntries(fixtures).Length == 0) AssetDatabase.DeleteAsset(fixtures);
+                foreach (string path in new[] { recoveryA, recoveryB }) if (!string.IsNullOrEmpty(path) && File.Exists(path)) EditorFileRecycle.MovePath(path);
+                EditorFileRecycle.MoveAsset(root);
+                if (AssetDatabase.IsValidFolder(fixtures) && Directory.GetFileSystemEntries(fixtures).Length == 0) EditorFileRecycle.MoveAsset(fixtures);
             }
         }
         void Select(EnemyDefinition definition)

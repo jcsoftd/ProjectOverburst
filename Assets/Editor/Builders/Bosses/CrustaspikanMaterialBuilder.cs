@@ -296,7 +296,7 @@ public static class CrustaspikanMaterialBuilder
         }
         catch(Exception error)
         {
-            for(int i=created.Count-1;i>=0;i--)AssetDatabase.DeleteAsset(created[i]);
+            for(int i=created.Count-1;i>=0;i--)EditorFileRecycle.MoveAsset(created[i]);
             File.WriteAllText(Path.Combine(outputDirectory,"failure.json"),new JObject{["status"]="FAILED_OWN_ASSETS_ROLLED_BACK",["error"]=error.ToString(),["created"]=JArray.FromObject(created)}.ToString());throw;
         }
         finally{if(actorRoot!=null)Object.DestroyImmediate(actorRoot);if(preview.IsValid())EditorSceneManager.ClosePreviewScene(preview);AssetDatabase.AllowAutoRefresh();}

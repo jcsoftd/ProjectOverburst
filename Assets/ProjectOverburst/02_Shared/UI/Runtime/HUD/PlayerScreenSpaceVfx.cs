@@ -148,9 +148,10 @@ public sealed class PlayerScreenSpaceVfx : MonoBehaviour
     {
         damageStart = healStart = smallHealStart = -100f; lowHealthActive = false;
         DamageVisible = HealingVisible = LowHealthVisible = false;
-        foreach (var effect in new[] { damage, healing, lowHealth })
-            if (effect != null) { effect.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear); SetRenderer(effect, false); }
+        StopAndHide(damage); StopAndHide(healing); StopAndHide(lowHealth);
     }
+    static void StopAndHide(ParticleSystem effect)
+    { if (effect != null) { effect.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear); SetRenderer(effect, false); } }
     void OnDisable()
     {
         if (context != null) context.CurrentActorChanged -= Bind;

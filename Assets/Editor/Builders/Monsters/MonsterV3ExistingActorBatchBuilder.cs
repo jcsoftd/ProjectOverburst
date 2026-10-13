@@ -280,7 +280,7 @@ public static class MonsterV3ExistingActorBatchBuilder
             foreach(string path in assetPaths.Where(p=>!p.EndsWith(".prefab",StringComparison.Ordinal)))
                 Save(AssetDatabase.LoadMainAssetAtPath(path));
             // Restore only this batch's exact original bytes and delete only assets created by this call.
-            foreach(string path in newAssets)if(AssetDatabase.LoadMainAssetAtPath(path)!=null)AssetDatabase.DeleteAsset(path);
+            foreach(string path in newAssets)if(AssetDatabase.LoadMainAssetAtPath(path)!=null)EditorFileRecycle.MoveAsset(path);
             foreach(var item in originalFiles)File.Copy(item.Value,item.Key,true);
             foreach(string path in assetPaths)AssetDatabase.ImportAsset(path,ImportAssetOptions.ForceUpdate);
             File.WriteAllText(Path.Combine(outputDirectory,"apply-result.json"),new JObject{["status"]="FAILED_OWNED_BACKUPS_RESTORED",["error"]=error.ToString()}.ToString());

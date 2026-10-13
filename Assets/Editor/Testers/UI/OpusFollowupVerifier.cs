@@ -134,7 +134,7 @@ public static class OpusFollowupVerifier
         finally
         {
             UnityEngine.Object.DestroyImmediate(go);
-            AssetDatabase.DeleteAsset(ownerPath); AssetDatabase.DeleteAsset(unrelatedPath); AssetDatabase.DeleteAsset(prefabPath);
+            EditorFileRecycle.MoveAsset(ownerPath); EditorFileRecycle.MoveAsset(unrelatedPath); EditorFileRecycle.MoveAsset(prefabPath);
         }
     }
 

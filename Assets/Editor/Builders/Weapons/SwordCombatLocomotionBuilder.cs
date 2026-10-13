@@ -174,7 +174,7 @@ public static class SwordCombatLocomotionBuilder
         catch
         {
             foreach (var p in originalBytes.Keys) { File.WriteAllBytes(p, originalBytes[p]); AssetDatabase.ImportAsset(p, ImportAssetOptions.ForceSynchronousImport); }
-            foreach (var p in created) AssetDatabase.DeleteAsset(p);
+            foreach (var p in created) EditorFileRecycle.MoveAsset(p);
             throw;
         }
     }

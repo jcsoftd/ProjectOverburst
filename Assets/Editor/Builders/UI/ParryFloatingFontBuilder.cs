@@ -49,7 +49,7 @@ public static class ParryFloatingFontBuilder
         {
             if (!saved && font != null)
             {
-                if (created) AssetDatabase.DeleteAsset(FontPath);
+                if (created) EditorFileRecycle.MoveAsset(FontPath);
                 else
                 {
                     if (font.material != null) UnityEngine.Object.DestroyImmediate(font.material);

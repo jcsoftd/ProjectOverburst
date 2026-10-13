@@ -217,7 +217,7 @@ namespace Overburst.EditorBalance.Analysis
                 Check(Hash() != original, "지문: " + f + " 변경을 탐지");
                 File.WriteAllText(path, old, Encoding.UTF8);
             }
-            File.Delete(Path.Combine(root, "enemy.prefab.meta"));
+            EditorFileRecycle.MovePath(Path.Combine(root, "enemy.prefab.meta"));
             Check(Hash() != original, "지문: 의존 파일 삭제도 탐지");
             return list;
         }

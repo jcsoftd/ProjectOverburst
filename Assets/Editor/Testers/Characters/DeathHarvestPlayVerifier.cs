@@ -11,7 +11,7 @@ using UnityEngine;
 public static class DeathHarvestPlayVerifier
 {
     private const string Key = "DeathHarvestPlayVerifier";
-    private const string Root = @"D:\JC Program\유니티\개인프로젝트\프로젝트 오버버스트\개인파일\코덱스산출\MonsterThemes\20260924_UndeadHorde\play";
+    private static string Root => Path.GetFullPath(Path.Combine(Application.dataPath, "../../개인파일/코덱스산출/MonsterThemes/20260924_UndeadHorde/play"));
     private static readonly List<string> passed = new List<string>();
     private static readonly List<string> failed = new List<string>();
     private static IEnumerator work;

@@ -241,7 +241,7 @@ public static partial class SevenThemeFollowupFlowVerifier
         if(AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene)==(string)p["fixture"])EditorSceneManager.playModeStartScene=string.IsNullOrEmpty((string)p["startScene"])?null:AssetDatabase.LoadAssetAtPath<SceneAsset>((string)p["startScene"]);
         string fixture=(string)p["fixture"];
         if(!string.IsNullOrEmpty(fixture) && fixture.StartsWith("Assets/Editor/Testers/Characters/SevenThemeFollowup_",StringComparison.Ordinal)
-            && AssetDatabase.AssetPathToGUID(fixture)==(string)p["fixtureGuid"])AssetDatabase.DeleteAsset(fixture);
+            && AssetDatabase.AssetPathToGUID(fixture)==(string)p["fixtureGuid"])EditorFileRecycle.MoveAsset(fixture);
         IsolatedSavePlayGuard.UseRealAccount();SessionState.EraseString(Key);var now=Scenes();
         var result=new JObject{["status"]=JToken.DeepEquals(p["scenes"],now)&&!IsolatedSavePlayGuard.RequiresAccountChoice?"PASS":"FAIL",["before"]=p["scenes"],["after"]=now,["environment"]=Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable),["guardChoice"]=IsolatedSavePlayGuard.RequiresAccountChoice,["active"]=IsolatedSavePlayGuard.ActiveDirectory,["prepared"]=SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared",""),["startScene"]=AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene),["captureDelta"]=Time.captureDeltaTime};
         File.WriteAllText(Path.Combine(Folder,"return.json"),result.ToString());SessionState.EraseString(ModeKey);return result;

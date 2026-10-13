@@ -242,6 +242,13 @@ namespace Overburst.EditorTools.BossMaker
                 }
             }
         }
+        private static void VerifyWritableAsset(UnityEngine.Object asset)
+        {
+            string path = System.IO.Path.GetFullPath(System.IO.Path.Combine(Application.dataPath, "..", AssetDatabase.GetAssetPath(asset)));
+            using (System.IO.File.Open(path, System.IO.FileMode.Open, System.IO.FileAccess.ReadWrite,
+                System.IO.FileShare.ReadWrite | System.IO.FileShare.Delete)) { }
+        }
+
         public void Apply()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
@@ -253,6 +260,8 @@ namespace Overburst.EditorTools.BossMaker
             if (changed.GroupBy(d => d.AbilitySource).Any(g => g.Count() > 1)) throw new InvalidOperationException("변경 공격들이 같은 능력을 공유합니다. 한 공격씩 저장하거나 능력을 분리하세요.");
             if (changed.Length == 0) return;
             var originals = changed.SelectMany(d => new Object[] { d.Source, d.AbilitySource }).Distinct().ToArray();
+            // Preflight the whole save set before changing any original asset.
+            foreach (var asset in originals) VerifyWritableAsset(asset);
             var snapshots = originals.Select(o => EditorJsonUtility.ToJson(o)).ToArray();
             Undo.IncrementCurrentGroup(); int group = Undo.GetCurrentGroup(); Undo.SetCurrentGroupName("보스 메이커 저장");
             Undo.RegisterCompleteObjectUndo(originals, "보스 메이커 저장");

@@ -160,7 +160,7 @@ public static class MonsterV3ThemeActivationBuilder
         catch (Exception error)
         {
             foreach (var pair in nativeBefore) if (pair.Key != null) { EditorJsonUtility.FromJsonOverwrite(pair.Value, pair.Key); EditorUtility.SetDirty(pair.Key); Save(pair.Key); }
-            foreach (string path in created) AssetDatabase.DeleteAsset(path);
+            foreach (string path in created) EditorFileRecycle.MoveAsset(path);
             foreach (var pair in backups) File.Copy(pair.Value, pair.Key, true);
             foreach (var pair in backups.Where(p => !p.Key.EndsWith(".meta", StringComparison.Ordinal)))
                 AssetDatabase.ImportAsset(pair.Key.Substring(Project.Length + 1).Replace('\\', '/'), ImportAssetOptions.ForceUpdate);

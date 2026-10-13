@@ -27,7 +27,7 @@ public static partial class EditableBarbarianHideoutBuilder
         var references = candidates.Where(p => AssetDatabase.GetDependencies(p, true).Any(d => d == legacy || d.StartsWith(legacy + "/", StringComparison.Ordinal))).ToArray();
         File.WriteAllText(Path.Combine(output, "legacy_dependencies.json"), JsonConvert.SerializeObject(new { scanned = candidates.Length, references }, Formatting.Indented));
         if (references.Length != 0) throw new InvalidOperationException("Legacy references remain: " + string.Join(", ", references));
-        if (!AssetDatabase.DeleteAsset(legacy)) throw new IOException("Legacy camp copy removal failed.");
+        if (!EditorFileRecycle.MoveAsset(legacy)) throw new IOException("Legacy camp copy removal failed.");
         File.WriteAllText(Path.Combine(output, "legacy_cleanup_result.json"), JsonConvert.SerializeObject(new { status = "PASS", deleted = legacy, files = files.Length, scannedAssets = candidates.Length, remainingReferences = 0 }, Formatting.Indented));
         return "Unused whole-camp prefab and seven duplicate materials removed after full dependency/backup checks.";
     }

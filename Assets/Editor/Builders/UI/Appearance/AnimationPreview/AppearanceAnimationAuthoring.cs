@@ -157,7 +157,7 @@ public sealed class AppearanceAnimationAuthoring:AppearanceAuthoringExtension
         var root=PrefabUtility.LoadPrefabContents(AppearanceCustomizationPanel.EditorPreviewPath);
         try{foreach(var module in root.GetComponentsInChildren<AppearanceAnimationPreviewTab>(true))Object.DestroyImmediate(module.gameObject);PrefabUtility.SaveAsPrefabAsset(root,AppearanceCustomizationPanel.EditorPreviewPath);}
         finally{PrefabUtility.UnloadPrefabContents(root);}
-        foreach(var path in new[]{DataRoot,ThumbnailRoot})if(AssetDatabase.IsValidFolder(path))AssetDatabase.DeleteAsset(path);
+        foreach(var path in new[]{DataRoot,ThumbnailRoot})if(AssetDatabase.IsValidFolder(path))EditorFileRecycle.MoveAsset(path);
         Debug.Log("애니메이션 탭과 전용 카탈로그/썸네일을 제거했습니다. 외모·NPC·제외 기록과 원본 애니메이션은 보존됩니다.");
     }
     [MenuItem("Overburst/UI/외모 커스터마이징/애니메이션 제외 목록 내보내기")]

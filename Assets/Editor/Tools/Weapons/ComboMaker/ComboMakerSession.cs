@@ -115,12 +115,21 @@ namespace Overburst.EditorTools.ComboMaker
             return errors;
         }
 
+        private static void VerifyWritableAsset(UnityEngine.Object asset)
+        {
+            string path = System.IO.Path.GetFullPath(System.IO.Path.Combine(Application.dataPath, "..", AssetDatabase.GetAssetPath(asset)));
+            using (System.IO.File.Open(path, System.IO.FileMode.Open, System.IO.FileAccess.ReadWrite,
+                System.IO.FileShare.ReadWrite | System.IO.FileShare.Delete)) { }
+        }
+
         public void Apply()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Play 종료 후 적용하세요.");
             if (SourceChanged) throw new InvalidOperationException("원본이 다른 곳에서 변경되었습니다. 원본을 다시 불러온 뒤 편집하세요.");
             var errors = Validate();
             if (errors.Count > 0) throw new InvalidOperationException(string.Join("\n", errors));
+            // Reject known write locks/permissions before bake or source mutation.
+            VerifyWritableAsset(Asset);
             // Bake may fail: until it succeeds, Source and its disk contents remain untouched.
             MeleeAttackVfxSlopeBakeUtility.BakeWorkingCopy(Source, Working);
             if (IsHeavy)

@@ -10,7 +10,7 @@ using Object = UnityEngine.Object;
 // Local proof of the authored controller's continuous idle/walk/run playback.
 public static class DeathHarvestKnightLoopCapture
 {
-    private const string Output = @"D:\JC Program\유니티\개인프로젝트\프로젝트 오버버스트\개인파일\코덱스산출\MonsterThemes\20260924_UndeadHorde\revisions\20260924_lich_animation\frames";
+    private static string Output => Path.GetFullPath(Path.Combine(Application.dataPath, "../../개인파일/코덱스산출/MonsterThemes/20260924_UndeadHorde/revisions/20260924_lich_animation/frames"));
     private const int Width = 960;
     private const int Height = 540;
     private const int Fps = 12;

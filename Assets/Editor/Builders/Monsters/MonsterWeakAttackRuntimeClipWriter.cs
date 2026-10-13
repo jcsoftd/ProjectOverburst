@@ -66,9 +66,9 @@ public static class MonsterWeakAttackRuntimeClipWriter
         }
         catch
         {
-            if(created){AssetDatabase.DeleteAsset(path);created=false;}
+            if(created){EditorFileRecycle.MoveAsset(path);created=false;}
             for(int i=folders.Count-1;i>=0;i--)
-                if(Directory.Exists(folders[i])&&Directory.GetFileSystemEntries(folders[i]).Length==0)AssetDatabase.DeleteAsset(folders[i]);
+                if(Directory.Exists(folders[i])&&Directory.GetFileSystemEntries(folders[i]).Length==0)EditorFileRecycle.MoveAsset(folders[i]);
             throw;
         }
         finally {if(candidate!=null&&!EditorUtility.IsPersistent(candidate))UnityEngine.Object.DestroyImmediate(candidate);}

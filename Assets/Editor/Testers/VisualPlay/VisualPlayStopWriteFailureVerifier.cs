@@ -259,7 +259,7 @@ try {
         else if (Directory.Exists(ResultPath))
         {
             if (Directory.EnumerateFileSystemEntries(ResultPath).Any()) throw new InvalidOperationException("Owned result-path blocker is no longer empty.");
-            Directory.Delete(ResultPath, false); File.Move(Path.Combine(CaseDirectory, "Result.before.json"), ResultPath);
+            EditorFileRecycle.MovePath(ResultPath, false); File.Move(Path.Combine(CaseDirectory, "Result.before.json"), ResultPath);
         }
     }
     static void AssertReturn()

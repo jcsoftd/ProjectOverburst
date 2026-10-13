@@ -221,7 +221,7 @@ public static class MonsterWeakAttackClockVerifier
         {
             for (int i=owned.Count-1;i>=0;i--) if (owned[i]!=null) UnityEngine.Object.DestroyImmediate(owned[i]);
             EditorSceneManager.ClosePreviewScene(scene);
-            if (AssetDatabase.IsValidFolder(folder)) AssetDatabase.DeleteAsset(folder);
+            if (AssetDatabase.IsValidFolder(folder)) EditorFileRecycle.MoveAsset(folder);
         }
         check("native fixture assets removed",!AssetDatabase.IsValidFolder(folder));
     }

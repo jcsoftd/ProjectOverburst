@@ -123,7 +123,7 @@ public static class OverburstGoalDInteractionFootstepMigration
         {
             File.WriteAllBytes(prefabFile, prefabBefore);
             for (int i = createdAssets.Count - 1; i >= 0; i--)
-                AssetDatabase.DeleteAsset(createdAssets[i]);
+                EditorFileRecycle.MoveAsset(createdAssets[i]);
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
             throw;
         }

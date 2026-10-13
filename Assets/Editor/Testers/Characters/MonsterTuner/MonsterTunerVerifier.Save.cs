@@ -35,7 +35,7 @@ public static partial class MonsterTunerVerifier
             SetFixtureReference(definition, "actorPrefab", actor); SetFixtureReference(peer, "actorPrefab", actor);
             catalog.Entries.Add(new MonsterTunerCatalog.Entry { Definition = definition, Guid = AssetDatabase.AssetPathToGUID(root + "/Definition.asset") });
             catalog.Entries.Add(new MonsterTunerCatalog.Entry { Definition = peer, Guid = AssetDatabase.AssetPathToGUID(root + "/Peer.asset") });
-            session = MonsterTunerSession.Create(definition, false);
+            session = MonsterTunerSession.Create(definition);
             foreach (string field in new[] { "visualScale", "collisionScale", "anchorScale" })
             {
                 var value = session.Value("variant", field); value.vector = Vector3.one * 1.2f; session.Set("variant", field, value, field);
@@ -89,6 +89,10 @@ public static partial class MonsterTunerVerifier
             }
             MonsterTunerWriter.FixtureRoot = root;
             var saved = MonsterTunerWriter.Save(session, catalog); Check("선택 한 마리 저장", saved.Success, saved.Message);
+            var savedProjectile = definition.AbilitySet.GetAbility(projectileIndex);
+            Check("동시 투사체 수·발사 시점 계약 유지", savedProjectile.ProjectilesPerRelease == projectileSource.ProjectilesPerRelease
+                && savedProjectile.ReleaseCount == projectileSource.ReleaseCount
+                && Enumerable.Range(0, projectileSource.HitCount).All(i => savedProjectile.GetHitNormalizedTime(i) == projectileSource.GetHitNormalizedTime(i)));
             Check("사본 저장 뒤 clean", !session.Dirty);
             Check("공유 Variant 개별 분리", definition.Variant != source.Variant && peer.Variant == source.Variant);
             Check("공유 Actor 개별 분리", definition.ActorPrefab != actor && peer.ActorPrefab == actor);
@@ -121,6 +125,30 @@ public static partial class MonsterTunerVerifier
             Check("실패 뒤 사본 보존", session.Dirty && session.Value("variant", "visualScale").vector == Vector3.one * 1.3f);
             Check("실패 뒤 기존 파일·GUID 보존", baseline.All(pair => pair.Value == MonsterTunerStamp.FileHash(pair.Key)));
             MonsterTunerWriter.FailureHook = null;
+
+            string historyBeforeFailure = JsonUtility.ToJson(MonsterTunerHistory.Read(session.definitionGuid));
+            foreach (string phaseToFail in new[] { "after-catalog-refresh", "after-session-saved" })
+            {
+                MonsterTunerWriter.FailureHook = phase => { if (phase == phaseToFail) throw new IOException("intentional finalization fault: " + phase); };
+                var finalFailure = MonsterTunerWriter.Save(session, catalog);
+                Check(phaseToFail + " 실패 결과·자산 복구", !finalFailure.Success && finalFailure.RolledBack, finalFailure.Message);
+                Check(phaseToFail + " 편집 값·기준 보존", session.Dirty && session.Value("variant", "visualScale").vector == Vector3.one * 1.3f
+                    && baseline.All(pair => pair.Value == MonsterTunerStamp.FileHash(pair.Key)) && MonsterTunerWriter.Validate(session, catalog).Count == 0);
+                Check(phaseToFail + " 성공 이력 오기록 없음", historyBeforeFailure == JsonUtility.ToJson(MonsterTunerHistory.Read(session.definitionGuid)));
+            }
+            MonsterTunerWriter.FailureHook = null;
+            using (var lockedRecovery = new FileStream(session.RecoveryPath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                var finalWriteFailure = MonsterTunerWriter.Save(session, catalog);
+                Check("실제 복구 파일 잠금 실패·자산 복구", !finalWriteFailure.Success && finalWriteFailure.RolledBack, finalWriteFailure.Message);
+                Check("복구 기록 재실패에도 편집 사본·원본 보존", session.Dirty && session.Value("variant", "visualScale").vector == Vector3.one * 1.3f
+                    && baseline.All(pair => pair.Value == MonsterTunerStamp.FileHash(pair.Key)) && finalWriteFailure.Message.Contains("복구 파일 기록에 실패"));
+                Check("실제 기록 실패 뒤 성공 이력 보존", historyBeforeFailure == JsonUtility.ToJson(MonsterTunerHistory.Read(session.definitionGuid)));
+            }
+            session.Persist();
+            var recoveredDraft = MonsterTunerSession.Create(definition);
+            try { Check("잠금 해제 후 편집 사본 재기록·복원", recoveredDraft.Restore() && recoveredDraft.Value("variant", "visualScale").vector == Vector3.one * 1.3f); }
+            finally { Object.DestroyImmediate(recoveredDraft); }
             session.Discard(); session.ReadBaseline();
 
             var draftScale = session.Value("variant", "visualScale"); draftScale.vector = Vector3.one * 1.25f; session.Set("variant", "visualScale", draftScale, "외부 충돌용 크기");
@@ -150,9 +178,14 @@ public static partial class MonsterTunerVerifier
         finally
         {
             MonsterTunerWriter.FailureHook = null; MonsterTunerWriter.FixtureRoot = null;
-            if (session != null) { Undo.ClearUndo(session); Object.DestroyImmediate(session); }
-            if (!keep) AssetDatabase.DeleteAsset(root);
-            if (AssetDatabase.IsValidFolder(fixtures) && Directory.Exists(fixtures) && Directory.GetFileSystemEntries(fixtures).Length == 0) AssetDatabase.DeleteAsset(fixtures);
+            if (session != null)
+            {
+                string recovery = session.RecoveryPath;
+                Undo.ClearUndo(session); Object.DestroyImmediate(session);
+                if (!keep && File.Exists(recovery)) EditorFileRecycle.MovePath(recovery);
+            }
+            if (!keep) EditorFileRecycle.MoveAsset(root);
+            if (AssetDatabase.IsValidFolder(fixtures) && Directory.Exists(fixtures) && Directory.GetFileSystemEntries(fixtures).Length == 0) EditorFileRecycle.MoveAsset(fixtures);
         }
     }
     private static void SetFixtureReference(Object asset, string property, Object value)

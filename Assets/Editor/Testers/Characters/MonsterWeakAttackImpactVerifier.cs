@@ -250,7 +250,7 @@ public static class MonsterWeakAttackImpactVerifier
                     foreach (var target in go.GetComponentsInChildren<CombatTarget>(true))
                         CombatTargetRegistry.Unregister(target);
             for (int i = owned.Count - 1; i >= 0; i--) if (owned[i] != null) UnityEngine.Object.DestroyImmediate(owned[i]);
-            if (AssetDatabase.IsValidFolder(folder)) AssetDatabase.DeleteAsset(folder);
+            if (AssetDatabase.IsValidFolder(folder)) EditorFileRecycle.MoveAsset(folder);
             EditorSceneManager.ClosePreviewScene(scene);
         }
         check("native fixture folder removed", !AssetDatabase.IsValidFolder(folder));

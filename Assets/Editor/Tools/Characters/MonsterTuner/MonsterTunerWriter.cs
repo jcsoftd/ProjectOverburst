@@ -76,9 +76,10 @@ namespace Overburst.EditorTools.MonsterTuner
                         && (firstWindow.x <= ability.PreparationEnd || firstWindow.y > ability.HitNormalizedTime + .00001f))
                         errors.Add(ability.AbilityId + ": 패링 예고는 휘두르기 시작 뒤, 첫 타격 전에 있어야 합니다.");
                     float previous = ability.HitNormalizedTime;
-                    for (int hit = 1; hit < ability.HitCount; hit++)
+                    // Two projectiles in one release share the same time; validate successive releases.
+                    for (int release = 1; release < ability.ReleaseCount; release++)
                     {
-                        float time = ability.GetHitNormalizedTime(hit);
+                        float time = ability.GetHitNormalizedTime(release * ability.ProjectilesPerRelease);
                         if (!Finite(time) || time <= previous || time > .95f) errors.Add(ability.AbilityId + ": 추가 타격은 첫 타격 뒤 오름차순이며 0.95 이하여야 합니다.");
                         previous = time;
                     }
@@ -122,6 +123,7 @@ namespace Overburst.EditorTools.MonsterTuner
             if (errors.Count > 0) { result.Message = string.Join("\n", errors); return result; }
             if (!session.Dirty) { result.Success = true; result.Message = "저장할 변경이 없습니다."; return result; }
             var definition = session.Definition;
+            string draft = JsonUtility.ToJson(session, true);
             var historyChanges = session.edits.Select(e => JsonUtility.FromJson<MonsterTunerPatch>(JsonUtility.ToJson(e))).ToList();
             if (FixtureRoot != null && !AssetDatabase.GetAssetPath(definition).StartsWith(FixtureRoot + "/", StringComparison.Ordinal))
                 throw new InvalidOperationException("검증 저장 범위 밖의 정의입니다.");
@@ -230,21 +232,30 @@ namespace Overburst.EditorTools.MonsterTuner
                     try { ValidatePrefab(check); VerifyActorEdits(session, check, remappedAbilities); } finally { PrefabUtility.UnloadPrefabContents(check); }
                 }
                 File.WriteAllText(Path.Combine(result.Backup, "saved-paths.json"), Newtonsoft.Json.JsonConvert.SerializeObject(result.Changed.Concat(created).Distinct().ToArray(), Newtonsoft.Json.Formatting.Indented));
-                MonsterTunerHistory.Record(session, historyChanges, result.Backup); session.Saved();
-                catalog.Refresh(); result.Success = true; result.Message = definition.DisplayName + " 저장·재로드 확인 완료";
+                catalog.Refresh();
+                FailureHook?.Invoke("after-catalog-refresh");
+                session.Saved(clearUndo: false);
+                FailureHook?.Invoke("after-session-saved");
+                MonsterTunerHistory.Record(session, historyChanges, result.Backup);
+                result.Success = true; result.Message = definition.DisplayName + " 저장·재로드 확인 완료";
             }
             catch (Exception e)
             {
                 result.Message = "저장 실패: " + e.Message;
+                JsonUtility.FromJsonOverwrite(draft, session);
+                EditorUtility.SetDirty(session);
                 try
                 {
                     foreach (var pair in snapshots) { EditorUtility.CopySerialized(pair.Value, pair.Key); AssetDatabase.SaveAssetIfDirty(pair.Key); }
                     if (prefabSaved && finalPrefabPath == sourcePrefabPath && snapshotPrefab != null) PrefabUtility.SaveAsPrefabAsset(snapshotPrefab, sourcePrefabPath);
                     foreach (string path in created.AsEnumerable().Reverse()) if (AssetDatabase.LoadMainAssetAtPath(path) != null && !AssetDatabase.MoveAssetToTrash(path)) throw new IOException("저장 복구 자산을 휴지통으로 이동하지 못했습니다: " + path);
-                    session.Persist(); result.RolledBack = true; result.Message += "\n이번 저장을 복구했습니다. 편집 사본은 유지합니다.";
+                    result.RolledBack = true; result.Message += "\n이번 저장을 복구했습니다. 편집 사본은 유지합니다.";
                 }
                 catch (Exception recovery) { result.Message += "\n복구 실패: " + recovery.Message + "\n백업: " + result.Backup; }
-                File.WriteAllText(Path.Combine(result.Backup, "failure.txt"), result.Message);
+                try { session.Persist(); }
+                catch (Exception recovery) { result.Message += "\n편집 사본은 메모리에 남아 있으나 복구 파일 기록에 실패했습니다: " + recovery.Message; }
+                try { File.WriteAllText(Path.Combine(result.Backup, "failure.txt"), result.Message); }
+                catch (Exception log) { result.Message += "\n실패 기록을 저장하지 못했습니다: " + log.Message; }
             }
             finally
             {
@@ -252,6 +263,7 @@ namespace Overburst.EditorTools.MonsterTuner
                 if (snapshotPrefab != null) PrefabUtility.UnloadPrefabContents(snapshotPrefab);
                 foreach (var snapshot in snapshots.Values) Object.DestroyImmediate(snapshot);
             }
+            if (result.Success) Undo.ClearUndo(session);
             return result;
             void Snapshot(Object asset) { if (!snapshots.ContainsKey(asset)) { var copy = Object.Instantiate(asset); copy.name = asset.name; copy.hideFlags = asset.hideFlags; snapshots.Add(asset, copy); } }
             T Clone<T>(T asset, string candidate) where T : Object

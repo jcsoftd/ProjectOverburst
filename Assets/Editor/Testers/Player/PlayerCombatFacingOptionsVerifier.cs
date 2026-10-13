@@ -100,7 +100,7 @@ public static class PlayerCombatFacingOptionsVerifier
                 OverburstGameSettings.HitEffectScale = originalHit;
                 if (panel != null) typeof(OverburstSettingsPanel).GetMethod("Refresh", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(panel, null);
                 if (originalFile != null) File.WriteAllBytes(settingsPath, originalFile);
-                else if (File.Exists(settingsPath)) File.Delete(settingsPath);
+                else if (File.Exists(settingsPath)) EditorFileRecycle.MovePath(settingsPath);
                 dirtyField.SetValue(null, originalDirty);
                 restored = true;
             }

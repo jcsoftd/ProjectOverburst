@@ -156,9 +156,10 @@ namespace Overburst.EditorTools.MonsterTuner
             }
             return Dirty;
         }
-        public void Saved()
+        public void Saved(bool clearUndo = true)
         {
-            edits.Clear(); ReadBaseline(); Persist(); Undo.ClearUndo(this);
+            edits.Clear(); ReadBaseline(); Persist();
+            if (clearUndo) Undo.ClearUndo(this);
         }
         public void Discard()
         {

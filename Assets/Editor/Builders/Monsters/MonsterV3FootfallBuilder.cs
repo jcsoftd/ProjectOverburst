@@ -72,7 +72,7 @@ public static class MonsterV3FootfallBuilder
                 ["groundStepTier"]=loaded.GroundStepTier.ToString(),["sharedEffectsAndAudioChanged"]=false,["gameplayVerified"]=false};
             File.WriteAllText(output,result.ToString());return result;
         }
-        catch{if(saved)AssetDatabase.DeleteAsset(path);else if(created!=null)UnityEngine.Object.DestroyImmediate(created);throw;}
+        catch{if(saved)EditorFileRecycle.MoveAsset(path);else if(created!=null)UnityEngine.Object.DestroyImmediate(created);throw;}
         finally{if(graph.IsValid())graph.Destroy();EditorSceneManager.ClosePreviewScene(scene);}
     }
 }

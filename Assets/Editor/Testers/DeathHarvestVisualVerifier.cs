@@ -12,7 +12,7 @@ using Object = UnityEngine.Object;
 // Local visual QA; every temporary object stays in an unsaved additive scene.
 public static class DeathHarvestVisualVerifier
 {
-    private const string Output = @"D:\JC Program\유니티\개인프로젝트\프로젝트 오버버스트\개인파일\코덱스산출\MonsterThemes\20260924_UndeadHorde\captures";
+    private static string Output => Path.GetFullPath(Path.Combine(Application.dataPath, "../../개인파일/코덱스산출/MonsterThemes/20260924_UndeadHorde/captures"));
 
     public static string AuditRake()
     {
