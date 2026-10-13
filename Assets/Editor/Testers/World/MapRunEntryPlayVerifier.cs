@@ -50,7 +50,7 @@ public static class MapRunEntryPlayVerifier
         if (!value) throw new InvalidOperationException(name);
         checks.Add(name); Write("progress.json", new { checks = checks.Count, last = name, utc = DateTime.UtcNow });
     }
-    public static void Start(string directory, bool desertOnly = false, bool largeOnly = false, int completionCases = 0, int bossCases = 0, bool minimapOnly = false, bool guidanceOnly = false, bool minimapCycles = false, bool includeLargeCave = true, int desertCandidateIndex = 0, bool minimapCompatibility = false, bool minimapResolution = false, bool progressionOnly = false, bool escapeSettlementOnly = false, int escapeCases = 0, int caveCount = 0, bool verifyMapRequired = false, bool speciesGroupsOnly = false, bool caveOnly = false, bool caveBakedSpawnOnly = false, string caveTheme = null)
+    public static void Start(string directory, bool desertOnly = false, bool largeOnly = false, int completionCases = 0, int bossCases = 0, bool minimapOnly = false, bool guidanceOnly = false, bool minimapCycles = false, bool includeLargeCave = true, int desertCandidateIndex = 0, bool minimapCompatibility = false, bool minimapResolution = false, bool progressionOnly = false, bool escapeSettlementOnly = false, int escapeCases = 0, int caveCount = 0, bool verifyMapRequired = false, bool speciesGroupsOnly = false, bool caveOnly = false, bool caveBakedSpawnOnly = false, string caveTheme = null, bool desertRoadSpawnOnly = false)
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
             || IsolatedSavePlayGuard.ActiveDirectory != "" || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable))
@@ -103,6 +103,7 @@ public static class MapRunEntryPlayVerifier
         Write("fixture.json", state.items.Where(i => i.map != null));
         SessionState.SetString(Key + "pending", output); SessionState.SetString(Key + "return", output);
         SessionState.SetBool(Key + "desertOnly", desertOnly);
+        SessionState.SetBool(Key + "desertRoadSpawnOnly", desertRoadSpawnOnly);
         SessionState.SetBool(Key + "largeOnly", largeOnly);
         SessionState.SetInt(Key + "completionCases", completionCases);
         SessionState.SetInt(Key + "bossCases", bossCases);
@@ -207,7 +208,7 @@ public static class MapRunEntryPlayVerifier
         var cave4 = maps.First(i => i.map.terrain == MapTerrainKind.Cave && i.map.areaCount == (caveCount > 0 ? caveCount : 4));
         var cave20 = maps.Single(i => i.map.terrain == MapTerrainKind.Cave && i.map.areaCount == 20);
         var desert = maps.First(i => i.map.terrain == MapTerrainKind.Desert);
-        if (caveCount == 0)
+        if (caveCount == 0 && !SessionState.GetBool(Key + "desertRoadSpawnOnly", false))
         {
             long revision = account.Revision;
             Check(!flow.EnterRun(DiamondDungeonWorld.SceneName, cave4.map, cave4.instanceId), "Wrong destination is rejected before preparation");
@@ -282,7 +283,7 @@ public static class MapRunEntryPlayVerifier
             foreach (var area in roster.Areas)
             {
                 var initial = roster.Members.Skip(area.FirstMember).Take(area.Count).Where(m => m.Initial).ToArray();
-                Check(initial.All(m => MapCombatGeometry.CanPlace(area.Ground, m.Definition, m.PlannedPosition, true)), label + ": actual body clearance at all initial positions in area " + area.Ground.Index);
+                Check(initial.All(m => MapCombatGeometry.CanPlace(area.Ground, m.Definition, m.PlannedPosition, true, m.PlannedOnRoad)), label + ": actual body clearance at all initial positions in area " + area.Ground.Index);
                 bool separated = true;
                 for (int i = 0; i < initial.Length; i++) for (int j = i + 1; j < initial.Length; j++)
                 {
@@ -294,7 +295,7 @@ public static class MapRunEntryPlayVerifier
             }
             Write("roster-" + item.map.terrain + "-" + item.map.areaCount + ".json", new { roster.Total, roster.Target, roster.ThemeId,
                 areas = roster.Areas.Select(a => new { a.Ground.Index, a.Ground.Name, a.Ground.Band, a.Ground.SquareMetres, points = a.Ground.Points.Count, a.BasePopulation, a.Count, a.InitialCount, a.Small, a.Medium, a.Elite }),
-                members = roster.Members.Select(m => new { m.Id, enemy = m.Definition.EnemyId, m.AreaIndex, m.Initial, position = new[] { m.PlannedPosition.x, m.PlannedPosition.y, m.PlannedPosition.z } }) });
+                members = roster.Members.Select(m => new { m.Id, enemy = m.Definition.EnemyId, m.AreaIndex, m.Initial, m.PlannedOnRoad, position = new[] { m.PlannedPosition.x, m.PlannedPosition.y, m.PlannedPosition.z } }) });
             if (item.map.terrain == MapTerrainKind.Cave)
             {
                 var cave = gate.GetComponent<Overburst.Caves.CaveWorld>();
@@ -309,6 +310,7 @@ public static class MapRunEntryPlayVerifier
                 Check(!scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<Overburst.Mojave.MojaveExplorer>(true)).Any(c => c.isActiveAndEnabled), label + ": authoring explorer disabled");
                 Check(!scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<Overburst.Mojave.MojaveCamera>(true)).Any(c => c.isActiveAndEnabled), label + ": authoring camera disabled");
             }
+            if (SessionState.GetBool(Key + "desertRoadSpawnOnly", false)) yield return VerifyRoadSpawns(gate);
             if (SessionState.GetBool(Key + "guidanceOnly", false))
             {
                 yield return MapGuidanceVerifier.VerifyPlay(gate, output, Check);
@@ -362,6 +364,73 @@ public static class MapRunEntryPlayVerifier
             }
         }
     }
+    static IEnumerator VerifyRoadSpawns(RunWorldGate gate)
+    {
+        var roster = gate.Roster; var world = gate.GetComponent<Overburst.Mojave.MojaveWorld>();
+        var bank = DesertSpawnData.Load(world);
+        Check(bank && bank.areas.Length == roster.Areas.Count, "Desert road: all platforms use the saved spawn bank");
+        var baseline = MapRunRoster.Build(roster.RunId, gate.Map, roster.Areas.Select(a => a.Ground).ToArray(), gate.BossArena.Ground.Index);
+        Check(baseline.Total == roster.Total && baseline.Target == roster.Target
+            && baseline.Members.Select(m => (m.Id, m.Definition, m.Tier)).SequenceEqual(roster.Members.Select(m => (m.Id, m.Definition, m.Tier)))
+            && baseline.Areas.Select(a => (a.Count, a.InitialCount, a.Small, a.Medium, a.Elite)).SequenceEqual(roster.Areas.Select(a => (a.Count, a.InitialCount, a.Small, a.Medium, a.Elite))),
+            "Desert road: population, initial counts, definitions, tiers and seeded IDs are unchanged");
+        var roads = roster.Members.Where(m => m.PlannedOnRoad).ToArray();
+        Check(roads.Length > 0 && roads.All(m => m.Initial && m.Tier == EnemyThemeTier.Small), "Desert road: sparse initial small packs exist");
+        foreach (var group in roads.GroupBy(m => m.AreaIndex))
+        {
+            Check(group.Count() == MapCombatGeometry.GroupSize(EnemyThemeTier.Small) && group.Select(m => m.Definition).Distinct().Count() == 1,
+                "Desert road: one same-species small pack in area " + group.Key);
+            foreach (var member in group)
+            {
+                var p = member.PlannedPosition; var xz = new Vector2(p.x, p.z);
+                var path = new UnityEngine.AI.NavMeshPath();
+                Check(world.layout.places.All(place => place.Distance(xz) > 1f) && world.layout.RoomDistance(xz, out _) > 1f
+                    && Vector2.Distance(xz, new Vector2(gate.EntryPoint.position.x, gate.EntryPoint.position.z)) >= MapCombatGeometry.EntrySafety
+                    && MapCombatGeometry.CanPlace(roster.Areas[member.AreaIndex].Ground, member.Definition, p, true, true)
+                    && UnityEngine.AI.NavMesh.CalculatePath(p, roster.Areas[member.AreaIndex].Ground.Center, UnityEngine.AI.NavMesh.AllAreas, path)
+                    && path.status == UnityEngine.AI.NavMeshPathStatus.PathComplete, "Desert road: safe connected physical road point " + member.Index);
+            }
+        }
+        var observed = roads.GroupBy(m => m.AreaIndex).OrderBy(g => (g.First().PlannedPosition - gate.EntryPoint.position).sqrMagnitude).First().ToArray();
+        var owner = gate.SpawnBudget.Fields[observed[0].AreaIndex];
+        var player = PlayerContext.Instance.CurrentActor; var original = player.transform.position; var rotation = player.transform.rotation;
+        try
+        {
+            if (!observed.All(m => owner.TryGetActor(m.Index, out _)))
+            {
+                var path = new UnityEngine.AI.NavMeshPath();
+                Check(UnityEngine.AI.NavMesh.CalculatePath(original, observed[0].PlannedPosition, UnityEngine.AI.NavMesh.AllAreas, path)
+                    && path.status == UnityEngine.AI.NavMeshPathStatus.PathComplete, "Desert road: player can approach the road pack");
+                bool found = false; Vector3 approach = original;
+                for (int i = 1; i < path.corners.Length && !found; i++)
+                {
+                    float length = Vector3.Distance(path.corners[i-1], path.corners[i]);
+                    for (float step = 0; step <= length && !found; step += .5f)
+                    {
+                        var p = Vector3.Lerp(path.corners[i-1], path.corners[i], length > 0 ? step / length : 0);
+                        float nearest = observed.Min(m => Vector2.Distance(new Vector2(p.x,p.z), new Vector2(m.PlannedPosition.x,m.PlannedPosition.z)));
+                        if (nearest < 24 || nearest > 34 || roster.Members.Any(m => m.Initial
+                            && Vector2.Distance(new Vector2(p.x,p.z),new Vector2(m.PlannedPosition.x,m.PlannedPosition.z)) < MapCombatGeometry.EntrySafety)) continue;
+                        approach = p; found = true;
+                    }
+                }
+                Check(found, "Desert road: safe approach wakes the pack before it enters view");
+                ActorTeleportUtility.TeleportSafely(player.transform, approach + Vector3.up * .12f, Quaternion.identity);
+                yield return Wait(() => observed.All(m => owner.TryGetActor(m.Index, out var actor) && actor && !actor.Health.IsDead),
+                    "Desert road: approaching creates real living road actors", 30);
+            }
+            Check(observed.All(m => m.State == MapRunRoster.Life.Active && owner.TryGetActor(m.Index, out var actor)
+                && world.layout.RoomDistance(new Vector2(actor.transform.position.x, actor.transform.position.z), out _) > 0),
+                "Desert road: actual small pack stands on the road outside combat platforms");
+        }
+        finally { ActorTeleportUtility.TeleportSafely(player.transform, original, rotation); }
+        Write("road-spawns.json", new { status = "PASS", gate.Map.desertCandidateId, roster.Total,
+            initial = roster.Members.Count(m => m.Initial), roadMembers = roads.Length, roadPacks = roads.Select(m => m.AreaIndex).Distinct().Count(),
+            actualRoadActorIds = observed.Select(m => m.Id),
+            points = roads.Select(m => new { m.Id, enemy = m.Definition.EnemyId, m.AreaIndex, position = new[] { m.PlannedPosition.x, m.PlannedPosition.y, m.PlannedPosition.z } }),
+            scope = "Saved platform bank binding, population parity, every planned road body's clearance/path and actual approached road pack actors; finite lifecycle is checked by the subsequent suite." });
+    }
+
     static void Finish(Exception error)
     {
         if (finishing) return;
@@ -392,6 +461,7 @@ public static class MapRunEntryPlayVerifier
         foreach (var key in new[] { "return", "start", "scenes" }) SessionState.EraseString(Key + key);
         SessionState.EraseFloat(Key + "deadline"); SessionState.EraseBool(Key + "background"); EditorApplication.update -= Return;
         SessionState.EraseBool(Key + "desertOnly");
+        SessionState.EraseBool(Key + "desertRoadSpawnOnly");
         SessionState.EraseBool(Key + "largeOnly"); SessionState.EraseInt(Key + "completionCases"); SessionState.EraseInt(Key + "bossCases");
         SessionState.EraseBool(Key + "minimapOnly");
         SessionState.EraseBool(Key + "guidanceOnly");

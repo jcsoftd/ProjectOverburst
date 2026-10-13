@@ -165,12 +165,19 @@ public static class MapCombatGeometry
         { var delta = floor - p; delta.y = 0; if (delta.sqrMagnitude < 1.25f * 1.25f) return false; }
         return true;
     }
-    public static bool CanPlace(Area area, EnemyDefinition definition, Vector3 point, bool ignoreActors = false)
+    public static bool CanPlace(Area area, EnemyDefinition definition, Vector3 point, bool ignoreActors = false, bool approach = false)
     {
         if (area?.Source == null) return false;
         var body = BodyFor(definition);
-        return area.Source.Floor(point, body.Radius + .1f, out var floor) && Mathf.Abs(floor.y - point.y) <= .3f
-            && Clear(area.Source, floor, body, new Collider[32], ignoreActors);
+        Vector3 floor;
+        if (approach && area.Source.desert)
+        {
+            var xz = new Vector2(point.x, point.z);
+            if (!area.Source.desert.IsWalkable(xz, body.Radius + .1f)) return false;
+            floor = area.Source.desert.Ground(xz);
+        }
+        else if (!area.Source.Floor(point, body.Radius + .1f, out floor)) return false;
+        return Mathf.Abs(floor.y - point.y) <= .3f && Clear(area.Source, floor, body, new Collider[32], ignoreActors);
     }
     public static bool Contains(Area area, Vector3 point)
         => area?.Source != null && area.Source.Floor(point, 0, out var floor) && Mathf.Abs(floor.y - point.y) < 3;
@@ -238,6 +245,61 @@ public static class MapCombatGeometry
             || path.status != NavMeshPathStatus.PathComplete) return false;
         return true;
     }
+    // Move one existing small pack onto a connected road; measured population and seeded IDs stay unchanged.
+    static IEnumerator PlanRoadGroup(MapRunRoster roster, MapRunRoster.Area area, Vector3 entry, System.Random random, System.Diagnostics.Stopwatch watch)
+    {
+        var source = area.Ground.Source;
+        if (!source.desert || area.InitialCount < GroupSize(EnemyThemeTier.Small)) yield break;
+        var roads = Approaches(area.Ground);
+        roads.RemoveAll(p => source.desert.layout.RoomDistance(new Vector2(p.x, p.z), out _) <= 1f
+            || source.desert.layout.places.Exists(place => place.Distance(new Vector2(p.x, p.z)) <= 1f)
+            || !SafeDistance(source, p, entry));
+        if (roads.Count < GroupSize(EnemyThemeTier.Small)) yield break;
+        for (int i = roads.Count - 1; i > 0; i--) { int j = random.Next(i + 1); (roads[i], roads[j]) = (roads[j], roads[i]); }
+        var definitions = new HashSet<EnemyDefinition>();
+        var path = new NavMeshPath(); var overlaps = new Collider[32];
+        for (int i = area.FirstMember; i < area.FirstMember + area.Count; i++)
+        {
+            var first = roster.Members[i];
+            if (!first.Initial || first.Tier != EnemyThemeTier.Small || !definitions.Add(first.Definition)) continue;
+            var group = new List<MapRunRoster.Member>();
+            for (int j = area.FirstMember; j < area.FirstMember + area.Count && group.Count < GroupSize(EnemyThemeTier.Small); j++)
+            {
+                var member = roster.Members[j];
+                if (member.Initial && member.Definition == first.Definition && member.Tier == EnemyThemeTier.Small) group.Add(member);
+            }
+            if (group.Count != GroupSize(EnemyThemeTier.Small)) continue;
+            var body = BodyFor(first.Definition);
+            var occupied = new List<(Vector3 position, float radius)>();
+            foreach (var member in roster.Members)
+                if (member.Initial && !group.Contains(member)) occupied.Add((member.PlannedPosition, BodyFor(member.Definition).Radius));
+            for (int anchor = 0; anchor < Mathf.Min(16, roads.Count); anchor++)
+            {
+                var chosen = new List<Vector3>();
+                for (int j = 0; j < roads.Count && chosen.Count < group.Count; j++)
+                {
+                    if (watch.Elapsed.TotalMilliseconds >= 3) { yield return null; watch.Restart(); }
+                    var delta = roads[j] - roads[anchor]; delta.y = 0;
+                    if (delta.sqrMagnitude > 8 * 8
+                        || !TryRuntimePoint(area.Ground, first.Definition, roads[j], true, overlaps, path, out var point)
+                        || !SafeDistance(source, point, entry)) continue;
+                    bool blocked = false;
+                    foreach (var prior in chosen)
+                        if (!BodiesSeparated(point, body.Radius, prior, body.Radius)) { blocked = true; break; }
+                    if (blocked) continue;
+                    foreach (var prior in occupied)
+                        if (!BodiesSeparated(point, body.Radius, prior.position, prior.radius))
+                        { blocked = true; break; }
+                    if (!blocked) chosen.Add(point);
+                }
+                if (chosen.Count != group.Count) continue;
+                for (int j = 0; j < group.Count; j++) { group[j].PlannedPosition = chosen[j]; group[j].PlannedOnRoad = true; }
+                yield break;
+            }
+        }
+        yield break;
+    }
+
     public static IEnumerator Prepare(RunWorldGate gate, CaveWorld cave, MojaveWorld desert, Vector3 entry)
     {
         if (gate == null || (cave == null) == (desert == null)) throw new ArgumentException("One prepared terrain is required.");
@@ -442,6 +504,16 @@ public static class MapCombatGeometry
                 if (member.Initial) continue;
                 var candidates = safeByDefinition[member.Definition];
                 member.PlannedPosition = candidates[random.Next(candidates.Count)];
+            }
+        }
+        if (desert)
+        {
+            var roadRandom = new System.Random(unchecked(gate.Map.seed ^ 0x1A702D));
+            foreach (var area in roster.Areas)
+            {
+                gate.PreparationStage = "도로 소형 무리 배치 확인 " + (area.Ground.Index + 1) + "/" + roster.Areas.Count;
+                yield return PlanRoadGroup(roster, area, entry, roadRandom, watch);
+                yield return null;
             }
         }
         roster.PlacementReady = true;

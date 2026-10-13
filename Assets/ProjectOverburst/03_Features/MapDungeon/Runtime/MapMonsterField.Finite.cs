@@ -95,7 +95,13 @@ public sealed partial class MapMonsterField
         slots.Sort((a, b) => a.Member.Initial != b.Member.Initial ? (a.Member.Initial ? -1 : 1)
             : a.Member.Initial ? a.Position.z.CompareTo(b.Position.z) : a.Member.Index.CompareTo(b.Member.Index));
     }
-    internal bool NearForInitial(Vector3 player) => FlatDistance(player, transform.position) <= areaRadius + 35;
+    internal bool NearForInitial(Vector3 player)
+    {
+        if (FlatDistance(player, transform.position) <= areaRadius + 35) return true;
+        foreach (var slot in slots)
+            if (slot.Member.PlannedOnRoad && FlatDistance(player, slot.Member.PlannedPosition) <= 35) return true;
+        return false;
+    }
     internal float Priority(Vector3 player) => FlatDistance(player, transform.position) - (InitialPlaced ? 0 : 40);
     static float FlatDistance(Vector3 a, Vector3 b) { a.y = b.y; return Vector3.Distance(a, b); }
     internal int CountNear(Vector3 player, float range)
@@ -245,7 +251,7 @@ public sealed partial class MapMonsterField
         if (slot.Member.Initial && slot.Cursor == 0)
         {
             // Retain G02's packed positions during entry; offsetting one can invalidate its neighbours.
-            if (Clear(finiteArea.Ground, slot.Position, false, out position)) return true;
+            if (Clear(finiteArea.Ground, slot.Position, slot.Member.PlannedOnRoad, out position)) return true;
             if (preparing) return false;
         }
         var points = finiteArea.Ground.Points;

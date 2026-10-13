@@ -16,6 +16,7 @@ public sealed class MapRunRoster
         public EnemyThemeTier Tier { get; internal set; }
         public bool Initial { get; internal set; }
         public Vector3 PlannedPosition { get; internal set; }
+        public bool PlannedOnRoad { get; internal set; }
         public Life State { get; internal set; }
         public int Lease { get; internal set; }
     }
