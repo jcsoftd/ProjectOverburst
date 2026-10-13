@@ -13,8 +13,13 @@ public sealed partial class MapMonsterField
     {
         public MapRunRoster.Member Member;
         public EnemyActor Actor;
+        public CombatHealth BoundHealth;
         public uint ActorLease;
         public int RosterLease, Cursor, Failures, SpawnAreaIndex;
+        public int Order, ActiveIndex = -1;
+        public bool SpawnQueued;
+        public bool PositionDeferred;
+        public LinkedListNode<Slot> ReserveNode;
         public bool Released, EverSpawned, Frozen, WasKinematic;
         public float HealthRatio = -1, RetryAt;
         public Vector3 Position, Safe;
@@ -26,6 +31,11 @@ public sealed partial class MapMonsterField
     MapRunRoster finiteRoster;
     MapRunRoster.Area finiteArea;
     readonly List<Slot> slots = new List<Slot>();
+    readonly List<Slot> activeSlots = new List<Slot>();
+    readonly List<Slot> spawnSlots = new List<Slot>();
+    readonly List<Slot> roadSlots = new List<Slot>();
+    readonly LinkedList<Slot> reserves = new LinkedList<Slot>();
+    readonly Dictionary<EnemyDefinition, Queue<Slot>> reservesByDefinition = new Dictionary<EnemyDefinition, Queue<Slot>>();
     readonly Dictionary<CombatHealth, Slot> bindings = new Dictionary<CombatHealth, Slot>();
     readonly Collider[] spawnOverlaps = new Collider[32];
     NavMeshPath spawnPath;
@@ -35,25 +45,26 @@ public sealed partial class MapMonsterField
     float areaRadius, nextPackAt;
     bool finiteAwake;
     int nextFiniteSlot;
+    int initialRemaining, releasedReserves, refreshCursor;
+    float nextSpawnAttempt;
     public MapRunRoster.Area FiniteArea => finiteArea;
     public int LocalFightLimit { get; private set; }
     public int ReinforcementReleased { get; private set; }
     public int NeighbourSpawnedCount { get; private set; }
     public bool PrepareAtEntry { get; internal set; }
-    public bool InitialPlaced
-    {
-        get { foreach (var slot in slots) if (slot.Member.Initial && !slot.EverSpawned) return false; return true; }
-    }
+    public bool InitialPlaced => initialRemaining == 0;
+    internal float FinitePriority { get; private set; }
+    internal bool HasFiniteSpawnWork => !finiteArea.Cleared && spawnSlots.Count > 0 && Time.unscaledTime >= nextSpawnAttempt;
     public int FiniteActiveCount => bindings.Count;
     public IReadOnlyList<Vector3> FiniteApproaches => approaches;
     public void CollectLivingActors(List<EnemyActor> result)
     {
-        foreach (var slot in slots)
+        foreach (var slot in activeSlots)
             if (slot.Member.State == MapRunRoster.Life.Active && Valid(slot) && !slot.Actor.Health.IsDead) result.Add(slot.Actor);
     }
     public bool TryGetActor(int memberIndex, out EnemyActor actor)
     {
-        foreach (var slot in slots)
+        foreach (var slot in activeSlots)
             if (slot.Member.Index == memberIndex && slot.Member.State == MapRunRoster.Life.Active && Valid(slot)) { actor = slot.Actor; return true; }
         actor = null; return false;
     }
@@ -94,99 +105,129 @@ public sealed partial class MapMonsterField
         // Keep neighbours together in the limited initial queue; reserves retain their seeded order.
         slots.Sort((a, b) => a.Member.Initial != b.Member.Initial ? (a.Member.Initial ? -1 : 1)
             : a.Member.Initial ? a.Position.z.CompareTo(b.Position.z) : a.Member.Index.CompareTo(b.Member.Index));
+        for (int i = 0; i < slots.Count; i++)
+        {
+            var slot = slots[i]; slot.Order = i;
+            if (slot.Member.PlannedOnRoad) roadSlots.Add(slot);
+            if (slot.Member.Initial) { initialRemaining++; QueueSpawn(slot); }
+            else
+            {
+                slot.ReserveNode = reserves.AddLast(slot);
+                if (!reservesByDefinition.TryGetValue(slot.Member.Definition, out var queue))
+                    reservesByDefinition.Add(slot.Member.Definition, queue = new Queue<Slot>());
+                queue.Enqueue(slot);
+            }
+        }
     }
     internal bool NearForInitial(Vector3 player)
     {
         if (FlatDistance(player, transform.position) <= areaRadius + 35) return true;
-        foreach (var slot in slots)
+        foreach (var slot in roadSlots)
             if (slot.Member.PlannedOnRoad && FlatDistance(player, slot.Member.PlannedPosition) <= 35) return true;
         return false;
     }
     internal float Priority(Vector3 player) => FlatDistance(player, transform.position) - (InitialPlaced ? 0 : 40);
+    internal void CacheFinitePriority(Vector3 player) => FinitePriority = Priority(player);
     static float FlatDistance(Vector3 a, Vector3 b) { a.y = b.y; return Vector3.Distance(a, b); }
     internal int CountNear(Vector3 player, float range)
     {
         int count = 0;
-        foreach (var slot in slots) if (Valid(slot) && !slot.Actor.Health.IsDead && FlatDistance(slot.Actor.transform.position, player) <= range) count++;
+        foreach (var slot in activeSlots) if (Valid(slot) && !slot.Actor.Health.IsDead && FlatDistance(slot.Actor.transform.position, player) <= range) count++;
         return count;
     }
     static bool Valid(Slot slot) => slot.Actor && slot.Actor.IsLeased && slot.Actor.LeaseVersion == slot.ActorLease
         && slot.Actor.gameObject.activeInHierarchy;
     internal void ReconcileFinite()
     {
-        foreach (var slot in slots)
-            if (slot.Member.State == MapRunRoster.Life.Active && !Valid(slot)) ReturnSlot(slot, false);
+        for (int i = activeSlots.Count - 1; i >= 0; i--)
+        {
+            var slot = activeSlots[i];
+            if (!Valid(slot)) { ReturnSlot(slot, false); continue; }
+            if (!slot.Actor.Health.IsDead)
+            {
+                var position = slot.Actor.transform.position;
+                // An urgent fall cannot wait behind the distributed routine ground checks.
+                if (position.y < slot.Safe.y - 3 || FlatDistance(position, slot.Safe) > 5) CheckFiniteGround(slot);
+            }
+        }
     }
     internal bool IsSeparated(Vector3 point, float radius)
     {
-        foreach (var slot in slots)
+        foreach (var slot in activeSlots)
             if (Valid(slot) && !slot.Actor.Health.IsDead && Mathf.Abs(slot.Actor.transform.position.y - point.y) < 3
                 && !MapCombatGeometry.BodiesSeparated(slot.Actor.transform.position, slot.Radius, point, radius)) return false;
         return true;
     }
-    internal void RefreshFinite(Vector3 player, bool preparing)
+    void CheckFiniteGround(Slot slot)
     {
-        foreach (var slot in slots)
+        var actor = slot.Actor; var position = actor.transform.position;
+        if (NavMesh.SamplePosition(position, out var nav, .75f, NavMesh.AllAreas) && Mathf.Abs(nav.position.y - position.y) < .75f)
+            slot.Safe = nav.position;
+        else if (position.y < slot.Safe.y - 3 || FlatDistance(position, slot.Safe) > 5)
         {
-            if (slot.Member.State != MapRunRoster.Life.Active) continue;
+            ActorTeleportUtility.TeleportSafely(actor.transform, slot.Safe + Vector3.up * .06f, actor.transform.rotation);
+            actor.AI?.SetHomePosition(slot.Safe); budget.BoundaryRecoveries++;
+        }
+    }
+    internal bool RefreshFinite(Vector3 player, bool preparing, long started)
+    {
+        if (!preparing && MapCombatGeometry.Contains(finiteArea.Ground, player)) triggered = true;
+        while (refreshCursor < activeSlots.Count)
+        {
+            if (!MapSpawnBudget.HasFiniteTime(started)) return false;
+            var slot = activeSlots[refreshCursor++];
             if (!Valid(slot)) { ReturnSlot(slot, false); continue; }
             var actor = slot.Actor;
             slot.HealthRatio = actor.Health.CurrentHp / actor.Health.MaxHp;
             if (actor.Health.IsDead) continue;
             if (slot.HealthRatio < 1f || actor.AI && actor.AI.IsAggroActive) triggered = true;
             if (preparing) continue;
-            var position = actor.transform.position;
-            if (NavMesh.SamplePosition(position, out var nav, .75f, NavMesh.AllAreas) && Mathf.Abs(nav.position.y - position.y) < .75f)
-                slot.Safe = nav.position;
-            else if (position.y < slot.Safe.y - 3 || FlatDistance(position, slot.Safe) > 5)
-            {
-                // Recover the same living lease; no synthetic lethal damage or drop callback.
-                ActorTeleportUtility.TeleportSafely(actor.transform, slot.Safe + Vector3.up * .06f, actor.transform.rotation);
-                actor.AI?.SetHomePosition(slot.Safe); budget.BoundaryRecoveries++;
-            }
+            CheckFiniteGround(slot);
             if (FlatDistance(actor.transform.position, player) > 80 && !budget.InView(actor.transform.position, .5f))
             { slot.Position = actor.transform.position; ReturnSlot(slot, true); budget.StreamReturns++; }
         }
-        if (!preparing && MapCombatGeometry.Contains(finiteArea.Ground, player)) triggered = true;
+        refreshCursor = 0; return true;
     }
     internal void PrepareReinforcement(Vector3 player, int nearby, bool preparing)
     {
-        foreach (var slot in slots)
+        foreach (var slot in activeSlots)
             if (!slot.Member.Initial && Valid(slot) && !slot.Actor.Health.IsDead && FlatDistance(slot.Actor.transform.position, player) > 24) nearby++;
         if (preparing || finiteArea.Cleared || !triggered || !NearForInitial(player) || !InitialPlaced || nearby >= LocalFightLimit * .6f) return;
-        foreach (var slot in slots) if (!slot.Member.Initial && slot.Released && slot.Member.State == MapRunRoster.Life.Pending) return;
+        if (releasedReserves > 0) return;
         if (nearby > 0 && Time.unscaledTime < nextPackAt) return;
-        Slot first = null;
-        foreach (var slot in slots)
-            if (!slot.Released && slot.Member.State == MapRunRoster.Life.Pending) { first = slot; break; }
+        Slot first = reserves.First?.Value;
         if (first == null) return;
         var group = new SpawnGroup();
         int remaining = Mathf.Min(LocalFightLimit - nearby, MapCombatGeometry.GroupSize(first.Member.Tier));
-        foreach (var slot in slots)
+        var queue = reservesByDefinition[first.Member.Definition];
+        while (remaining > 0 && queue.Count > 0)
         {
-            if (remaining == 0) break;
-            if (slot.Released || slot.Member.State != MapRunRoster.Life.Pending || slot.Member.Definition != first.Member.Definition) continue;
-            slot.Group = group; slot.Released = true; remaining--; ReinforcementReleased++;
+            var slot = queue.Dequeue(); reserves.Remove(slot.ReserveNode); slot.ReserveNode = null;
+            slot.Group = group; slot.Released = true; QueueSpawn(slot); remaining--; ReinforcementReleased++;
         }
         nextPackAt = Time.unscaledTime + .8f;
     }
-    internal bool TrySpawnFinite(Vector3 player, bool preparing, out bool spawned)
+    internal bool TrySpawnFinite(Vector3 player, bool preparing, long started, out bool spawned)
     {
         spawned = false;
         if (finiteArea.Cleared || (preparing ? !PrepareAtEntry : !NearForInitial(player))) return false;
-        Slot chosen = null;
+        if (!HasFiniteSpawnWork) return false;
+        Slot chosen = null, wrapped = null; float earliest = float.PositiveInfinity;
         // A visible returning actor must not monopolize the frame budget ahead of reserves.
-        for (int n = 0; n < slots.Count; n++)
+        foreach (var slot in spawnSlots)
         {
-            int index = (nextFiniteSlot + n) % slots.Count;
-            var slot = slots[index];
-            if (slot.Released && slot.Member.State == MapRunRoster.Life.Pending && slot.RetryAt <= Time.unscaledTime)
-            { chosen = slot; nextFiniteSlot = (index + 1) % slots.Count; break; }
+            earliest = Mathf.Min(earliest, slot.RetryAt);
+            if (slot.RetryAt > Time.unscaledTime) continue;
+            if (wrapped == null) wrapped = slot;
+            if (slot.Order >= nextFiniteSlot) { chosen = slot; break; }
         }
-        if (chosen == null) return false;
+        chosen = chosen ?? wrapped;
+        if (chosen == null) { nextSpawnAttempt = earliest; return false; }
+        nextFiniteSlot = (chosen.Order + 1) % slots.Count;
         if (!preparing && !chosen.Member.Initial && budget.LocalAlive(player) >= LocalFightLimit) return false;
-        if (!TryFinitePosition(chosen, player, preparing, out var position))
+        if (!TryFinitePositionWithinBudget(chosen, player, preparing, started, out var position))
         {
+            if (chosen.PositionDeferred) return false;
             chosen.RetryAt = Time.unscaledTime + .15f; chosen.Failures++; budget.SpawnRetries++;
             return true;
         }
@@ -211,7 +252,11 @@ public sealed partial class MapMonsterField
         chosen.Body = actor.GetComponent<Rigidbody>(); chosen.WasKinematic = chosen.Body && chosen.Body.isKinematic;
         actor.ApplyNaturalProgress(finiteRoster.NaturalProgressMultiplier);
         if (chosen.HealthRatio > 0) actor.Health.RestoreLivingHealth(chosen.HealthRatio * actor.Health.MaxHp);
-        chosen.HealthRatio = actor.Health.CurrentHp / actor.Health.MaxHp; chosen.EverSpawned = true; chosen.Failures = 0;
+        chosen.HealthRatio = actor.Health.CurrentHp / actor.Health.MaxHp;
+        if (!chosen.EverSpawned && chosen.Member.Initial) initialRemaining--;
+        chosen.EverSpawned = true; chosen.Failures = 0;
+        DequeueSpawn(chosen); chosen.ActiveIndex = activeSlots.Count; activeSlots.Add(chosen);
+        chosen.BoundHealth = actor.Health; budget.InvalidateFiniteCounts();
         bindings.Add(actor.Health, chosen); actor.Health.OnDead += FiniteDead; actor.Health.OnHealthChanged += FiniteHealth;
         SpawnedCount++; spawned = true;
         if (chosen.SpawnAreaIndex != finiteArea.Ground.Index) NeighbourSpawnedCount++;
@@ -221,9 +266,16 @@ public sealed partial class MapMonsterField
         return true;
     }
     bool TryFinitePosition(Slot slot, Vector3 player, bool preparing, out Vector3 position)
+        => TryFinitePositionWithinBudget(slot, player, preparing, 0, out position);
+    bool TryFinitePositionWithinBudget(Slot slot, Vector3 player, bool preparing, long started, out Vector3 position)
     {
-        position = default;
+        position = default; slot.PositionDeferred = false;
         if (finiteArea.Cleared) return false;
+        bool Expired()
+        {
+            slot.PositionDeferred = started > 0 && !MapSpawnBudget.HasFiniteTime(started);
+            return slot.PositionDeferred;
+        }
         bool Clear(MapCombatGeometry.Area ground, Vector3 candidate, bool approach, out Vector3 result)
         {
             result = default;
@@ -243,6 +295,7 @@ public sealed partial class MapMonsterField
         if (!slot.EverSpawned && slot.Group?.Ground != null)
             for (int i = 0; i < 24; i++)
             {
+                if (Expired()) return false;
                 int n = slot.GroupCursor++;
                 float angle = (slot.Member.Index * 2.399963f + n * Mathf.PI * .25f);
                 float distance = (slot.Radius * 2 + MapCombatGeometry.BodyGap + .12f) * (1 + n % 24 / 8);
@@ -251,6 +304,7 @@ public sealed partial class MapMonsterField
             }
         if (slot.Member.Initial && slot.Cursor == 0)
         {
+            if (Expired()) return false;
             // Retain G02's packed positions during entry; offsetting one can invalidate its neighbours.
             if (Clear(finiteArea.Ground, slot.Position, slot.Member.PlannedOnRoad, out position)) return true;
             if (preparing) return false;
@@ -259,6 +313,7 @@ public sealed partial class MapMonsterField
         int total = points.Count + approaches.Count;
         for (int i = 0; i < Mathf.Min(8, total); i++)
         {
+            if (Expired()) return false;
             int index = (slot.Cursor++ + slot.Member.Index * 17) % total;
             bool approach = index >= points.Count;
             var candidate = approach ? approaches[index - points.Count] : points[index];
@@ -268,6 +323,7 @@ public sealed partial class MapMonsterField
             foreach (var neighbour in reinforcementNeighbours)
                 for (int i = 0; i < Mathf.Min(8, neighbour.Points.Count); i++)
                 {
+                    if (Expired()) return false;
                     var candidate = neighbour.Points[(slot.Cursor++ + slot.Member.Index * 17) % neighbour.Points.Count];
                     if (FlatDistance(candidate, finiteArea.Ground.Center) > 65) continue;
                     if (Clear(neighbour, candidate, false, out position)) return true;
@@ -278,7 +334,7 @@ public sealed partial class MapMonsterField
     {
         if (finiteAwake == awake) return;
         finiteAwake = awake;
-        foreach (var slot in slots) if (Valid(slot) && !slot.Actor.Health.IsDead) Freeze(slot, !awake);
+        foreach (var slot in activeSlots) if (Valid(slot) && !slot.Actor.Health.IsDead) Freeze(slot, !awake);
     }
     void Freeze(Slot slot, bool frozen)
     {
@@ -308,15 +364,24 @@ public sealed partial class MapMonsterField
     }
     void Unbind(Slot slot)
     {
-        if (!slot.Actor) return;
-        var health = slot.Actor.Health;
-        if (health) { health.OnDead -= FiniteDead; health.OnHealthChanged -= FiniteHealth; bindings.Remove(health); }
+        var health = slot.BoundHealth;
+        if (health) { health.OnDead -= FiniteDead; health.OnHealthChanged -= FiniteHealth; }
+        if (!ReferenceEquals(health, null)) bindings.Remove(health);
+        slot.BoundHealth = null;
+        if (slot.ActiveIndex >= 0)
+        {
+            int index = slot.ActiveIndex, last = activeSlots.Count - 1;
+            if (index != last) { activeSlots[index] = activeSlots[last]; activeSlots[index].ActiveIndex = index; }
+            activeSlots.RemoveAt(last); slot.ActiveIndex = -1;
+            if (refreshCursor > index) refreshCursor = index;
+            budget.InvalidateFiniteCounts();
+        }
     }
     void ReturnSlot(Slot slot, bool release)
     {
         bool valid = Valid(slot); Unbind(slot);
         if (valid) { slot.Actor.Health.SetDamageDeathPrevention(this, false); Freeze(slot, false); }
-        finiteRoster.TryReturn(slot.Member.Index, slot.RosterLease);
+        if (finiteRoster.TryReturn(slot.Member.Index, slot.RosterLease)) QueueSpawn(slot);
         if (release && valid && service) service.Release(slot.Actor);
         slot.Actor = null; slot.Body = null; slot.Frozen = false;
     }
@@ -332,7 +397,25 @@ public sealed partial class MapMonsterField
     void ReleaseFinite()
     {
         if (finiteRoster == null) return;
-        foreach (var slot in slots) if (slot.Member.State == MapRunRoster.Life.Active) ReturnSlot(slot, true);
+        while (activeSlots.Count > 0) ReturnSlot(activeSlots[activeSlots.Count - 1], true);
         bindings.Clear();
+    }
+    void QueueSpawn(Slot slot)
+    {
+        if (slot.SpawnQueued) return;
+        int low = 0, high = spawnSlots.Count;
+        while (low < high)
+        {
+            int middle = (low + high) / 2;
+            if (spawnSlots[middle].Order < slot.Order) low = middle + 1; else high = middle;
+        }
+        spawnSlots.Insert(low, slot); slot.SpawnQueued = true; nextSpawnAttempt = 0;
+        if (!slot.Member.Initial) releasedReserves++;
+    }
+    void DequeueSpawn(Slot slot)
+    {
+        if (!slot.SpawnQueued) return;
+        spawnSlots.Remove(slot); slot.SpawnQueued = false; nextSpawnAttempt = 0;
+        if (!slot.Member.Initial) releasedReserves--;
     }
 }

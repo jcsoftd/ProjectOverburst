@@ -21,6 +21,9 @@ public sealed partial class MapSpawnBudget
     bool preparingInitial;
     float nextFiniteRefresh;
     int lastFiniteFrame = -1;
+    int finiteRefreshField, localCountFrame = -1, localCount;
+    bool finiteRefreshing;
+    Vector3 localCountPosition;
     public IReadOnlyList<MapMonsterField> Fields => finiteFields;
     public bool InitialReady { get; private set; }
     public int BoundaryRecoveries { get; internal set; }
@@ -90,34 +93,49 @@ public sealed partial class MapSpawnBudget
         if (lastFiniteFrame == Time.frameCount) return;
         using (FiniteTotalMarker.Auto())
         {
+            long started = System.Diagnostics.Stopwatch.GetTimestamp();
             lastFiniteFrame = Time.frameCount; SpawnedThisFrame = 0; LastSpawnMilliseconds = 0;
             using (ReconcileMarker.Auto())
                 foreach (var field in finiteFields) field.ReconcileFinite();
-            if (preparing || Time.unscaledTime >= nextFiniteRefresh)
+            if (preparing || finiteRefreshing || Time.unscaledTime >= nextFiniteRefresh)
             using (RefreshMarker.Auto())
             {
-                foreach (var field in finiteFields) field.RefreshFinite(player, preparing);
-                int local = 0;
-                foreach (var field in finiteFields) local += field.CountNear(player, 24);
-                foreach (var field in finiteFields) field.PrepareReinforcement(player, local, preparing);
-                nextFiniteRefresh = Time.unscaledTime + .1f;
+                finiteRefreshing = true;
+                while (finiteRefreshField < finiteFields.Count
+                    && finiteFields[finiteRefreshField].RefreshFinite(player, preparing, started)) finiteRefreshField++;
+                if (finiteRefreshField == finiteFields.Count)
+                {
+                    int local = LocalAlive(player);
+                    foreach (var field in finiteFields) field.PrepareReinforcement(player, local, preparing);
+                    nextFiniteRefresh = Time.unscaledTime + .1f;
+                    finiteRefreshing = false; finiteRefreshField = 0;
+                }
             }
             PendingCount = runGate.Roster.Pending;
+            bool capacity = service.Pool.LeasedCount + service.Pool.PendingReturnCount < AliveLimit;
             using (PriorityMarker.Auto())
             {
-            priorityFields.Clear(); priorityFields.AddRange(finiteFields);
-            priorityFields.Sort((a, b) => a.Priority(player).CompareTo(b.Priority(player)));
+                priorityFields.Clear();
+                if (capacity && HasFiniteTime(started))
+                {
+                    foreach (var field in finiteFields)
+                        if (field.HasFiniteSpawnWork && (preparing ? field.PrepareAtEntry : field.NearForInitial(player)))
+                        { field.CacheFinitePriority(player); priorityFields.Add(field); }
+                    priorityFields.Sort((a, b) => a.FinitePriority.CompareTo(b.FinitePriority));
+                }
             }
             long start = System.Diagnostics.Stopwatch.GetTimestamp();
             using (SpawnMarker.Auto())
             {
                 int attempts = 0;
-                while (attempts < MaxPerFrame && service.Pool.LeasedCount + service.Pool.PendingReturnCount < AliveLimit)
+                while (attempts < MaxPerFrame && HasFiniteTime(started)
+                    && service.Pool.LeasedCount + service.Pool.PendingReturnCount < AliveLimit)
                 {
                     bool attempted = false;
                     foreach (var field in priorityFields)
                     {
-                        if (!field.TrySpawnFinite(player, preparing, out bool spawned)) continue;
+                        if (!HasFiniteTime(started)) break;
+                        if (!field.TrySpawnFinite(player, preparing, started, out bool spawned)) continue;
                         attempted = true; attempts++; if (spawned) SpawnedThisFrame++;
                         break;
                     }
@@ -138,8 +156,16 @@ public sealed partial class MapSpawnBudget
     }
     internal int LocalAlive(Vector3 player)
     {
-        int count = 0; foreach (var field in finiteFields) count += field.CountNear(player, 24); return count;
+        if (localCountFrame != Time.frameCount || localCountPosition != player)
+        {
+            localCount = 0; foreach (var field in finiteFields) localCount += field.CountNear(player, 24);
+            localCountFrame = Time.frameCount; localCountPosition = player;
+        }
+        return localCount;
     }
+    internal void InvalidateFiniteCounts() => localCountFrame = -1;
+    internal static bool HasFiniteTime(long started) =>
+        (System.Diagnostics.Stopwatch.GetTimestamp() - started) * 1000d / System.Diagnostics.Stopwatch.Frequency < FrameBudgetMilliseconds;
     internal bool IsSeparated(Vector3 point, float radius)
     {
         if (!preparingInitial && runPlayer && Vector3.Distance(point, runPlayer.position) < radius + 3) return false;

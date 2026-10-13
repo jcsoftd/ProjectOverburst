@@ -18,6 +18,7 @@ public static class MapFiniteSpawnPlayVerifier
         check(EnemySpawnService.Current && EnemySpawnService.Current.gameObject.scene == gate.gameObject.scene, label + ": scene-local pool survives hub unload");
         check(budget.AliveCount <= budget.AliveLimit && budget.SpawnedThisFrame <= MapSpawnBudget.MaxPerFrame, label + ": frame and live actor limits respected");
         check(roster.Active == budget.Fields.Sum(f => f.FiniteActiveCount), label + ": every active ID has one actor lease");
+        MapFiniteSpawnIndexVerifier.VerifyRuntime(budget, check);
         var first = roster.Members.First(m => m.State == MapRunRoster.Life.Active);
         var field = budget.Fields[first.AreaIndex];
         check(field.TryGetActor(first.Index, out var actor), label + ": logical member resolves to actual actor");
@@ -34,6 +35,7 @@ public static class MapFiniteSpawnPlayVerifier
         check(roster.Kills == before + 1 && first.State == MapRunRoster.Life.Dead, label + ": repeated damage records one natural death");
         yield return Frames(8);
         check(roster.Total == total && roster.Target == target && !field.TryGetActor(first.Index, out _), label + ": death preserves denominator and cannot respawn");
+        MapFiniteSpawnIndexVerifier.VerifyRuntime(budget, check);
 
         // Kill the active entrance packs quickly. Finite reserves must become real walk-in actors.
         var initialActive = roster.Members.Where(m => m.State == MapRunRoster.Life.Active).ToArray();
@@ -143,6 +145,7 @@ public static class MapFiniteSpawnPlayVerifier
             check(roster.Members.Select(m => m.Lease).SequenceEqual(leases), label + ": cleared map never spawns or restores another natural ID");
         }
         Write(output, label, gate);
+        MapFiniteSpawnIndexVerifier.VerifyRuntime(budget, check);
         ScreenCapture.CaptureScreenshot(Path.Combine(output, "density-" + roster.Terrain + "-" + roster.Areas.Count + ".png"));
         yield return Frames(3);
     }
