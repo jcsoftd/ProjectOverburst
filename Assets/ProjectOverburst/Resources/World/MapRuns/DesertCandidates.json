@@ -2,244 +2,244 @@
   "version": 1,
   "candidates": [
     {
-      "id": "mojave_b_20261010_p01",
-      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P01_101101_126x126_2Areas.unity",
-      "seed": 101101,
-      "areaCount": 2,
-      "width": 126,
-      "depth": 126
-    },
-    {
-      "id": "mojave_b_20261010_p03",
-      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P03_101303_160x160_3Areas.unity",
-      "seed": 101303,
-      "areaCount": 3,
-      "width": 160,
-      "depth": 160
-    },
-    {
-      "id": "mojave_b_20261010_p04",
-      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P04_101404_176x126_2Areas.unity",
-      "seed": 101404,
-      "areaCount": 2,
-      "width": 176,
-      "depth": 126
-    },
-    {
-      "id": "mojave_b_20261010_p05",
-      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P05_101505_176x176_4Areas.unity",
-      "seed": 101505,
+      "id": "D04_01",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Replacement/Mojave_D04_01.unity",
+      "seed": 131001,
       "areaCount": 4,
-      "width": 176,
-      "depth": 176
+      "width": 224,
+      "depth": 224
     },
     {
-      "id": "mojave_b_20261010_p06",
-      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P06_101606_192x192_4Areas.unity",
-      "seed": 101606,
+      "id": "D04_02",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Replacement/Mojave_D04_02.unity",
+      "seed": 132001,
+      "areaCount": 4,
+      "width": 256,
+      "depth": 256
+    },
+    {
+      "id": "D04_03",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Replacement/Mojave_D04_03.unity",
+      "seed": 133001,
+      "areaCount": 4,
+      "width": 320,
+      "depth": 192
+    },
+    {
+      "id": "D04_04",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Replacement/Mojave_D04_04.unity",
+      "seed": 134001,
       "areaCount": 4,
       "width": 192,
-      "depth": 192
+      "depth": 320
     },
     {
-      "id": "mojave_b_20261010_p07",
-      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P07_101707_224x224_4Areas.unity",
-      "seed": 101707,
+      "id": "D04_05",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Replacement/Mojave_D04_05.unity",
+      "seed": 135001,
       "areaCount": 4,
-      "width": 224,
-      "depth": 224
+      "width": 352,
+      "depth": 208
     },
     {
-      "id": "mojave_b_20261010_p08",
-      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P08_101808_224x224_6Areas.unity",
-      "seed": 101808,
-      "areaCount": 6,
-      "width": 224,
-      "depth": 224
-    },
-    {
-      "id": "mojave_b_20261010_p09",
-      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P09_101909_256x192_4Areas.unity",
-      "seed": 101909,
+      "id": "D04_06",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Replacement/Mojave_D04_06.unity",
+      "seed": 136001,
       "areaCount": 4,
-      "width": 256,
-      "depth": 192
+      "width": 208,
+      "depth": 352
     },
     {
-      "id": "mojave_b_20261010_p10",
-      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P10_102010_256x256_6Areas.unity",
-      "seed": 102010,
-      "areaCount": 6,
-      "width": 256,
-      "depth": 256
-    },
-    {
-      "id": "mojave_b_20261010_p11",
-      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P11_102111_256x256_6Areas.unity",
-      "seed": 102111,
-      "areaCount": 6,
-      "width": 256,
-      "depth": 256
-    },
-    {
-      "id": "mojave_b_20261010_p13",
-      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P13_102313_288x288_9Areas.unity",
-      "seed": 102313,
-      "areaCount": 9,
-      "width": 288,
-      "depth": 288
-    },
-    {
-      "id": "mojave_b_20261010_p14",
-      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P14_102414_288x288_6Areas.unity",
-      "seed": 102414,
+      "id": "D06_01",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Replacement/Mojave_D06_01.unity",
+      "seed": 137001,
       "areaCount": 6,
       "width": 288,
       "depth": 288
     },
     {
-      "id": "mojave_b_20261010_p15",
-      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P15_102515_320x224_6Areas.unity",
-      "seed": 102515,
-      "areaCount": 6,
-      "width": 320,
-      "depth": 224
-    },
-    {
-      "id": "mojave_b_20261010_p16",
-      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P16_102616_320x320_9Areas.unity",
-      "seed": 102616,
-      "areaCount": 9,
-      "width": 320,
-      "depth": 320
-    },
-    {
-      "id": "mojave_b_20261010_p17",
-      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P17_102717_320x320_9Areas.unity",
-      "seed": 102717,
-      "areaCount": 9,
-      "width": 320,
-      "depth": 320
-    },
-    {
-      "id": "mojave_b_20261010_p18",
-      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P18_102818_320x320_6Areas.unity",
-      "seed": 102818,
+      "id": "D06_02",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Replacement/Mojave_D06_02.unity",
+      "seed": 138001,
       "areaCount": 6,
       "width": 320,
       "depth": 320
     },
     {
-      "id": "mojave_b_20261010_p19",
-      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P19_102919_320x320_12Areas.unity",
-      "seed": 102919,
-      "areaCount": 12,
-      "width": 320,
-      "depth": 320
-    },
-    {
-      "id": "mojave_b_20261010_p20",
-      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P20_103020_384x384_12Areas.unity",
-      "seed": 103020,
-      "areaCount": 12,
-      "width": 384,
-      "depth": 384
-    },
-    {
-      "id": "mojave_b_20261010_p21",
-      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P21_103121_384x384_9Areas.unity",
-      "seed": 103121,
-      "areaCount": 9,
-      "width": 384,
-      "depth": 384
-    },
-    {
-      "id": "mojave_b_20261010_p22",
-      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P22_103222_384x384_12Areas.unity",
-      "seed": 103222,
-      "areaCount": 12,
-      "width": 384,
-      "depth": 384
-    },
-    {
-      "id": "mojave_b_20261010_p23",
-      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P23_103323_384x384_15Areas.unity",
-      "seed": 103323,
-      "areaCount": 15,
-      "width": 384,
-      "depth": 384
-    },
-    {
-      "id": "mojave_b_20261010_p24",
-      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P24_103424_384x256_9Areas.unity",
-      "seed": 103424,
-      "areaCount": 9,
+      "id": "D06_03",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Replacement/Mojave_D06_03.unity",
+      "seed": 139001,
+      "areaCount": 6,
       "width": 384,
       "depth": 256
     },
     {
-      "id": "mojave_b_20261010_p25",
-      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P25_103525_448x448_15Areas.unity",
-      "seed": 103525,
-      "areaCount": 15,
-      "width": 448,
-      "depth": 448
+      "id": "D06_04",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Replacement/Mojave_D06_04.unity",
+      "seed": 140001,
+      "areaCount": 6,
+      "width": 256,
+      "depth": 384
     },
     {
-      "id": "mojave_b_20261010_p26",
-      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P26_103626_448x448_12Areas.unity",
-      "seed": 103626,
-      "areaCount": 12,
-      "width": 448,
-      "depth": 448
+      "id": "D06_05",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Replacement/Mojave_D06_05.unity",
+      "seed": 141001,
+      "areaCount": 6,
+      "width": 416,
+      "depth": 240
     },
     {
-      "id": "mojave_b_20261010_p27",
-      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P27_103727_320x448_12Areas.unity",
-      "seed": 103727,
-      "areaCount": 12,
-      "width": 320,
-      "depth": 448
+      "id": "D06_06",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Replacement/Mojave_D06_06.unity",
+      "seed": 142001,
+      "areaCount": 6,
+      "width": 240,
+      "depth": 416
     },
     {
-      "id": "mojave_b_20261010_p28",
-      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P28_103828_512x512_15Areas.unity",
-      "seed": 103828,
-      "areaCount": 15,
-      "width": 512,
-      "depth": 512
+      "id": "D09_01",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Replacement/Mojave_D09_01.unity",
+      "seed": 143001,
+      "areaCount": 9,
+      "width": 384,
+      "depth": 384
     },
     {
-      "id": "mojave_b_20261010_p29",
-      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P29_103929_512x512_12Areas.unity",
-      "seed": 103929,
-      "areaCount": 12,
-      "width": 512,
-      "depth": 512
+      "id": "D09_02",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Replacement/Mojave_D09_02.unity",
+      "seed": 144001,
+      "areaCount": 9,
+      "width": 416,
+      "depth": 416
     },
     {
-      "id": "mojave_b_20261010_p30",
-      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P30_104030_512x320_15Areas.unity",
-      "seed": 104030,
-      "areaCount": 15,
-      "width": 512,
+      "id": "D09_03",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Replacement/Mojave_D09_03.unity",
+      "seed": 145001,
+      "areaCount": 9,
+      "width": 480,
       "depth": 320
     },
     {
-      "id": "mojave_b_20261010_p31",
-      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P31_104131_512x512_15Areas.unity",
-      "seed": 104131,
+      "id": "D09_04",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Replacement/Mojave_D09_04.unity",
+      "seed": 146001,
+      "areaCount": 9,
+      "width": 320,
+      "depth": 480
+    },
+    {
+      "id": "D09_05",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Replacement/Mojave_D09_05.unity",
+      "seed": 147001,
+      "areaCount": 9,
+      "width": 512,
+      "depth": 288
+    },
+    {
+      "id": "D09_06",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Replacement/Mojave_D09_06.unity",
+      "seed": 148001,
+      "areaCount": 9,
+      "width": 288,
+      "depth": 512
+    },
+    {
+      "id": "D12_01",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Replacement/Mojave_D12_01.unity",
+      "seed": 149001,
+      "areaCount": 12,
+      "width": 448,
+      "depth": 448
+    },
+    {
+      "id": "D12_02",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Replacement/Mojave_D12_02.unity",
+      "seed": 150001,
+      "areaCount": 12,
+      "width": 480,
+      "depth": 480
+    },
+    {
+      "id": "D12_03",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Replacement/Mojave_D12_03.unity",
+      "seed": 151001,
+      "areaCount": 12,
+      "width": 576,
+      "depth": 384
+    },
+    {
+      "id": "D12_04",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Replacement/Mojave_D12_04.unity",
+      "seed": 152001,
+      "areaCount": 12,
+      "width": 384,
+      "depth": 576
+    },
+    {
+      "id": "D12_05",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Replacement/Mojave_D12_05.unity",
+      "seed": 153001,
+      "areaCount": 12,
+      "width": 608,
+      "depth": 352
+    },
+    {
+      "id": "D12_06",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Replacement/Mojave_D12_06.unity",
+      "seed": 154001,
+      "areaCount": 12,
+      "width": 352,
+      "depth": 608
+    },
+    {
+      "id": "D15_01",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Replacement/Mojave_D15_01.unity",
+      "seed": 155001,
       "areaCount": 15,
       "width": 512,
       "depth": 512
     },
     {
-      "id": "mojave_b_20261010_p32",
-      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P32_104232_448x288_9Areas.unity",
-      "seed": 104232,
-      "areaCount": 9,
-      "width": 448,
-      "depth": 288
+      "id": "D15_02",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Replacement/Mojave_D15_02.unity",
+      "seed": 156001,
+      "areaCount": 15,
+      "width": 544,
+      "depth": 544
+    },
+    {
+      "id": "D15_03",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Replacement/Mojave_D15_03.unity",
+      "seed": 157001,
+      "areaCount": 15,
+      "width": 640,
+      "depth": 416
+    },
+    {
+      "id": "D15_04",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Replacement/Mojave_D15_04.unity",
+      "seed": 158001,
+      "areaCount": 15,
+      "width": 416,
+      "depth": 640
+    },
+    {
+      "id": "D15_05",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Replacement/Mojave_D15_05.unity",
+      "seed": 159001,
+      "areaCount": 15,
+      "width": 672,
+      "depth": 384
+    },
+    {
+      "id": "D15_06",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Replacement/Mojave_D15_06.unity",
+      "seed": 160001,
+      "areaCount": 15,
+      "width": 384,
+      "depth": 672
     }
   ]
 }
