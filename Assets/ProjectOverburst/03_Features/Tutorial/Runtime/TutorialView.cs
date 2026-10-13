@@ -12,6 +12,7 @@ public sealed class TutorialView : MonoBehaviour
     public Button[] chapterButtons, energyButtons;
     public Image[] gradeBackgrounds;
     private OptionalTutorialController owner;
+    private float baseGoalHeight = 176;
     private static readonly int[] ChapterStarts = { 1, 3, 5, 7, 8, 9, 11 };
     private static readonly string[] ChapterNames = { "약공·강공", "대시·구르기", "대시 공격", "불완전 패링", "일반 패링", "완벽 패링", "장비·물약" };
 
@@ -33,7 +34,7 @@ public sealed class TutorialView : MonoBehaviour
     }
     private void Modal(string title, string body, string note)
     {
-        Hide(); shade.SetActive(true); modal.SetActive(true); chapters.SetActive(false); footer.SetActive(true);
+        Hide(); shade.SetActive(true); modal.SetActive(true); chapters.SetActive(false);
         var rect = (RectTransform)modal.transform; rect.sizeDelta = new Vector2(980,420); rect.anchoredPosition = new Vector2(470,-280);
         modalTitle.text = title; modalBody.text = body; modalNote.text = note;
         primary.gameObject.SetActive(false); secondary.gameObject.SetActive(false); tertiary.gameObject.SetActive(false);
@@ -79,13 +80,14 @@ public sealed class TutorialView : MonoBehaviour
     public void ShowLesson(TutorialLesson lesson)
     {
         Hide(); goal.SetActive(true); tools.SetActive(true);
+        baseGoalHeight = lesson == TutorialLesson.World ? 236 : 176;
         progress.text = "조작 튜토리얼 · " + ((int)lesson + 1) + " / " + TutorialLessons.Count;
         heading.text = TutorialLessons.Names[(int)lesson]; instruction.text = TutorialLessons.Description(lesson);
         keys.text = Keys(lesson);
         Feedback("");
         comparison.SetActive(TutorialLessons.IsParry(lesson));
         for (int i = 0; i < gradeBackgrounds.Length; i++)
-            gradeBackgrounds[i].color = (int)TutorialLessons.Grade(lesson) == i ? new Color(.16f, .157f, .12f, 1) : Color.clear;
+            gradeBackgrounds[i].color = (int)TutorialLessons.Grade(lesson) == i ? Color.white : Color.clear;
         worldConfirm.gameObject.SetActive(lesson == TutorialLesson.World);
         skip.gameObject.SetActive(true);
     }
@@ -118,7 +120,11 @@ public sealed class TutorialView : MonoBehaviour
     {
         feedback.text = message;
         feedback.gameObject.SetActive(!string.IsNullOrEmpty(message));
-        ((RectTransform)goal.transform).sizeDelta = new Vector2(720, string.IsNullOrEmpty(message) ? 176 : 204);
+        float height = baseGoalHeight + (string.IsNullOrEmpty(message) ? 0 : 28);
+        ((RectTransform)goal.transform).sizeDelta = new Vector2(720, height);
+        var belowGoal = new Vector2(24, -(24 + height + 16));
+        ((RectTransform)comparison.transform).anchoredPosition = belowGoal;
+        ((RectTransform)practice.transform).anchoredPosition = belowGoal;
     }
     private static string Key(string name)
     {

@@ -83,7 +83,10 @@ public static class TutorialVerifier
         Check(platform&&platform.localScale.y>=1f&&platform.localPosition.y+platform.localScale.y*.5f<0,"Diamond platform has visible thickness below walkable surface");
         Check(arena.skyMaterial&&arena.skyMaterial.shader.isSupported&&arena.skyMaterial.GetTexturePropertyNames().All(n=>!arena.skyMaterial.GetTexture(n)),"Existing sky material is supported and requires no textures");
         Check(prefab.view.chapterButtons.Length==7 && prefab.view.energyButtons.Length==3,"Approved chapters and practice controls authored");
-        Check(((RectTransform)prefab.view.goal.transform).sizeDelta.x==720 && ((RectTransform)prefab.view.comparison.transform).sizeDelta.x==900,"Approved revision 2 compact panel widths preserved");
+        Check(((RectTransform)prefab.view.goal.transform).sizeDelta.x==720 && ((RectTransform)prefab.view.comparison.transform).sizeDelta.x==720,"Objective and comparison share compact left column");
+        var panelSkin=Resources.Load<Sprite>("UI/HudMenu/Skins/panel");
+        Check(new[]{prefab.view.goal,prefab.view.comparison,prefab.view.modal}.All(g=>g.transform.Find("Existing HUD Panel").GetComponent<UnityEngine.UI.Image>().sprite==panelSkin),"Tutorial panels reuse current HUD menu skin");
+        Check(prefab.view.gradeBackgrounds.All(g=>g.sprite==Resources.Load<Sprite>("UI/HudMenu/Skins/row-hover")),"Selected parry uses current HUD hover skin");
         Check(PlayerParryController.ResolveGrade(.299f)==ParryGrade.Incomplete && PlayerParryController.ResolveGrade(.3f)==ParryGrade.Normal && PlayerParryController.ResolveGrade(.799f)==ParryGrade.Normal && PlayerParryController.ResolveGrade(.8f)==ParryGrade.Perfect,"Actual parry thresholds retained");
         var registry=Resources.Load<AccountContentRegistry>(AccountContentRegistry.ResourcePath);
         var state=OptionalTutorialController.CreateLoadout(registry,NewAccountFactory.Create(registry));
@@ -243,6 +246,28 @@ public static class TutorialVerifier
         Check(AccountGameplaySession.Current==original&&!tutorial.IsTraining,"Repeated entry retry skip exit returns cleanly");yield return Capture("05-town-return");
         Write("runtime-scope.json",new{screen=new[]{Screen.width,Screen.height},completed=tutorial.CompletedMask,scope="Real title/menu/account, keyboard/mouse combat, production pickup/equip/use; combat death tally uses damage injection; no Player build"});
     }
+    private static Rect ScreenBounds(RectTransform rect)
+    {
+        var canvas=rect.GetComponentInParent<Canvas>();
+        var camera=canvas&&canvas.renderMode!=RenderMode.ScreenSpaceOverlay?canvas.worldCamera:null;
+        var corners=new Vector3[4];rect.GetWorldCorners(corners);
+        var points=corners.Select(v=>RectTransformUtility.WorldToScreenPoint(camera,v)).ToArray();
+        return Rect.MinMaxRect(points.Min(v=>v.x),points.Min(v=>v.y),points.Max(v=>v.x),points.Max(v=>v.y));
+    }
+    private static void CheckGuidancePlacement(string label)
+    {
+        Canvas.ForceUpdateCanvases();
+        var visibleHud=Object.FindFirstObjectByType<OverburstGameUI>().hud.GetComponentsInChildren<UnityEngine.UI.Graphic>()
+            .Where(g=>g.isActiveAndEnabled&&g.color.a>.01f&&!g.canvasRenderer.cull&&g.canvasRenderer.GetInheritedAlpha()>.01f).Select(g=>ScreenBounds(g.rectTransform)).ToArray();
+        if(visibleHud.Length==0)throw new InvalidOperationException("Production HUD missing during layout verification");
+        var guidance=new[]{tutorial.view.goal,tutorial.view.comparison,tutorial.view.practice}.Where(g=>g.activeSelf).Select(g=>ScreenBounds((RectTransform)g.transform)).ToArray();
+        bool overlap=guidance.Any(a=>visibleHud.Any(b=>Mathf.Min(a.xMax,b.xMax)-Mathf.Max(a.xMin,b.xMin)>.5f&&Mathf.Min(a.yMax,b.yMax)-Mathf.Max(a.yMin,b.yMin)>.5f));
+        if(overlap)Write("hud-overlap.json",new{label,guidance=guidance.Select(r=>new[]{r.x,r.y,r.width,r.height}).ToArray(),hud=Object.FindFirstObjectByType<OverburstGameUI>().hud.GetComponentsInChildren<UnityEngine.UI.Graphic>().Where(g=>g.isActiveAndEnabled&&g.color.a>.01f&&!g.canvasRenderer.cull&&g.canvasRenderer.GetInheritedAlpha()>.01f).Select(g=>new{name=g.name,parent=g.transform.parent.name,type=g.GetType().Name,alpha=g.canvasRenderer.GetInheritedAlpha(),bounds=new[]{ScreenBounds(g.rectTransform).x,ScreenBounds(g.rectTransform).y,ScreenBounds(g.rectTransform).width,ScreenBounds(g.rectTransform).height}}).ToArray()});
+        Check(!overlap,"Tutorial guidance does not overlap visible production HUD "+label);
+        var goal=ScreenBounds((RectTransform)tutorial.view.goal.transform);
+        var next=tutorial.view.comparison.activeSelf?tutorial.view.comparison:tutorial.view.practice.activeSelf?tutorial.view.practice:null;
+        if(next){var below=ScreenBounds((RectTransform)next.transform);Check(below.yMax<goal.yMin&&Mathf.Abs(below.xMin-goal.xMin)<1,"Supplement stays below and left aligned with objective "+label);}
+    }
     private static IEnumerator VerifyLayout()
     {
         tutorial.StartLesson((int)TutorialLesson.PerfectParry);tutorial.Arena.PauseCombat();yield return Frames(15);
@@ -277,7 +302,17 @@ public static class TutorialVerifier
                     Check(labels.All(t=>{t.ForceMeshUpdate();return !t.isTextTruncated&&t.textInfo.characterInfo.Take(t.textInfo.characterCount).Count(c=>c.isVisible)>0||string.IsNullOrEmpty(t.text);}),"Goal text renders without truncation "+lesson+" "+size);
                     if(lesson==TutorialLesson.PerfectParry)Check(tutorial.view.comparison.GetComponentsInChildren<TMPro.TMP_Text>().All(t=>{t.ForceMeshUpdate();return !t.isTextTruncated;}),"All three parry labels render "+size);
                     yield return Capture("layout-"+lesson+"-"+size.x);
+                    CheckGuidancePlacement(lesson+" "+size);
+                    if(lesson==TutorialLesson.World)Check(ScreenBounds((RectTransform)tutorial.view.goal.transform).Contains(ScreenBounds((RectTransform)tutorial.view.worldConfirm.transform).center),"World confirm button remains inside its panel "+size);
+                    if(lesson==TutorialLesson.PerfectParry)
+                    {
+                        tutorial.view.Feedback("다른 등급입니다. 다시 받아쳐보세요.");yield return Frames(3);
+                        CheckGuidancePlacement("Parry feedback "+size);yield return Capture("layout-ParryFeedback-"+size.x);
+                        tutorial.view.Feedback("");
+                    }
                 }
+                tutorial.view.ShowPractice();yield return Frames(3);CheckGuidancePlacement("Free practice "+size);
+                yield return Capture("layout-FreePractice-"+size.x);
             }
         }
         finally{RestoreResolution();}

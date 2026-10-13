@@ -134,47 +134,56 @@ public static class TutorialBuilder
         var stage = At(root.transform, "Stage", 0,0,1920,1080); stage.anchorMin = stage.anchorMax = stage.pivot = new Vector2(.5f,.5f); stage.anchoredPosition = Vector2.zero;
         var owner = root.AddComponent<OptionalTutorialController>(); var view = root.AddComponent<TutorialView>(); owner.view = view; owner.arenaPrefab = arena;
         var goal = Panel(stage,"Goal",24,24,720,176); view.goal = goal.gameObject;
-        view.progress = Text(goal,"Progress","조작 튜토리얼",15,10,690,22,15,false,"#B49B69");
-        view.heading = Text(goal,"Heading","완벽 패링",20,34,680,34,26,true,"#D5C6B0");
-        view.instruction = Text(goal,"Instruction","",20,74,680,52,18,false,"#BDB7A5");
-        view.keys = Text(goal,"Keys","",14,134,692,28,18,false,"#E3CFAF");
-        view.feedback = Text(goal,"Feedback","",14,174,692,22,15,false,"#B49B69");
+        view.progress = Text(goal,"Progress","조작 튜토리얼",20,10,680,22,15,false,"#B48D55");
+        view.heading = Text(goal,"Heading","완벽 패링",20,34,680,34,26,true,"#EDE3D1");
+        view.instruction = Text(goal,"Instruction","",20,74,680,52,18,false,"#EDE3D1");
+        view.keys = Text(goal,"Keys","",20,134,680,28,18,false,"#E3CFAF");
+        view.feedback = Text(goal,"Feedback","",20,174,680,22,15,false,"#B48D55");
         foreach (var label in new[] { view.progress, view.heading, view.instruction, view.keys, view.feedback })
             label.alignment = TextAlignmentOptions.Left;
         view.worldConfirm = Button(goal,"확인했습니다",20,182,250,40,18);
         var tools = At(stage,"Tools",1488,26,402,40); view.tools=tools.gameObject;
         view.retry = Button(tools,"다시 연습",0,0,126,40,17); view.skip = Button(tools,"건너뛰기",132,0,126,40,17); view.exit=Button(tools,"종료",264,0,126,40,17);
-        var comparison = Panel(stage,"Parry Comparison",510,840,900,145); view.comparison=comparison.gameObject;
+        var comparison = Panel(stage,"Parry Comparison",24,216,720,145); view.comparison=comparison.gameObject;
         string[] grades={"불완전","일반","완벽"}, ranges={"30% 미만","30% 이상 ~ 80% 미만","80% 이상"}, effects={"피해 20% 남음 · 약공 반격","피해 없음 · 강화 반격","피해 없음 · 강화 반격 · 기절"};
         view.gradeBackgrounds = new Image[3];
         for(int i=0;i<3;i++)
         {
-            var column=At(comparison,"Grade "+i,14+i*291,7,291,94); view.gradeBackgrounds[i]=column.gameObject.AddComponent<Image>(); view.gradeBackgrounds[i].raycastTarget=false;
-            Text(column,"Grade",grades[i],4,4,283,28,21,true,"#D4BA84"); Text(column,"Range",ranges[i],4,35,283,22,16,false,"#BDB7A5"); Text(column,"Effect",effects[i],0,63,291,22,16,false,"#BDB7A5");
+            var column=At(comparison,"Grade "+i,14+i*230,7,230,94); view.gradeBackgrounds[i]=column.gameObject.AddComponent<Image>(); view.gradeBackgrounds[i].sprite=Resources.Load<Sprite>("UI/HudMenu/Skins/row-hover"); view.gradeBackgrounds[i].raycastTarget=false;
+            Text(column,"Grade",grades[i],4,4,222,28,21,true,"#B48D55"); Text(column,"Range",ranges[i],4,35,222,22,15,false,"#EDE3D1"); Text(column,"Effect",effects[i],4,63,222,22,15,false,"#EDE3D1");
         }
-        Text(comparison,"Note","강공 시작 때의 게이지로 등급 결정 · 기절은 일반 적 기준",14,111,872,24,15,false,"#BDB7A5");
-        var practice=At(stage,"Practice Energy",510,900,900,52); view.practice=practice.gameObject; view.energyButtons=new Button[3];
-        for(int i=0;i<3;i++) view.energyButtons[i]=Button(practice,grades[i]+" 준비 "+new[]{"20%","50%","85%"}[i],i*300,0,285,44,18);
-        var shade=At(stage,"Modal Shade",0,0,1920,1080).gameObject.AddComponent<Image>(); shade.color=C("#030503B8"); view.shade=shade.gameObject;
+        Text(comparison,"Note","강공 시작 때의 게이지로 등급 결정 · 기절은 일반 적 기준",14,111,692,24,14,false,"#EDE3D1");
+        var practice=At(stage,"Practice Energy",24,216,720,52); view.practice=practice.gameObject; view.energyButtons=new Button[3];
+        for(int i=0;i<3;i++) view.energyButtons[i]=Button(practice,grades[i]+" 준비 "+new[]{"20%","50%","85%"}[i],i*243,0,234,44,18);
+        var shade=At(stage,"Modal Shade",0,0,1920,1080).gameObject.AddComponent<Image>(); shade.color=C("#000000B8"); view.shade=shade.gameObject;
         var modal=Panel(stage,"Modal",470,280,980,420); view.modal=modal.gameObject; modal.GetComponent<Image>().raycastTarget=true;
-        view.modalTitle=Text(modal,"Title","",48,55,884,60,36,true,"#D5C6B0");
+        view.modalTitle=Text(modal,"Title","",48,55,884,60,36,true,"#EDE3D1");
         var separator=At(modal,"Separator",110,132,760,3).gameObject.AddComponent<Image>(); separator.sprite=AssetDatabase.LoadAssetAtPath<Sprite>("Assets/ThirdParty/RPG and MMO UI 11/Textures/Controls/Separators/Separator_Horizontal.png"); separator.color=new Color(1,1,1,.5f); separator.raycastTarget=false;
-        view.modalBody=Text(modal,"Body","",48,153,884,82,23,false,"#BDB7A5");
+        view.modalBody=Text(modal,"Body","",48,153,884,82,23,false,"#EDE3D1");
         var chapters=At(modal,"Chapters",48,247,884,160); view.chapters=chapters.gameObject; view.chapterButtons=new Button[7];
         string[] chapterNames={"약공·강공","대시·구르기","대시 공격","불완전 패링","일반 패링","완벽 패링","장비·물약"};
         for(int i=0;i<7;i++)view.chapterButtons[i]=Button(chapters,chapterNames[i],i%3*296,i/3*50,280,42,18);
         var actions=At(modal,"Actions",48,0,884,52); actions.anchorMin=actions.anchorMax=new Vector2(0,0); actions.pivot=new Vector2(0,0); actions.anchoredPosition=new Vector2(48,75);
         view.primary=Button(actions,"처음부터",24,0,260,52,20); view.secondary=Button(actions,"자유 연습",312,0,260,52,20); view.tertiary=Button(actions,"닫기",600,0,260,52,20);
-        view.modalNote=Text(modal,"Note","",48,0,884,28,18,false,"#969381"); var note=(RectTransform)view.modalNote.transform; note.anchorMin=note.anchorMax=new Vector2(0,0); note.pivot=new Vector2(0,0); note.anchoredPosition=new Vector2(48,24);
-        view.footer=Text(stage,"Footer","훈련 장비·소모품은 임시 제공됩니다. 실제 소유품과 진행은 유지됩니다.",300,1010,1320,28,18,false,"#9C9C89").gameObject;
-        root.SetActive(true); return root;
+        view.modalNote=Text(modal,"Note","",48,0,884,28,18,false,"#A8A09B"); var note=(RectTransform)view.modalNote.transform; note.anchorMin=note.anchorMax=new Vector2(0,0); note.pivot=new Vector2(0,0); note.anchoredPosition=new Vector2(48,24);
+        view.footer=Text(stage,"Footer","훈련 장비·소모품은 임시 제공됩니다. 실제 소유품과 진행은 유지됩니다.",300,1010,1320,28,18,false,"#A8A09B").gameObject;
+        view.footer.SetActive(false); root.SetActive(true); return root;
     }
     private static RectTransform At(Transform parent,string name,float x,float y,float w,float h)
     { var r=new GameObject(name,typeof(RectTransform)).GetComponent<RectTransform>();r.SetParent(parent,false);r.gameObject.layer=5;r.anchorMin=r.anchorMax=r.pivot=new Vector2(0,1);r.anchoredPosition=new Vector2(x,-y);r.sizeDelta=new Vector2(w,h);return r; }
     private static RectTransform Stretch(Transform parent,string name)
     {var r=At(parent,name,0,0,0,0);r.anchorMin=Vector2.zero;r.anchorMax=Vector2.one;r.offsetMin=r.offsetMax=Vector2.zero;return r;}
     private static RectTransform Panel(Transform p,string name,float x,float y,float w,float h)
-    {var r=At(p,name,x,y,w,h);var image=r.gameObject.AddComponent<Image>();image.color=C("#11120FEB");image.raycastTarget=false;var outline=r.gameObject.AddComponent<Outline>();outline.effectColor=C("#555041");outline.effectDistance=new Vector2(1,1);return r;}
+    {
+        var r=At(p,name,x,y,w,h);
+        var hit=r.gameObject.AddComponent<UnityEngine.UI.Image>();hit.color=Color.clear;hit.raycastTarget=false;
+        var frame=Stretch(r,"Existing HUD Panel").gameObject.AddComponent<UnityEngine.UI.Image>();
+        frame.sprite=Resources.Load<Sprite>("UI/HudMenu/Skins/panel");
+        if(!frame.sprite)throw new InvalidOperationException("기존 HUD 메뉴 패널 스킨이 없습니다.");
+        frame.type=UnityEngine.UI.Image.Type.Sliced;frame.color=Color.white;frame.raycastTarget=false;
+        frame.rectTransform.offsetMin=new Vector2(-24,-24);frame.rectTransform.offsetMax=new Vector2(24,24);
+        return r;
+    }
     private static TMP_Text Text(Transform p,string name,string value,float x,float y,float w,float h,float size,bool heading,string color)
     {var t=At(p,name,x,y,w,h).gameObject.AddComponent<TextMeshProUGUI>();t.font=heading?serif:body;t.text=value;t.fontSize=size;t.color=C(color);t.alignment=TextAlignmentOptions.Center;t.textWrappingMode=TextWrappingModes.Normal;t.overflowMode=heading?TextOverflowModes.Overflow:TextOverflowModes.Truncate;t.raycastTarget=false;return t;}
     private static Button Button(Transform p,string label,float x,float y,float w,float h,int size)
