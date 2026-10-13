@@ -20,10 +20,11 @@ public static class TutorialBuilder
     private static TMP_FontAsset serif, body;
     private const string PendingKey = "Overburst.TutorialBuilder.Pending";
     static TutorialBuilder() { if (SessionState.GetString(PendingKey, "") != "") EditorApplication.update += BuildQueued; }
-    public static void Queue(string resultFile)
+    public static void Queue(string resultFile, bool keyGuideOnly = false)
     {
         AppearanceCustomizationBuilder.RequireIdle();
         SessionState.SetString(PendingKey, Path.GetFullPath(resultFile));
+        SessionState.SetBool(PendingKey+".keyGuideOnly", keyGuideOnly);
         SessionState.SetFloat(PendingKey + ".deadline", (float)EditorApplication.timeSinceStartup + 180);
         EditorApplication.update -= BuildQueued; EditorApplication.update += BuildQueued;
     }
@@ -31,17 +32,19 @@ public static class TutorialBuilder
     {
         string path = SessionState.GetString(PendingKey, "");
         if (path == "") { EditorApplication.update -= BuildQueued; return; }
-        if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
+        if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
+            || IsolatedSavePlayGuard.ActiveDirectory != "" || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY"))
+            || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OVERBURST_SETTINGS_DIRECTORY")))
         {
             if (EditorApplication.timeSinceStartup < SessionState.GetFloat(PendingKey + ".deadline", 0)) return;
             File.WriteAllText(path, "{\"status\":\"BLOCKED_EDITOR_BUSY\"}");
         }
         else
         {
-            try { Build(); File.WriteAllText(path, "{\"status\":\"PASS\"}"); }
+            try { if(SessionState.GetBool(PendingKey+".keyGuideOnly",false)) BuildKeyGuideOnly(); else Build(); File.WriteAllText(path, "{\"status\":\"PASS\"}"); }
             catch (Exception error) { File.WriteAllText(path, Newtonsoft.Json.JsonConvert.SerializeObject(new { status = "FAIL", error = error.ToString() })); }
         }
-        SessionState.EraseString(PendingKey); SessionState.EraseFloat(PendingKey + ".deadline"); EditorApplication.update -= BuildQueued;
+        SessionState.EraseBool(PendingKey+".keyGuideOnly"); SessionState.EraseString(PendingKey); SessionState.EraseFloat(PendingKey + ".deadline"); EditorApplication.update -= BuildQueued;
     }
     [MenuItem("OVERBURST/튜토리얼/사용자 지정 튜토리얼 제작")]
     public static void Build()
@@ -138,6 +141,7 @@ public static class TutorialBuilder
         view.heading = Text(goal,"Heading","완벽 패링",20,34,680,34,26,true,"#EDE3D1");
         view.instruction = Text(goal,"Instruction","",20,74,680,52,18,false,"#EDE3D1");
         view.keys = Text(goal,"Keys","",20,134,680,28,18,false,"#E3CFAF");
+        BuildKeyGuide(view,goal);
         view.feedback = Text(goal,"Feedback","",20,174,680,22,15,false,"#B48D55");
         foreach (var label in new[] { view.progress, view.heading, view.instruction, view.keys, view.feedback })
             label.alignment = TextAlignmentOptions.Left;
@@ -168,6 +172,50 @@ public static class TutorialBuilder
         view.modalNote=Text(modal,"Note","",48,0,884,28,18,false,"#A8A09B"); var note=(RectTransform)view.modalNote.transform; note.anchorMin=note.anchorMax=new Vector2(0,0); note.pivot=new Vector2(0,0); note.anchoredPosition=new Vector2(48,24);
         view.footer=Text(stage,"Footer","훈련 장비·소모품은 임시 제공됩니다. 실제 소유품과 진행은 유지됩니다.",300,1010,1320,28,18,false,"#A8A09B").gameObject;
         view.footer.SetActive(false); root.SetActive(true); return root;
+    }
+    public static void BuildKeyGuideOnly()
+    {
+        AppearanceCustomizationBuilder.RequireIdle();
+        if(IsolatedSavePlayGuard.ActiveDirectory != "" || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY"))
+            || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OVERBURST_SETTINGS_DIRECTORY"))) throw new InvalidOperationException("다른 Editor 실행 준비 중입니다.");
+        string before=HideoutCatalogLayoutBuilder.EditorSnapshot();
+        var root=PrefabUtility.LoadPrefabContents(UiPath);
+        try
+        {
+            var view=root.GetComponent<TutorialView>();
+            if(view.keyGuide) throw new InvalidOperationException("키 가이드가 이미 반영되어 있습니다.");
+            body=AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(Root+"/TutorialBody.asset");
+            BuildKeyGuide(view,(RectTransform)view.goal.transform);
+            view.keys.gameObject.SetActive(false);
+            PrefabUtility.SaveAsPrefabAsset(root,UiPath);
+        }
+        finally { PrefabUtility.UnloadPrefabContents(root); }
+        if(before!=HideoutCatalogLayoutBuilder.EditorSnapshot())throw new InvalidOperationException("사용자 씬 상태가 변경되었습니다.");
+    }
+    private static void BuildKeyGuide(TutorialView view, RectTransform goal)
+    {
+        var row=At(goal,"Key Guide",20,134,680,36);
+        row.gameObject.AddComponent<RectMask2D>();
+        var guide=row.gameObject.AddComponent<TutorialKeyGuide>(); view.keyGuide=guide;
+        guide.keycap=Resources.Load<Sprite>("Tutorial/Keys/Keycap");
+        guide.mouseLeft=Resources.Load<Sprite>("Tutorial/Keys/MouseLeft");
+        guide.mouseRight=Resources.Load<Sprite>("Tutorial/Keys/MouseRight");
+        if(!guide.keycap||!guide.mouseLeft||!guide.mouseRight)throw new InvalidOperationException("승인 키 가이드 이미지가 없습니다.");
+        guide.content=At(row,"Tokens",0,0,680,36);
+        guide.slots=new RectTransform[8]; guide.icons=new Image[8];
+        guide.glyphs=new TMP_Text[8]; guide.captions=new TMP_Text[8];
+        for(int i=0;i<8;i++)
+        {
+            var slot=At(guide.content,"Key "+i,0,0,36,36); guide.slots[i]=slot;
+            var icon=At(slot,"Icon",18,0,52,52).gameObject.AddComponent<Image>();
+            icon.rectTransform.anchorMin=icon.rectTransform.anchorMax=new Vector2(0,.5f);icon.rectTransform.pivot=new Vector2(.5f,.5f);
+            icon.color=Color.white;icon.raycastTarget=false;guide.icons[i]=icon;
+            guide.glyphs[i]=Text(slot,"Key Text","",0,0,36,36,16,false,"#EDE3D1");
+            guide.captions[i]=Text(slot,"Action","",45,0,200,36,17,false,"#E3CFAF");
+            guide.captions[i].alignment=TextAlignmentOptions.Left;
+            guide.glyphs[i].textWrappingMode=guide.captions[i].textWrappingMode=TextWrappingModes.NoWrap;
+            slot.gameObject.SetActive(false);
+        }
     }
     private static RectTransform At(Transform parent,string name,float x,float y,float w,float h)
     { var r=new GameObject(name,typeof(RectTransform)).GetComponent<RectTransform>();r.SetParent(parent,false);r.gameObject.layer=5;r.anchorMin=r.anchorMax=r.pivot=new Vector2(0,1);r.anchoredPosition=new Vector2(x,-y);r.sizeDelta=new Vector2(w,h);return r; }

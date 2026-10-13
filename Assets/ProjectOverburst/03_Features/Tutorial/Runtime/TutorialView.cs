@@ -1,4 +1,5 @@
 using System;
+using Overburst.Persistence;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -11,8 +12,12 @@ public sealed class TutorialView : MonoBehaviour
     public Button retry, skip, exit, primary, secondary, tertiary, worldConfirm;
     public Button[] chapterButtons, energyButtons;
     public Image[] gradeBackgrounds;
+    public TutorialKeyGuide keyGuide;
     private OptionalTutorialController owner;
     private float baseGoalHeight = 176;
+    private TutorialLesson shownLesson;
+    private bool showingPractice;
+    private long potionGuideRevision = -1;
     private static readonly int[] ChapterStarts = { 1, 3, 5, 7, 8, 9, 11 };
     private static readonly string[] ChapterNames = { "약공·강공", "대시·구르기", "대시 공격", "불완전 패링", "일반 패링", "완벽 패링", "장비·물약" };
 
@@ -81,9 +86,10 @@ public sealed class TutorialView : MonoBehaviour
     {
         Hide(); goal.SetActive(true); tools.SetActive(true);
         baseGoalHeight = lesson == TutorialLesson.World ? 236 : 176;
+        shownLesson = lesson; showingPractice = false;
         progress.text = "조작 튜토리얼 · " + ((int)lesson + 1) + " / " + TutorialLessons.Count;
         heading.text = TutorialLessons.Names[(int)lesson]; instruction.text = TutorialLessons.Description(lesson);
-        keys.text = Keys(lesson);
+        RefreshKeys();
         Feedback("");
         comparison.SetActive(TutorialLessons.IsParry(lesson));
         for (int i = 0; i < gradeBackgrounds.Length; i++)
@@ -96,7 +102,7 @@ public sealed class TutorialView : MonoBehaviour
         ShowLesson(TutorialLesson.PerfectParry); progress.text = "자유 연습";
         heading.text = "원하는 조작을 자유롭게 연습하세요";
         instruction.text = "약공으로 모으고 강공으로 방출하세요.\n아래 버튼으로 패링 비교용 게이지를 준비할 수 있습니다.";
-        keys.text = Key("Attack") + " 약공 · " + Key("Aim") + " 강공 · " + Key("Evade") + " 회피";
+        showingPractice = true; RefreshKeys();
         comparison.SetActive(false); practice.SetActive(true); skip.gameObject.SetActive(false);
     }
     public void ShowComplete(TutorialProgress state)
@@ -126,27 +132,54 @@ public sealed class TutorialView : MonoBehaviour
         ((RectTransform)comparison.transform).anchoredPosition = belowGoal;
         ((RectTransform)practice.transform).anchoredPosition = belowGoal;
     }
-    private static string Key(string name)
+    private void OnEnable() => InputSystem.onActionChange += BindingChanged;
+    private void OnDisable() => InputSystem.onActionChange -= BindingChanged;
+    private void BindingChanged(object target, InputActionChange change)
     {
-        var action = PlayerInputFacade.Current?.RuntimeAsset?.FindAction(PlayerInputFacade.GameplayMapName + "/" + name);
-        if (action == null) return "[미지정]";
-        if (name == "Move") return "[" + action.GetBindingDisplayString() + "]";
-        int index = OverburstKeyBindingRow.ResolveBindingIndex(action, null);
-        return "[" + (index >= 0 ? OverburstKeyBindingRow.ShortName(action.bindings[index].effectivePath) : "미지정") + "]";
+        if (change == InputActionChange.BoundControlsChanged && goal && goal.activeSelf) RefreshKeys();
     }
-    private static string Keys(TutorialLesson lesson)
+    private void LateUpdate()
     {
-        switch (lesson)
+        if (goal.activeSelf && shownLesson == TutorialLesson.Potion && AccountGameplaySession.Current != null
+            && potionGuideRevision != AccountGameplaySession.Current.Revision) RefreshKeys();
+    }
+    private void RefreshKeys()
+    {
+        bool world = shownLesson == TutorialLesson.World;
+        keys.gameObject.SetActive(world); keyGuide.gameObject.SetActive(!world);
+        if (world) { keys.text = "원소보석을 장착해야 약공 충전과 강공 원소 방출을 사용할 수 있습니다."; return; }
+        var asset = PlayerInputFacade.Current?.RuntimeAsset;
+        var guide = keyGuide; guide.Clear();
+        if (showingPractice)
         {
-            case TutorialLesson.Move: return Key("Move") + " 이동 · " + Key("CombatMode") + " 전투 모드";
-            case TutorialLesson.Charge: return Key("Attack") + " 약공";
-            case TutorialLesson.Dash: case TutorialLesson.Roll: return "이동 방향 + " + Key("Evade") + " 회피 · 탐험 회피에는 무적이 없습니다.";
-            case TutorialLesson.DashLight: return Key("Evade") + " → " + Key("Attack") + " · 재사용 1.2초";
-            case TutorialLesson.DashHeavy: return Key("Evade") + " → " + Key("Aim") + " · 연습 게이지 85%";
-            case TutorialLesson.Equipment: return Key("Interact") + " 줍기 · " + Key("Inventory") + " 인벤토리 · " + Key("Equipment") + " 장비";
-            case TutorialLesson.Potion: return Key("Inventory") + " 열기 → 물약 우클릭 → 퀵슬롯 등록 → 등록한 키";
-            case TutorialLesson.World: return "원소보석을 장착해야 약공 충전과 강공 원소 방출을 사용할 수 있습니다.";
-            default: return Key("Aim") + " 강공 / 패링";
+            guide.Key(asset,"Attack","약공 ·"); guide.Key(asset,"Aim","강공 ·"); guide.Key(asset,"Evade","회피");
         }
+        else switch (shownLesson)
+        {
+            case TutorialLesson.Move:
+                guide.Key(asset,"Move",part:"Up"); guide.Key(asset,"Move",part:"Left");
+                guide.Key(asset,"Move",part:"Down"); guide.Key(asset,"Move","이동 ·","Right");
+                guide.Key(asset,"CombatMode","전투 모드"); break;
+            case TutorialLesson.Charge: guide.Key(asset,"Attack","약공"); break;
+            case TutorialLesson.Combat:
+                guide.Key(asset,"Attack","약공 ·"); guide.Key(asset,"Aim","강공"); break;
+            case TutorialLesson.Dash: case TutorialLesson.Roll:
+                guide.Text("이동 방향 +"); guide.Key(asset,"Evade","회피 · 탐험 회피에는 무적이 없습니다."); break;
+            case TutorialLesson.DashLight:
+                guide.Key(asset,"Evade"); guide.Text("→"); guide.Key(asset,"Attack","약공 · 재사용 1.2초"); break;
+            case TutorialLesson.DashHeavy:
+                guide.Key(asset,"Evade"); guide.Text("→"); guide.Key(asset,"Aim","강공 · 연습 게이지 85%"); break;
+            case TutorialLesson.Equipment:
+                guide.Key(asset,"Interact","줍기 ·"); guide.Key(asset,"Inventory","인벤토리 ·"); guide.Key(asset,"Equipment","장비"); break;
+            case TutorialLesson.Potion:
+                guide.Key(asset,"Inventory","열기 →"); guide.MouseRight("물약 선택 → 퀵슬롯 등록 →");
+                var session = AccountGameplaySession.Current;
+                int slotNumber = session != null ? session.Read().quickSlots.FindIndex(s=>s.consumableContentId == OptionalTutorialController.PotionId)+1 : 0;
+                potionGuideRevision = session?.Revision ?? -1;
+                if (slotNumber > 0) guide.Key(asset,"QuickSlot"+slotNumber,"사용"); else guide.Text("등록한 키");
+                break;
+            default: guide.Key(asset,"Aim","강공 / 패링"); break;
+        }
+        guide.Finish();
     }
 }

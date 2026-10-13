@@ -87,6 +87,11 @@ public static class TutorialVerifier
         var panelSkin=Resources.Load<Sprite>("UI/HudMenu/Skins/panel");
         Check(new[]{prefab.view.goal,prefab.view.comparison,prefab.view.modal}.All(g=>g.transform.Find("Existing HUD Panel").GetComponent<UnityEngine.UI.Image>().sprite==panelSkin),"Tutorial panels reuse current HUD menu skin");
         Check(prefab.view.gradeBackgrounds.All(g=>g.sprite==Resources.Load<Sprite>("UI/HudMenu/Skins/row-hover")),"Selected parry uses current HUD hover skin");
+        var guide=prefab.view.keyGuide;
+        Check(guide&&guide.slots.Length==8&&guide.icons.Length==8&&guide.glyphs.Length==8&&guide.captions.Length==8,"Key guide uses eight authored reusable entries");
+        Check(guide.keycap==Resources.Load<Sprite>("Tutorial/Keys/Keycap")&&guide.mouseLeft==Resources.Load<Sprite>("Tutorial/Keys/MouseLeft")&&guide.mouseRight==Resources.Load<Sprite>("Tutorial/Keys/MouseRight"),"Approved three key images load from formal tutorial resources");
+        Check(new[]{guide.keycap,guide.mouseLeft,guide.mouseRight}.All(s=>{var i=(TextureImporter)AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(s));return i.textureType==TextureImporterType.Sprite&&i.maxTextureSize==128&&!i.mipmapEnabled&&i.alphaIsTransparency&&!i.isReadable;}),"Guide textures preserve alpha with small non-readable UI imports");
+        Check(((RectTransform)guide.transform).anchoredPosition==new Vector2(20,-134)&&((RectTransform)guide.transform).sizeDelta==new Vector2(680,36)&&guide.GetComponent<UnityEngine.UI.RectMask2D>(),"Guide stays in the approved 36px objective key line");
         Check(PlayerParryController.ResolveGrade(.299f)==ParryGrade.Incomplete && PlayerParryController.ResolveGrade(.3f)==ParryGrade.Normal && PlayerParryController.ResolveGrade(.799f)==ParryGrade.Normal && PlayerParryController.ResolveGrade(.8f)==ParryGrade.Perfect,"Actual parry thresholds retained");
         var registry=Resources.Load<AccountContentRegistry>(AccountContentRegistry.ResourcePath);
         var state=OptionalTutorialController.CreateLoadout(registry,NewAccountFactory.Create(registry));
@@ -226,6 +231,7 @@ public static class TutorialVerifier
         var bindings=Object.FindFirstObjectByType<InventoryQuickSlotBindingController>();ItemData item;
         item=inventory.Items.First(i=>i!=null&&i.baseData is ConsumableItemData);
         Check(bindings.Bind(1,item),"Potion binds through real quickslot transaction");yield return Seconds(.3f);
+        Check(tutorial.view.keyGuide.glyphs.Any(t=>t.gameObject.activeInHierarchy&&t.text==QuickSlotKeyLabels.Short(1)),"Potion guide shows the actual registered quickslot key");yield return Capture("potion-registered-key");
         Check(Object.FindFirstObjectByType<InventoryItemActionService>().UseQuickSlot(1),"Registered quickslot consumes and heals");
         yield return Wait(()=>Done(TutorialLesson.Potion),"Actual bind/use/heal completes lesson");
         tutorial.StartLesson((int)TutorialLesson.World);tutorial.view.worldConfirm.onClick.Invoke();yield return Seconds(2);
@@ -268,6 +274,46 @@ public static class TutorialVerifier
         var next=tutorial.view.comparison.activeSelf?tutorial.view.comparison:tutorial.view.practice.activeSelf?tutorial.view.practice:null;
         if(next){var below=ScreenBounds((RectTransform)next.transform);Check(below.yMax<goal.yMin&&Mathf.Abs(below.xMin-goal.xMin)<1,"Supplement stays below and left aligned with objective "+label);}
     }
+    private static void CheckKeyGuide(string label)
+    {
+        var guide=tutorial.view.keyGuide;Canvas.ForceUpdateCanvases();
+        if(!guide.gameObject.activeSelf){Check(tutorial.view.keys.gameObject.activeSelf,"World information keeps its text line "+label);return;}
+        Check(!tutorial.view.keys.gameObject.activeSelf&&guide.VisibleWidth>0&&guide.VisibleWidth<=680.1f,"Image guide fits approved objective width "+label);
+        Check(guide.GetComponentsInChildren<TMPro.TMP_Text>().All(t=>{t.ForceMeshUpdate();return !t.isTextTruncated&&t.font.HasCharacters(t.text);}),"Key glyphs and action text render without truncation or missing characters "+label);
+    }
+    private static IEnumerator VerifyGuideBindings()
+    {
+        var asset=PlayerInputFacade.Current.RuntimeAsset;string before=asset.SaveBindingOverridesAsJson();
+        var guide=tutorial.view.keyGuide;
+        try
+        {
+            tutorial.view.ShowLesson(TutorialLesson.Dash);
+            var evade=asset.FindAction(PlayerInputFacade.GameplayMapName+"/Evade");int ei=OverburstKeyBindingRow.ResolveBindingIndex(evade,null);
+            evade.ApplyBindingOverride(ei,"<Keyboard>/q");yield return Frames(4);
+            Check(guide.glyphs.Any(t=>t.gameObject.activeInHierarchy&&t.text=="Q"),"Changing evade binding updates the visible keycap immediately");CheckKeyGuide("Rebound evade");
+            tutorial.view.ShowLesson(TutorialLesson.Charge);
+            var attack=asset.FindAction(PlayerInputFacade.GameplayMapName+"/Attack");int ai=OverburstKeyBindingRow.ResolveBindingIndex(attack,null);
+            attack.ApplyBindingOverride(ai,"<Keyboard>/e");yield return Frames(4);
+            Check(guide.icons[0].sprite==guide.keycap&&guide.glyphs[0].text=="E","Keyboard attack override replaces mouse with labeled keycap");CheckKeyGuide("Rebound attack");
+            tutorial.view.ShowLesson(TutorialLesson.PerfectParry);
+            var aim=asset.FindAction(PlayerInputFacade.GameplayMapName+"/Aim");int mi=OverburstKeyBindingRow.ResolveBindingIndex(aim,null);
+            aim.ApplyBindingOverride(mi,"<Mouse>/leftButton");yield return Frames(4);
+            Check(guide.icons[0].sprite==guide.mouseLeft&&!guide.glyphs[0].gameObject.activeSelf,"Mouse-side override uses the matching click image");
+            aim.ApplyBindingOverride(mi,string.Empty);yield return Frames(4);
+            Check(guide.icons[0].sprite==guide.keycap&&guide.glyphs[0].text=="미지정","Unassigned binding displays explicit fallback");CheckKeyGuide("Unassigned parry");
+            tutorial.view.ShowLesson(TutorialLesson.Move);
+            var move=asset.FindAction(PlayerInputFacade.GameplayMapName+"/Move");int up=OverburstKeyBindingRow.ResolveBindingIndex(move,"Up");
+            move.ApplyBindingOverride(up,"<Keyboard>/upArrow");yield return Frames(4);
+            Check(guide.glyphs[0].text=="↑","Movement composite shows changed part binding");CheckKeyGuide("Rebound move");
+            tutorial.view.ShowLesson(TutorialLesson.Potion);
+            var quick=asset.FindAction(PlayerInputFacade.GameplayMapName+"/QuickSlot1");int qi=OverburstKeyBindingRow.ResolveBindingIndex(quick,null);
+            quick.ApplyBindingOverride(qi,"<Keyboard>/r");yield return Frames(4);
+            Check(guide.glyphs.Any(t=>t.gameObject.activeInHierarchy&&t.text=="R"),"Registered potion key follows quickslot rebind");CheckKeyGuide("Rebound potion");
+            yield return Capture("keyguide-rebound-potion");
+        }
+        finally{asset.LoadBindingOverridesFromJson(before,true);tutorial.view.ShowPractice();}
+        Check(asset.SaveBindingOverridesAsJson()==before,"All temporary key overrides restored before exit");
+    }
     private static IEnumerator VerifyLayout()
     {
         tutorial.StartLesson((int)TutorialLesson.PerfectParry);tutorial.Arena.PauseCombat();yield return Frames(15);
@@ -295,14 +341,14 @@ public static class TutorialVerifier
                 ViewCall(group,"AddCustomSize",Activator.CreateInstance(typeof(EditorWindow).Assembly.GetType("UnityEditor.GameViewSize"),kind,size.x,size.y,owner+size.x));
                 ViewCall(view,"SizeSelectionCallback",(int)ViewCall(group,"GetTotalCount")-1,null);view.Repaint();
                 yield return Wait(()=>Screen.width==size.x&&Screen.height==size.y,"Actual Game resolution "+size,12);yield return Frames(10);
-                foreach(var lesson in new[]{TutorialLesson.PerfectParry,TutorialLesson.Equipment,TutorialLesson.Potion,TutorialLesson.World})
+                foreach(var lesson in new[]{TutorialLesson.Move,TutorialLesson.Charge,TutorialLesson.Discharge,TutorialLesson.Dash,TutorialLesson.Roll,TutorialLesson.DashLight,TutorialLesson.DashHeavy,TutorialLesson.Combat,TutorialLesson.PerfectParry,TutorialLesson.Equipment,TutorialLesson.Potion,TutorialLesson.World})
                 {
                     tutorial.view.ShowLesson(lesson);Canvas.ForceUpdateCanvases();yield return Frames(3);
                     var labels=tutorial.view.goal.GetComponentsInChildren<TMPro.TMP_Text>();
                     Check(labels.All(t=>{t.ForceMeshUpdate();return !t.isTextTruncated&&t.textInfo.characterInfo.Take(t.textInfo.characterCount).Count(c=>c.isVisible)>0||string.IsNullOrEmpty(t.text);}),"Goal text renders without truncation "+lesson+" "+size);
                     if(lesson==TutorialLesson.PerfectParry)Check(tutorial.view.comparison.GetComponentsInChildren<TMPro.TMP_Text>().All(t=>{t.ForceMeshUpdate();return !t.isTextTruncated;}),"All three parry labels render "+size);
                     yield return Capture("layout-"+lesson+"-"+size.x);
-                    CheckGuidancePlacement(lesson+" "+size);
+                    CheckGuidancePlacement(lesson+" "+size);CheckKeyGuide(lesson+" "+size);
                     if(lesson==TutorialLesson.World)Check(ScreenBounds((RectTransform)tutorial.view.goal.transform).Contains(ScreenBounds((RectTransform)tutorial.view.worldConfirm.transform).center),"World confirm button remains inside its panel "+size);
                     if(lesson==TutorialLesson.PerfectParry)
                     {
@@ -311,11 +357,12 @@ public static class TutorialVerifier
                         tutorial.view.Feedback("");
                     }
                 }
-                tutorial.view.ShowPractice();yield return Frames(3);CheckGuidancePlacement("Free practice "+size);
+                tutorial.view.ShowPractice();yield return Frames(3);CheckGuidancePlacement("Free practice "+size);CheckKeyGuide("Free practice "+size);
                 yield return Capture("layout-FreePractice-"+size.x);
             }
         }
         finally{RestoreResolution();}
+        yield return VerifyGuideBindings();
         yield return Frames(8);Check((int)ViewGet(view,"selectedSizeIndex")==original&&(int)ViewCall(group,"GetTotalCount")==count,"Original Game resolution and list restored");
     }
     private static void Finish(Exception error)
