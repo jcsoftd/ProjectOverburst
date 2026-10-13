@@ -272,7 +272,7 @@ public static partial class OverburstGameMenuBuilder
         var sound = (RectTransform)panel.pages[0].transform;
         panel.masterVolume = SliderRow(sound, 0, "전체 음량", "게임 전체 소리 크기", 1f);
         panel.uiVolume = SliderRow(sound, 1, "메뉴 소리", "메뉴·확인창을 누를 때 나는 소리 크기", .8f);
-        panel.muteInBackground = SwitchRow(sound, 2, "뒤에 있을 때 소리 끄기", "다른 창을 보고 있으면 게임 소리를 끕니다", false, true);
+        panel.muteInBackground = SwitchRow(sound, 2, "백그라운드 시 소리 끄기", "다른 창을 보고 있으면 게임 소리를 끕니다", false, true);
 
         var screen = (RectTransform)panel.pages[1].transform;
         panel.screenMode = SelectRow(screen, 0, "화면 모드", "바꾸면 10초 안에 유지를 눌러야 적용됩니다", out _);

@@ -68,18 +68,14 @@ public sealed class CombatActionSfxService : MonoBehaviour
         if (!EnsureInstance()) return false;
         int clipIndex = heavy ? 4 : comboIndex;
         if (clipIndex < 0 || clipIndex > 4) return false;
-#if UNITY_EDITOR
-        PlayerVoiceAudition.Attack();
-#endif
+        PlayerVoiceService.Attack();
         // 23:12 사용자: 다른 소리를 줄이지 않는다 — 약공 휘두름도 원래 0.9.
         return instance.Play(clipIndex, position, 0.6f, 0.9f, 4f, 28f, 100);
     }
 
     public static bool PlayDashHeavySwing(float playbackSpeed, Vector3 position)
     {
-#if UNITY_EDITOR
-        PlayerVoiceAudition.Attack();
-#endif
+        PlayerVoiceService.Attack();
         return EnsureInstance()
             && instance.Play(4, position, .6f, .9f, 4f, 28f, 100, Mathf.Clamp(playbackSpeed,.3f,3f));
     }

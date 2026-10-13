@@ -103,61 +103,96 @@ public static class PlayerVoiceAuditionVerifier
         yield return Wait(() => AccountBootstrap.Ready && WorldSessionState.IsHideout && !PersistentSceneFlow.Instance.IsSwitching, "Title-to-town isolated boot");
         context = new VisualPlayContext(new VisualPlayEntry { caseId = "VT05-02", label = "Player voice audition" }, new VisualPlayState());
         yield return context.Prepare(); context.Aim(context.Actor.transform.position + Vector3.forward * 4); yield return context.Wait(.3f);
-        var view = PlayerVoiceAudition.Current;
-        Check(view != null && UnityEngine.Object.FindObjectsByType<PlayerVoiceAudition>(FindObjectsSortMode.None).Length == 1, "One automatic persistent audition panel");
-        Button[] buttons = view.GetComponentsInChildren<Button>(true);
-        Check(buttons.Length == 9 && view.GetComponent<GraphicRaycaster>() != null && EventSystem.current != null, "Nine buttons, raycaster and existing EventSystem");
+        var view = PlayerVoiceService.Current;
+        Check(view != null && UnityEngine.Object.FindObjectsByType<PlayerVoiceService>(FindObjectsSortMode.None).Length == 1, "One production voice player");
+        Check(UnityEngine.Object.FindObjectsByType<PlayerVoiceAudition>(FindObjectsSortMode.None).Length == 0, "No temporary audition overlay");
+        Check(OverburstGameSettings.PlayerVoice == PlayerVoiceChoice.Karen1, "New settings default to Karen1");
         var audio = view.GetComponent<AudioSource>();
+        var menu = OverburstGameMenu.Instance; menu.Open(); menu.OpenSettings(); yield return Frames(5);
+        var panel = menu.settings; panel.tabs[0].isOn = true; yield return Frames(3);
+        var presentation = panel.GetComponent<OverburstSettingsGothicView>();
+        var row = panel.playerVoice.GetComponentInParent<OverburstSettingsGothicRow>();
+        Check(row && row.owner == presentation && row.tabIndex == 0, "Voice row reuses sound-tab presentation");
+        presentation.SelectRow(row);
+        var buttons = panel.playerVoice.GetComponentsInChildren<Button>(true);
+        Check(buttons.Length == 2, "Existing previous/next voice selector");
+        buttons.Single(b=>b.name.Contains("Next")).onClick.Invoke();
+        Check(OverburstGameSettings.PlayerVoice==PlayerVoiceChoice.Karen2, "Next arrow selects Karen2");
+        buttons.Single(b=>b.name.Contains("Previous")).onClick.Invoke();
+        Check(OverburstGameSettings.PlayerVoice==PlayerVoiceChoice.Karen1, "Previous arrow restores Karen1");
+        Canvas.ForceUpdateCanvases();
+        var point = RectTransformUtility.WorldToScreenPoint(null, buttons[0].transform.position);
+        var hits = new List<RaycastResult>(); EventSystem.current.RaycastAll(new PointerEventData(EventSystem.current) { position=point }, hits);
+        Check(hits.Any(h=>h.gameObject.GetComponentInParent<Button>()==buttons[0]), "Voice selector receives pointer raycast");
+        Check(presentation.scrolls[0].content.rect.height <= presentation.scrolls[0].viewport.rect.height + 2, "Sound controls fit viewport");
+        var bounds = RectTransformUtility.CalculateRelativeRectTransformBounds(row.transform, row.transform.Find("Label"));
+        var controls = RectTransformUtility.CalculateRelativeRectTransformBounds(row.transform, panel.playerVoice.transform);
+        Check(bounds.max.x <= controls.min.x, "Voice label and selector do not overlap");
+        Write("settings-controls.json", new { width=Screen.width,height=Screen.height, buttons=buttons.Select(b=>new {b.name,rect=ScreenRect((RectTransform)b.transform)}), reset=ScreenRect((RectTransform)panel.resetButton.transform) });
         for (int candidate = 0; candidate < 4; candidate++)
         {
-            buttons[candidate].onClick.Invoke(); Check(view.SelectedIndex == candidate, "Selection button " + view.Candidates[candidate].name);
+            panel.playerVoice.SelectOptionByIndex(candidate); yield return Frames(3);
+            Check((int)OverburstGameSettings.PlayerVoice == candidate, "Setting changes immediately " + candidate);
+            Check(candidate == 0 || view.LastClip != null && view.Candidates[candidate].attack.Contains(view.LastClip), "Selection previews chosen attack " + candidate);
+            ScreenCapture.CaptureScreenshot(Path.Combine(output, "settings-" + candidate + ".png")); yield return Frames(4);
             for (int kind = 0; kind < 4; kind++)
             {
                 var used = new HashSet<AudioClip>(); AudioClip previous = null;
+                var pool = view.Candidates[candidate].Clips((PlayerVoiceService.VoiceKind)kind);
                 for (int sample = 0; sample < 24; sample++)
                 {
-                    Check(view.Preview((PlayerVoiceAudition.VoiceKind)kind), "Playback request " + candidate + "/" + kind + "/" + sample);
+                    Check(view.Preview((PlayerVoiceService.VoiceKind)kind), "Playback " + candidate + "/" + kind + "/" + sample);
                     AudioClip clip = view.LastClip;
-                    if (clip == previous || !view.Candidates[candidate].Clips((PlayerVoiceAudition.VoiceKind)kind).Contains(clip)) throw new Exception("Cross-candidate/category or consecutive duplicate");
-                    previous = clip; used.Add(clip);
+                    if ((pool.Length>1 && clip==previous) || !pool.Contains(clip)) throw new Exception("Wrong voice or avoidable repeated clip");
+                    previous=clip; used.Add(clip);
                 }
-                Check(used.Count > 1, "Random variation and no consecutive repeat " + candidate + "/" + kind);
-                buttons[5 + kind].onClick.Invoke();
-                Check(view.LastKind == (PlayerVoiceAudition.VoiceKind)kind && audio.isPlaying, "Preview button/source playing " + candidate + "/" + kind);
-                yield return context.Wait(Mathf.Min(.05f, audio.clip.length * .25f));
+                Check(used.Count >= Math.Min(2,pool.Length), "Curated random pool " + candidate + "/" + kind);
             }
         }
-        buttons[4].onClick.Invoke(); int count = view.PlayedCount;
-        Check(view.SelectedIndex == -1 && !audio.isPlaying && buttons.Skip(5).All(b => !b.interactable), "Off stops voice and disables previews");
-        Check(!view.Preview(PlayerVoiceAudition.VoiceKind.Attack), "Off ignores playback");
-        buttons[0].onClick.Invoke();
-        var results = new List<RaycastResult>(); var buttonPoint = RectTransformUtility.WorldToScreenPoint(null, buttons[2].transform.position);
-        EventSystem.current.RaycastAll(new PointerEventData(EventSystem.current) { position = buttonPoint }, results);
-        Check(results.Any(r => r.gameObject == buttons[2].gameObject), "Visible candidate button receives UI raycast");
+        panel.playerVoice.SelectOptionByIndex(4); yield return Frames(3);
+        Check(OverburstGameSettings.PlayerVoice == PlayerVoiceChoice.Off && !audio.isPlaying && !view.Preview(PlayerVoiceService.VoiceKind.Attack), "Off stops current audio and future voices");
+        ScreenCapture.CaptureScreenshot(Path.Combine(output, "settings-4.png")); yield return Frames(4);
+        panel.playerVoice.SelectOptionByIndex(2); menu.CloseSettings();
+        string persisted = File.ReadAllText(OverburstGameSettings.FilePath);
+        Check((int)Newtonsoft.Json.Linq.JObject.Parse(persisted)["playerVoice"]==2, "Closing settings saves selected voice");
+        typeof(OverburstGameSettings).GetField("loaded",BindingFlags.NonPublic|BindingFlags.Static).SetValue(null,false);
+        Check(OverburstGameSettings.PlayerVoice==PlayerVoiceChoice.Kimlinh, "Saved voice survives a fresh settings load");
+        menu.OpenSettings();yield return Frames(3);
+        Check(panel.playerVoice.selectedOptionIndex==2, "Reopening settings displays saved voice");
+        panel.resetButton.onClick.Invoke();
+        Check(OverburstGameSettings.PlayerVoice==PlayerVoiceChoice.Karen1 && panel.playerVoice.selectedOptionIndex==0, "Sound reset restores Karen1");
+        menu.CloseSettings(); menu.Close(); yield return Frames(4);
+        int count;
         var weapon = VisualPlayContext.Items.OfType<WeaponItemData>().First(w => w.weaponClass == WeaponClass.Greatsword);
         context.Equip(weapon); yield return context.Wait(.5f);
         count = view.PlayedCount; context.MouseButton(true, false); yield return context.Wait(3.5f); context.ReleaseInput();
-        Check(view.PlayedCount >= count + 4 && view.LastKind == PlayerVoiceAudition.VoiceKind.Attack, "Actual held light combo triggers each swing voice");
+        Check(view.PlayedCount >= count + 4 && view.LastKind == PlayerVoiceService.VoiceKind.Attack, "Actual held light combo triggers each swing voice");
         context.Melee.CancelCurrentAttackState(); yield return context.Wait(.5f);
         count = view.PlayedCount; context.MouseButton(false, true); yield return context.Wait(2f); context.ReleaseInput();
-        Check(view.PlayedCount > count && view.LastKind == PlayerVoiceAudition.VoiceKind.Attack, "Actual heavy attack triggers voice");
+        Check(view.PlayedCount > count && view.LastKind == PlayerVoiceService.VoiceKind.Attack, "Actual heavy attack triggers voice");
         context.Melee.CancelCurrentAttackState(); yield return context.Wait(.5f);
         yield return Wait(() => context.Actor.Movement.IsGrounded, "Player grounded for jump");
         count = view.PlayedCount; context.Input(Vector2.zero, Key.Space); yield return context.Wait(.15f); context.ReleaseInput();
-        Check(view.PlayedCount == count + 1 && view.LastKind == PlayerVoiceAudition.VoiceKind.Jump, "Accepted actual jump triggers one voice");
+        Check(view.PlayedCount == count + 1 && view.LastKind == PlayerVoiceService.VoiceKind.Jump, "Accepted actual jump triggers one voice");
         yield return context.Wait(1.5f);
         var health = context.Actor.Health; count = view.PlayedCount;
         health.TakeDamage(new DamageInfo(0, context.Actor.transform.position, isDamageOverTime: true));
         Check(view.PlayedCount == count, "Zero HP loss stays silent");
         health.TakeDamage(new DamageInfo(5, context.Actor.transform.position, isDamageOverTime: true));
-        Check(view.PlayedCount == count + 1 && view.LastKind == PlayerVoiceAudition.VoiceKind.Hurt, "Actual nonfatal damage triggers hurt");
+        Check(view.PlayedCount == count + 1 && view.LastKind == PlayerVoiceService.VoiceKind.Hurt, "Actual nonfatal damage triggers hurt");
         yield return context.Wait(.3f);
         ScreenCapture.CaptureScreenshot(Path.Combine(output, "in-game.png")); yield return Frames(5);
         count = view.PlayedCount;
         health.TakeDamage(new DamageInfo(100000, context.Actor.transform.position, isDamageOverTime: true));
-        Check(health.IsDead && view.PlayedCount == count + 1 && view.LastKind == PlayerVoiceAudition.VoiceKind.Death, "Lethal damage plays only death, replacing previous voice");
-        PlayerVoiceAudition.Attack();
+        Check(health.IsDead && view.PlayedCount == count + 1 && view.LastKind == PlayerVoiceService.VoiceKind.Death, "Lethal damage plays only death, replacing previous voice");
+        PlayerVoiceService.Attack();
         Check(view.PlayedCount == count + 1, "Dead actor cannot trigger attack voice");
+    }
+    private static float[] ScreenRect(RectTransform rect)
+    {
+        var corners = new Vector3[4]; rect.GetWorldCorners(corners);
+        var a=RectTransformUtility.WorldToScreenPoint(null,corners[0]); var b=RectTransformUtility.WorldToScreenPoint(null,corners[2]);
+        return new[]{a.x,Screen.height-b.y,b.x-a.x,b.y-a.y};
     }
     private static void Finish(Exception error)
     {

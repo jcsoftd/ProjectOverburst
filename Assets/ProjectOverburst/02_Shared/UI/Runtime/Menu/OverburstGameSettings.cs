@@ -29,6 +29,7 @@ public static class OverburstGameSettings
         public float masterVolume = 1f;
         public float uiVolume = .8f;
         public bool muteInBackground;
+        public int playerVoice;
         public bool displayCustomized;
         public int screenMode = (int)FullScreenMode.FullScreenWindow;
         public int width;
@@ -53,6 +54,13 @@ public static class OverburstGameSettings
     private static bool focused = true;
 
     public static event Action Changed;
+
+    public static PlayerVoiceChoice PlayerVoice
+    {
+        get { Ensure(); return (PlayerVoiceChoice)data.playerVoice; }
+        set { Ensure(); int choice = NormalizePlayerVoice((int)value); if (data.playerVoice == choice) return; data.playerVoice = choice; Notify(); }
+    }
+    private static int NormalizePlayerVoice(int value) => value >= 0 && value <= (int)PlayerVoiceChoice.Off ? value : 0;
 
     public static float MasterVolume { get { Ensure(); return data.masterVolume; } set { Ensure(); data.masterVolume = Mathf.Clamp01(value); ApplyAudio(); Notify(); } }
     public static float UiVolume { get { Ensure(); return data.uiVolume; } set { Ensure(); data.uiVolume = Mathf.Clamp01(value); Notify(); } }
@@ -185,6 +193,7 @@ public static class OverburstGameSettings
             // 새 항목은 초기값을 유지한다. 이전 파일에 방향 표시가 없으면 켜짐으로 시작한다.
             var read = new Data { version = 1, vSync = data.vSync, frameLimit = data.frameLimit, screenMode = data.screenMode, width = data.width, height = data.height };
             JsonUtility.FromJsonOverwrite(File.ReadAllText(path), read);
+            read.playerVoice = NormalizePlayerVoice(read.playerVoice);
             read.combatFacingStyle = Mathf.Clamp(read.combatFacingStyle, 0, 1);
             read.combatFacingBrightness = NormalizeFacingBrightness(read.combatFacingBrightness);
             read.mapOverlayOpacity = NormalizeMap(read.mapOverlayOpacity, .35f, .1f, .8f);
@@ -261,7 +270,7 @@ public static class OverburstGameSettings
         if (section == "combat") { data.mapOverlayOpacity = defaults.mapOverlayOpacity; data.mapOverlayScale = defaults.mapOverlayScale; }
         switch (section)
         {
-            case "sound": data.masterVolume = defaults.masterVolume; data.uiVolume = defaults.uiVolume; data.muteInBackground = defaults.muteInBackground; ApplyAudio(); break;
+            case "sound": data.playerVoice = defaults.playerVoice; data.masterVolume = defaults.masterVolume; data.uiVolume = defaults.uiVolume; data.muteInBackground = defaults.muteInBackground; ApplyAudio(); break;
             case "combat": data.bloodStyle = defaults.bloodStyle; data.bloodPack = defaults.bloodPack; data.bloodC = defaults.bloodC; data.bloodUniformRed = defaults.bloodUniformRed; data.bloodA = defaults.bloodA; data.bloodB = defaults.bloodB; BloodHitVfxService.SetStyle((BloodEffectStyle)data.bloodStyle); BloodHitVfxService.SetUniformRed(data.bloodUniformRed); BloodComparisonTuning.Invalidate(); data.cameraShake = defaults.cameraShake; data.hitEffect = defaults.hitEffect; data.combatFacingIndicator = defaults.combatFacingIndicator; data.combatFacingStyle = defaults.combatFacingStyle; data.combatFacingBrightness = defaults.combatFacingBrightness; data.edgeBlur=defaults.edgeBlur; data.explorationEdgeBlurIntensity=defaults.explorationEdgeBlurIntensity; data.combatEdgeBlurIntensity=defaults.combatEdgeBlurIntensity; data.motionBlur=defaults.motionBlur; data.motionBlurIntensity=defaults.motionBlurIntensity; break;
         }
         Notify();

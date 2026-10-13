@@ -46,7 +46,7 @@ public sealed class PlayerVoiceAudition : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void Reset() => instance = null;
 
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    // 정식 음성 설정으로 대체. 보존한 청음 도구는 자동 생성하지 않는다.
     private static void Bootstrap()
     {
         if (instance != null) return;

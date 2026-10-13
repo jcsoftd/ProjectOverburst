@@ -1127,31 +1127,20 @@ MonoBehaviour:
   candidates:
   - name: Karen
     attack:
-    - {fileID: 8300000, guid: ab308d81bae9fff4cbeb9fbebd21bb74, type: 3}
     - {fileID: 8300000, guid: d820cd864ea36e340b47ccb5ee1ac9de, type: 3}
     - {fileID: 8300000, guid: e01e79c18e52395489cfa8401334efc5, type: 3}
-    - {fileID: 8300000, guid: 0e81545eb4967fb49882b6eeed6957d8, type: 3}
     - {fileID: 8300000, guid: 26fcfae478343e040937249498de7755, type: 3}
-    - {fileID: 8300000, guid: e90f65e2b6b1e5f48a41519a660fc144, type: 3}
     hurt:
-    - {fileID: 8300000, guid: 1e47be2565e13ad45b2a5bda40e63ddc, type: 3}
     - {fileID: 8300000, guid: 49b1180009c785d459ae421968c15e28, type: 3}
-    - {fileID: 8300000, guid: 112e30ceb2be88748af7ac73d738f40c, type: 3}
     - {fileID: 8300000, guid: 2c2563b3a45239e4bb0ce82fcff762cc, type: 3}
     - {fileID: 8300000, guid: 5b7c623def8009249bfeb7bcf20cc095, type: 3}
     - {fileID: 8300000, guid: bf7df40a489e9dc48a53c0177b44d279, type: 3}
     - {fileID: 8300000, guid: 8dc9be68b6437094cb3b204b4b278fff, type: 3}
     - {fileID: 8300000, guid: 78e74bd09b7412c4b9c2f7443792f212, type: 3}
-    - {fileID: 8300000, guid: ad2f3462c1cca144c99f2f25d4fa22fc, type: 3}
-    - {fileID: 8300000, guid: 3403ba2456d72b04a8aeb99b842f7a67, type: 3}
     death:
     - {fileID: 8300000, guid: 167650a5b7073f04eaed6fefb27b048c, type: 3}
     - {fileID: 8300000, guid: 00aa4b0469c20f64d991fc8fc2443dce, type: 3}
-    - {fileID: 8300000, guid: bfa57189c0a1c6547be23a845e3bec8a, type: 3}
     - {fileID: 8300000, guid: 41290fef2173f1d4dafb9136c2998f2a, type: 3}
-    - {fileID: 8300000, guid: b04772831bbd64f429b43d6eb32d932e, type: 3}
-    - {fileID: 8300000, guid: 19bd0c4207890f346b669aa80bcc9c33, type: 3}
-    - {fileID: 8300000, guid: 3ac5a0a0a663761428b4f82b0c0f1ed4, type: 3}
     - {fileID: 8300000, guid: 86404de35b05d6d4081352059d7939b0, type: 3}
     - {fileID: 8300000, guid: 475d80aaeb3cadb4c873dd055ed92dde, type: 3}
     - {fileID: 8300000, guid: 60e10cf845a0dcd4da064099309294ec, type: 3}
@@ -1169,31 +1158,19 @@ MonoBehaviour:
     - {fileID: 8300000, guid: 7363c7799576a6f4b98fe902d5a39a32, type: 3}
     - {fileID: 8300000, guid: 20bea0259ab17ac41825caebeae82907, type: 3}
     - {fileID: 8300000, guid: 11ceb4e64c22da546978c31d15bc9b27, type: 3}
-    - {fileID: 8300000, guid: 53638a2916c84774cb59428f1db73c66, type: 3}
-    - {fileID: 8300000, guid: b3551bdf51d0f9f43b777a0e41ee25e2, type: 3}
     hurt:
-    - {fileID: 8300000, guid: f4bdb2055e5bf4e41be371267bd9047b, type: 3}
-    - {fileID: 8300000, guid: 1bbb7e613af17fd459870a244904b6bc, type: 3}
     - {fileID: 8300000, guid: db9652ffe2586f74c9f8cd9e883cf69f, type: 3}
     - {fileID: 8300000, guid: b97c88180aa6f624d8e0411f575dc36d, type: 3}
     - {fileID: 8300000, guid: 2a17e7ac576d4354db2151442aa7b202, type: 3}
-    - {fileID: 8300000, guid: 3a3ffc679c05798488408e527a18c60c, type: 3}
     - {fileID: 8300000, guid: cdedb03a7d5947b4fb3175dbe8ab8160, type: 3}
     - {fileID: 8300000, guid: 164faff5217e9154b9e214b9bf279213, type: 3}
-    - {fileID: 8300000, guid: 3ebd0decfd7264141af38ef40c50b757, type: 3}
-    - {fileID: 8300000, guid: 87f5b9eb2f6173a4ca29d4d0af9fffee, type: 3}
     death:
     - {fileID: 8300000, guid: ae8dbceff80a63c4188bb77edd17abb1, type: 3}
-    - {fileID: 8300000, guid: 8d977fd0f4c235a448e43a2b185a673e, type: 3}
     - {fileID: 8300000, guid: 423b18a468a8e68468d480f7cb5c941a, type: 3}
     - {fileID: 8300000, guid: 534f54e3e22041e4b96f997db3e5205b, type: 3}
     - {fileID: 8300000, guid: 13cdafed05c659842a8d3620d5da8191, type: 3}
-    - {fileID: 8300000, guid: 9175003f449b12349a74287a92e69871, type: 3}
-    - {fileID: 8300000, guid: af9e10fa5f158204da360738c75e5014, type: 3}
     - {fileID: 8300000, guid: dcf4f915e8555ff40a56bcf36ebc33af, type: 3}
-    - {fileID: 8300000, guid: 10ce2b5e6251caf41b418a52a1ddc0f3, type: 3}
     jump:
-    - {fileID: 8300000, guid: 21cb352281c09df42818586ea68ddc8a, type: 3}
     - {fileID: 8300000, guid: 60ea435797a45114cb80bb2eb8c3cb77, type: 3}
     - {fileID: 8300000, guid: 0de518098438b1c44a804f4dae939e15, type: 3}
     - {fileID: 8300000, guid: a0f20e558c7828546b7689bc0a0bb644, type: 3}
@@ -1202,54 +1179,29 @@ MonoBehaviour:
     attack:
     - {fileID: 8300000, guid: 8f01cdea5bcb68348b6dfc28e0a1cec1, type: 3}
     - {fileID: 8300000, guid: f68fc93b7300ea74789ad07949e74dcb, type: 3}
-    - {fileID: 8300000, guid: e28e68ee8408d31498ab22316fbb2287, type: 3}
     - {fileID: 8300000, guid: bd47e6967f86f5b40a0b9098a2e586aa, type: 3}
     - {fileID: 8300000, guid: 52152723822c4094c9c52aff1d1bcce5, type: 3}
-    - {fileID: 8300000, guid: fbe24598b930e4040a1c7901bb42ff27, type: 3}
     - {fileID: 8300000, guid: 21cca84288db87b4e9c0299528b5eef7, type: 3}
-    - {fileID: 8300000, guid: d8de282b38b42c3449f7919d1b67c896, type: 3}
     - {fileID: 8300000, guid: 81142303b3a94a84f9d9baa5f49d5a17, type: 3}
-    - {fileID: 8300000, guid: b1b8f3affd90882498acf4fc7e253f5e, type: 3}
-    - {fileID: 8300000, guid: dd3b9bd114c64344b99a7d0907b26da8, type: 3}
-    - {fileID: 8300000, guid: a1cd88f99b68370418effcc5f4480a8f, type: 3}
-    - {fileID: 8300000, guid: e93d1eb4318789b42a182890d7ec5871, type: 3}
-    - {fileID: 8300000, guid: 5ea2369028b205b478a1157b5b6d557d, type: 3}
     hurt:
-    - {fileID: 8300000, guid: 8949dff25dac8ee4bad8f6a4f87c465e, type: 3}
-    - {fileID: 8300000, guid: d7877e23df700194c9fd94646aab0b4d, type: 3}
-    - {fileID: 8300000, guid: 5999afe838e58cc4888da1014ff9cfbd, type: 3}
     - {fileID: 8300000, guid: c9b0f4a1f173db04fb88d317ee64bb7c, type: 3}
     - {fileID: 8300000, guid: c791fe240f853bd48b818209ff1c7246, type: 3}
-    - {fileID: 8300000, guid: 8f6dad7870360164dbc0079fee03d1f1, type: 3}
-    - {fileID: 8300000, guid: 5803d66a59476c24f95df828d5c0fc64, type: 3}
-    - {fileID: 8300000, guid: 798e73bfce7c46648a458e3de78a8d4a, type: 3}
     - {fileID: 8300000, guid: f69a36e65a261684aaa695581895b97f, type: 3}
     - {fileID: 8300000, guid: 60856aff8474bae4e948cdb959000ca4, type: 3}
     - {fileID: 8300000, guid: 16839f5e5782fe949932f80880115b75, type: 3}
     death:
-    - {fileID: 8300000, guid: 05bd2f0d78872354bbca8659c7f4e921, type: 3}
     - {fileID: 8300000, guid: bb646473d98f04b4ba1af22971f96483, type: 3}
-    - {fileID: 8300000, guid: 6b79a4745b80c9f448616e2c6940a206, type: 3}
     - {fileID: 8300000, guid: a2f12e4817ff4544bb36133c9d57f649, type: 3}
     - {fileID: 8300000, guid: cdee09b2e9ccb6d439daa868ccb64694, type: 3}
-    - {fileID: 8300000, guid: 95a6ca1a2e0f9af4f9abd1eb2cdd31c9, type: 3}
     jump:
-    - {fileID: 8300000, guid: 29a8e2a2d7f7ffd409e090c5efa66350, type: 3}
-    - {fileID: 8300000, guid: e44abf6b7a8f597458e7e1e80ef51cf9, type: 3}
-    - {fileID: 8300000, guid: a07499455c634ee47a5b37ee288ecbb4, type: 3}
-    - {fileID: 8300000, guid: 3c2994748c85d4c4fbab25ae2483dae3, type: 3}
     - {fileID: 8300000, guid: c0d395c87af795845a5f2dea0def2bee, type: 3}
     - {fileID: 8300000, guid: 942cfc2f3b97a734ebf20eb1721daedc, type: 3}
   - name: Rina
     attack:
-    - {fileID: 8300000, guid: ad72b7957a921c44f82780a602b78af2, type: 3}
     - {fileID: 8300000, guid: e1d601e6dd8a18444b5bf5baaf4f61d6, type: 3}
-    - {fileID: 8300000, guid: 74be0e340efb6ad428d484864900014b, type: 3}
-    - {fileID: 8300000, guid: dc38b8b08b060254884c016cb43189a4, type: 3}
     - {fileID: 8300000, guid: f11c10a13e52cd54393a8f4532be3b3b, type: 3}
     - {fileID: 8300000, guid: 5f8a7134ef8664a4b8cb1fc092c7e647, type: 3}
     hurt:
-    - {fileID: 8300000, guid: 47ba908931527d547910828c18ae4715, type: 3}
     - {fileID: 8300000, guid: 734c52d0f507dc24095df77d9fbf53a7, type: 3}
     - {fileID: 8300000, guid: eccae4baeec7fb641a0ce856f4892cd9, type: 3}
     - {fileID: 8300000, guid: 4137fcb1f9b31a84cb59624f003d96a6, type: 3}
@@ -1258,13 +1210,8 @@ MonoBehaviour:
     - {fileID: 8300000, guid: 7373e137487dfb84b88a0d7236580f7b, type: 3}
     death:
     - {fileID: 8300000, guid: 8a53b9166549b9b4283f497b68a5484b, type: 3}
-    - {fileID: 8300000, guid: 55c5a0108abea614fb0a9ffc99aede0e, type: 3}
-    - {fileID: 8300000, guid: 7c52e42ee78bd494495c642bc133612a, type: 3}
     jump:
-    - {fileID: 8300000, guid: b0ba2b06868e13948bb65d1a1f1f7c4b, type: 3}
-    - {fileID: 8300000, guid: 3efa0745414ee014190aec1c6546037a, type: 3}
     - {fileID: 8300000, guid: a5f809a40f4b2bf4e9f092fc73015f14, type: 3}
-    - {fileID: 8300000, guid: 2d410682b2b956a44b1aba8d7bcb2d63, type: 3}
     - {fileID: 8300000, guid: 49fb596ca7d3eac46bce23cb8793da5a, type: 3}
     - {fileID: 8300000, guid: 79964ad6aa1828a4e9af7746f5a8c084, type: 3}
   panel: {fileID: 7533072518065869164}

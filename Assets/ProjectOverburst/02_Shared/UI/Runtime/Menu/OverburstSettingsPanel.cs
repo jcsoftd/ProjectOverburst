@@ -21,6 +21,7 @@ public sealed class OverburstSettingsPanel : MonoBehaviour
     public Slider masterVolume;
     public Slider uiVolume;
     public Toggle muteInBackground;
+    public UISwitchSelect playerVoice;
 
     [Header("Screen")]
     public UISwitchSelect screenMode;
@@ -89,6 +90,7 @@ public sealed class OverburstSettingsPanel : MonoBehaviour
         masterVolume.onValueChanged.AddListener(v => { if (!refreshing) OverburstGameSettings.MasterVolume = v; });
         uiVolume.onValueChanged.AddListener(v => { if (!refreshing) OverburstGameSettings.UiVolume = v; });
         muteInBackground.onValueChanged.AddListener(v => { if (!refreshing) { OverburstGameSettings.MuteInBackground = v; menu.PlayClick(); } });
+        if (playerVoice) playerVoice.onChange.AddListener((i, _) => { if (!refreshing) { OverburstGameSettings.PlayerVoice = (PlayerVoiceChoice)i; PlayerVoiceService.Current?.Preview(PlayerVoiceService.VoiceKind.Attack); } });
         cameraShake.onValueChanged.AddListener(v => { if (!refreshing) OverburstGameSettings.CameraShakeScale = v; });
         if (mapOverlayOpacity) mapOverlayOpacity.onValueChanged.AddListener(v => { if (!refreshing) OverburstGameSettings.MapOverlayOpacity = v; });
         if (mapOverlayScale) mapOverlayScale.onValueChanged.AddListener(v => { if (!refreshing) OverburstGameSettings.MapOverlayScale = v; });
@@ -193,6 +195,7 @@ public sealed class OverburstSettingsPanel : MonoBehaviour
             masterVolume.SetValueWithoutNotify(OverburstGameSettings.MasterVolume);
             uiVolume.SetValueWithoutNotify(OverburstGameSettings.UiVolume);
             muteInBackground.SetIsOnWithoutNotify(OverburstGameSettings.MuteInBackground);
+            if (playerVoice) FillOptions(playerVoice, new[] { "Karen1", "Karen2", "Kimlinh", "Rina", "끄기" }, (int)OverburstGameSettings.PlayerVoice);
             cameraShake.SetValueWithoutNotify(OverburstGameSettings.CameraShakeScale);
             if (mapOverlayOpacity) mapOverlayOpacity.SetValueWithoutNotify(OverburstGameSettings.MapOverlayOpacity);
             if (mapOverlayScale) mapOverlayScale.SetValueWithoutNotify(OverburstGameSettings.MapOverlayScale);
