@@ -54,6 +54,9 @@ public sealed class QuestMerchantUI : MonoBehaviour
     private float nextWheel;
     private bool hasTracking;
     private bool? approachIsStylist;
+    private UnityEngine.UI.Text[] approachKeyTexts;
+    private UnityEngine.UI.Text approachHint;
+    private string shownInteractKey;
     private long badgeRevision = -1;
     private GeneralGoodsMerchantInteractable badgeMerchant;
     private readonly List<QuestRowView> merchantPool = new List<QuestRowView>();
@@ -116,7 +119,37 @@ public sealed class QuestMerchantUI : MonoBehaviour
     }
     public void ConfigureApproach(bool stylist)
     {
-        if (approachIsStylist == stylist) return;
+        string key = InteractionPromptPresenter.InteractKeyLabel;
+        bool modeChanged = approachIsStylist != stylist;
+        if (shownInteractKey != key || modeChanged)
+        {
+            if (approachKeyTexts == null)
+            {
+                approachKeyTexts = new UnityEngine.UI.Text[approachKeys.Length];
+                for (int i = 0; i < approachKeys.Length; i++)
+                    approachKeyTexts[i] = approachKeys[i].GetComponentInChildren<UnityEngine.UI.Text>(true);
+                approachHint = approach.transform.Find("Hint").GetComponent<UnityEngine.UI.Text>();
+            }
+            for (int i = 0; i < approachKeyTexts.Length; i++)
+            {
+                var text = approachKeyTexts[i];
+                text.text = key;
+                var keyRect = (RectTransform)approachKeys[i].transform;
+                float right = keyRect.anchoredPosition.x + keyRect.rect.width;
+                float width = Mathf.Max(27f, Mathf.Ceil(text.preferredWidth * text.rectTransform.localScale.x) + 12f);
+                keyRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, width);
+                keyRect.anchoredPosition = new Vector2(right - width, keyRect.anchoredPosition.y);
+                text.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, width / text.rectTransform.localScale.x);
+                ((RectTransform)keyRect.Find("Fill")).SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, width);
+                ((RectTransform)keyRect.Find("Border Top")).SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, width);
+                ((RectTransform)keyRect.Find("Border Bottom")).SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, width);
+                var borderRight = (RectTransform)keyRect.Find("Border Right");
+                borderRight.anchoredPosition = new Vector2(width - 1f, borderRight.anchoredPosition.y);
+            }
+            approachHint.text = stylist ? "클릭 / " + key + " 실행" : "휠 선택  ·  클릭 / " + key + " 실행";
+            shownInteractKey = key;
+        }
+        if (!modeChanged) return;
         approachIsStylist = stylist;
         for (int i = 0; i < approachButtons.Length; i++)
         {
@@ -132,9 +165,8 @@ public sealed class QuestMerchantUI : MonoBehaviour
             ((RectTransform)approach.transform.Find(name)).SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, height);
         var bottom = (RectTransform)approach.transform.Find("Border Bottom");
         bottom.anchoredPosition = new Vector2(bottom.anchoredPosition.x, -(height - 1));
-        var hint = approach.transform.Find("Hint").GetComponent<Text>();
+        var hint = approachHint;
         hint.rectTransform.anchoredPosition = new Vector2(hint.rectTransform.anchoredPosition.x, -(stylist ? 137 : 255));
-        hint.text = stylist ? "클릭 / F 실행" : "휠 선택  ·  클릭 / F 실행";
         if (stylist) approachBadge.gameObject.SetActive(false);
     }
     public void SelectOption(int index)

@@ -20,9 +20,10 @@ public partial class InventorySlotBridge
         }
 
         ClearAllDragOverlays(); // 이전 preview
-        ApplyBagCapacityPreview(targetSlot); // 가방 칸 변화
+        bool canDrop = CanPreviewDropToTarget(targetSlot);
+        ApplyBagCapacityPreview(targetSlot, canDrop); // 가방 칸 변화
 
-        if (CanPreviewDropToTarget(targetSlot))
+        if (canDrop)
             targetSlot.SetDragOverlay(SlotDragOverlayState.WillUnlock); // 드롭 가능 표시
     }
 
@@ -32,7 +33,7 @@ public partial class InventorySlotBridge
         ClearAllDragOverlays();
     }
 
-    private void ApplyBagCapacityPreview(SlotUI targetSlot)
+    private void ApplyBagCapacityPreview(SlotUI targetSlot, bool canDrop)
     {
         if (targetSlot == null || inventorySlots == null)
             return;
@@ -40,7 +41,7 @@ public partial class InventorySlotBridge
         ItemData[] proposedBags; // 가상 가방
         int ignoredInventorySlotIndex = -1; // 이동 원본
 
-        if (!TryBuildProposedBagsForPreview(targetSlot, out proposedBags, out ignoredInventorySlotIndex))
+        if (!TryBuildProposedBagsForPreview(targetSlot, canDrop, out proposedBags, out ignoredInventorySlotIndex))
             return;
 
         int currentUnlockedSlots = GetUnlockedInventorySlotCount();
@@ -61,7 +62,7 @@ public partial class InventorySlotBridge
         }
     }
 
-    private bool TryBuildProposedBagsForPreview(SlotUI targetSlot, out ItemData[] proposedBags, out int ignoredInventorySlotIndex)
+    private bool TryBuildProposedBagsForPreview(SlotUI targetSlot, bool canDrop, out ItemData[] proposedBags, out int ignoredInventorySlotIndex)
     {
         proposedBags = null;
         ignoredInventorySlotIndex = -1;
@@ -69,13 +70,12 @@ public partial class InventorySlotBridge
         if (previewOriginSlot == null || targetSlot == null)
             return false;
 
-        proposedBags = CopyEquippedBags();
-
         if (targetSlot.IsBagSlot && IsBagItem(previewOriginSlot.DisplayItem) && !previewOriginSlot.IsBagSlot)
         {
-            if (!IsBagSlotIndexValid(targetSlot.SlotIndex))
+            if (!canDrop || !IsBagSlotIndexValid(targetSlot.SlotIndex))
                 return false;
 
+            proposedBags = CopyEquippedBags();
             proposedBags[targetSlot.SlotIndex] = previewOriginSlot.DisplayItem; // 장착 가정
             ignoredInventorySlotIndex = previewOriginSlot.SlotIndex; // 원본 제외
             return true;
@@ -86,6 +86,7 @@ public partial class InventorySlotBridge
             if (!IsBagSlotIndexValid(previewOriginSlot.SlotIndex))
                 return false;
 
+            proposedBags = CopyEquippedBags();
             proposedBags[previewOriginSlot.SlotIndex] = null; // 해제 가정
             return true;
         }
@@ -119,12 +120,11 @@ public partial class InventorySlotBridge
 
         ItemData newBag = sourceSlot.DisplayItem;
 
-        if (!IsBagItem(newBag))
+        if (!IsBagItem(newBag) || sourceSlot.SlotIndex < 0 || sourceSlot.SlotIndex >= inventory.UnlockedSlotCount
+            || !ReferenceEquals(inventory.GetItemAt(sourceSlot.SlotIndex), newBag))
             return false;
 
         ItemData oldBag = equippedBags[bagSlotIndex];
-        ItemData[] proposedBags = CopyEquippedBags();
-        proposedBags[bagSlotIndex] = newBag;
         return inventory.CanReplaceOwnedItemAt(sourceSlot.SlotIndex, newBag, oldBag);
     }
 

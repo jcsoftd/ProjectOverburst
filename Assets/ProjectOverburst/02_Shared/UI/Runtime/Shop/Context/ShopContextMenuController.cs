@@ -176,8 +176,9 @@ public class ShopContextMenuController : MonoBehaviour
 
     private void ShowSelectedItemInfo()
     {
-        owner?.ShowShopContextItemInfo(selectedSlot != null ? selectedSlot.DisplayItem : null);
+        ItemData item = selectedSlot != null ? selectedSlot.DisplayItem : null;
         Close();
+        owner?.ShowShopContextItemInfo(item);
     }
 
     private void ConfirmSplitTrade()

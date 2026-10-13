@@ -43,6 +43,7 @@ public class DragSlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         OriginSlot = slotUI; // 출발 슬롯
         DraggedItem = slotUI.DisplayItem; // 드래그 아이템
         dropHandled = false; // 드롭 초기화
+        pendingDropSlot = null;
         originBridge = slotUI.OwnerBridge; // 정책 Bridge
         originBridge?.BeginDragPreview(slotUI); // 미리보기 시작
 
@@ -66,6 +67,7 @@ public class DragSlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         OriginSlot = originSlot; // 출발 슬롯
         DraggedItem = item; // 드래그 아이템
         dropHandled = false; // 드롭 초기화
+        pendingDropSlot = null;
         originBridge = originSlot.OwnerBridge; // 정책 Bridge
         originBridge?.BeginDragPreview(originSlot); // 미리보기 시작
 
@@ -114,7 +116,7 @@ public class DragSlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
 
     public static void RegisterDropTarget(DropSlot dropSlot)
     {
-        if (dropSlot == null)
+        if (dropSlot == null || !HasCurrentOrigin)
             return;
 
         pendingDropSlot = dropSlot; // 명시 슬롯

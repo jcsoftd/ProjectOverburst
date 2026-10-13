@@ -14,6 +14,9 @@ public class GeneralGoodsMerchantInteractable : MonoBehaviour, IInteractable
     [SerializeField] private Transform player;
     [SerializeField] private GameObject promptRoot;
     [SerializeField] private TextMeshPro promptText;
+    private string promptKey;
+    private string promptName;
+    private string promptMessage;
     [SerializeField] private TextMeshPro nameLabel;
     private string stableInteractionId;
 
@@ -26,7 +29,21 @@ public class GeneralGoodsMerchantInteractable : MonoBehaviour, IInteractable
     }
     public Transform InteractionTransform => transform;
     public int InteractionPriority => 200;
-    public string InteractionPrompt => "F : " + (merchantDefinition != null ? merchantDefinition.MerchantName : "상인");
+    public string InteractionPrompt
+    {
+        get
+        {
+            string key = InteractionPromptPresenter.InteractKeyLabel;
+            string name = merchantDefinition != null ? merchantDefinition.MerchantName : "상인";
+            if (promptKey != key || promptName != name)
+            {
+                promptKey = key;
+                promptName = name;
+                promptMessage = key + " : " + name;
+            }
+            return promptMessage;
+        }
+    }
     public InteractionDistanceMode DistanceMode => InteractionDistanceMode.ThreeDimensional;
     public float InteractionRange => interactRadius;
     public string StableInteractionId => stableInteractionId ??= InteractionStableIdUtility.Build(this);
@@ -95,8 +112,6 @@ public class GeneralGoodsMerchantInteractable : MonoBehaviour, IInteractable
         }
 
         if (nameLabel != null && merchantDefinition != null) nameLabel.text = merchantDefinition.MerchantName;
-        if (promptText != null)
-            promptText.text = "F : " + (merchantDefinition != null ? merchantDefinition.MerchantName : "상인");
     }
 
     private ShopUI FindPreferredShopUI()
@@ -155,8 +170,9 @@ public class GeneralGoodsMerchantInteractable : MonoBehaviour, IInteractable
 
     public void SetInteractionPromptVisible(bool visible)
     {
-        if (promptText != null)
+        bool show = visible && WantsInteractionPrompt && QuestMerchantUI.Current == null;
+        if (show && promptText != null)
             promptText.text = InteractionPrompt;
-        SetPromptVisible(visible && WantsInteractionPrompt && QuestMerchantUI.Current == null);
+        SetPromptVisible(show);
     }
 }

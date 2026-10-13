@@ -419,7 +419,8 @@ internal static class ItemDebugModule
             .ConfirmOnRealAccount();
         s.Button("1,000을 발밑 바닥에 떨어뜨리기", DropCurrency)
             .WithId("items.currency.drop")
-            .EnabledWhen(() => DebugTeleport.HasPlayer, "플레이어가 있는 씬에서만");
+            .EnabledWhen(() => DebugTeleport.HasPlayer, "플레이어가 있는 씬에서만")
+            .ConfirmOnRealAccount();
     }
 
     private static DebugResult AddCurrency(int amount)

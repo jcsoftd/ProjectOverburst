@@ -109,7 +109,7 @@ public static class FlaskTooltip
         float primaryApplied = data.primaryEffect == FlaskEffect.AttackSpeed
             ? Mathf.Min(stats.primary, Mathf.Max(0f, 1.5f - weapon.meleeAttackSpeedMultiplier))
             : data.primaryEffect == FlaskEffect.CritChance
-                ? Mathf.Min(stats.primary, Mathf.Max(0f, .6f - weapon.critChance / 100f))
+                ? Mathf.Min(stats.primary, Mathf.Max(0f, OverburstCombatBalance.FinalCriticalChance / 100f - weapon.critChance / 100f))
                 : data.primaryEffect == FlaskEffect.AttackRadius
                     ? Mathf.Min(stats.primary, Mathf.Max(0f, 2f - weapon.meleeAttackRangeScale))
                     : stats.primary;

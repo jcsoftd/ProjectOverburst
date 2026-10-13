@@ -8,12 +8,26 @@ public class StashInteractable : MonoBehaviour, IInteractable // 창고 상호�
     [SerializeField] private Transform player;
     [SerializeField] private GameObject promptRoot;
     [SerializeField] private TextMeshPro promptText;
+    private string promptKey;
+    private string promptMessage;
     private string stableInteractionId;
 
     public Component InteractionComponent => this;
     public Transform InteractionTransform => transform;
     public int InteractionPriority => 220;
-    public string InteractionPrompt => "F : 창고 열기";
+    public string InteractionPrompt
+    {
+        get
+        {
+            string key = InteractionPromptPresenter.InteractKeyLabel;
+            if (promptKey != key)
+            {
+                promptKey = key;
+                promptMessage = key + " : 창고 열기";
+            }
+            return promptMessage;
+        }
+    }
     public InteractionDistanceMode DistanceMode => InteractionDistanceMode.ThreeDimensional;
     public float InteractionRange => interactRadius;
     public string StableInteractionId => stableInteractionId ??= InteractionStableIdUtility.Build(this);
@@ -87,8 +101,6 @@ public class StashInteractable : MonoBehaviour, IInteractable // 창고 상호�
                 player = playerObject.transform; // 플레이어
         }
 
-        if (promptText != null)
-            promptText.text = "F : 창고 열기"; // 안내 문구
     }
 
     private StashUI FindPreferredStashUI()
@@ -137,8 +149,9 @@ public class StashInteractable : MonoBehaviour, IInteractable // 창고 상호�
 
     public void SetInteractionPromptVisible(bool visible)
     {
-        if (promptText != null)
+        bool show = visible && WantsInteractionPrompt;
+        if (show && promptText != null)
             promptText.text = InteractionPrompt;
-        SetPromptVisible(visible && WantsInteractionPrompt);
+        SetPromptVisible(show);
     }
 }

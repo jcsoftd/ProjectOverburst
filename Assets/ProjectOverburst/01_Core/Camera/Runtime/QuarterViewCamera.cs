@@ -355,7 +355,7 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
     {
         if (groundStepCameraStrength <= 0f || !isActiveAndEnabled)
             return;
-        float scaled = Mathf.Clamp(positionAmplitude, 0f, .05f) * groundStepCameraStrength * OverburstGameSettings.CameraShakeScale;
+        float scaled = Mathf.Clamp(positionAmplitude, 0f, .05f) * groundStepCameraStrength;
         if (scaled <= queuedGroundStepAmplitude) return;
         queuedGroundStepAmplitude = scaled;
         queuedGroundStepDuration = Mathf.Clamp(duration, .08f, .16f);
@@ -367,22 +367,23 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
         float duration = queuedGroundStepDuration;
         queuedGroundStepAmplitude = 0f;
         queuedGroundStepDuration = 0f;
-        if (amplitude <= 0f)
+        float effectiveAmplitude = amplitude * OverburstGameSettings.CameraShakeScale;
+        if (effectiveAmplitude <= 0f)
             return;
 
         float now = Time.unscaledTime;
         bool impactActive = now < impactEndUnscaledTime;
         if (impactActive && activeImpactKind != CombatCameraRequestKind.GroundStep)
             return;
-        if (now - lastGroundStepUnscaledTime < 0.24f && amplitude <= lastGroundStepAmplitude)
+        if (now - lastGroundStepUnscaledTime < 0.24f && effectiveAmplitude <= lastGroundStepAmplitude)
             return;
-        if (impactActive && amplitude <= impactPositionAmplitude)
+        if (impactActive && effectiveAmplitude <= impactPositionAmplitude)
             return;
 
         RequestCombatImpact(CombatCameraRequestKind.GroundStep, transform.up, transform.up, true,
             duration, amplitude, 0f, 0.78f, 0f, 0f, 0f, .05f, 0f);
         lastGroundStepUnscaledTime = now;
-        lastGroundStepAmplitude = amplitude;
+        lastGroundStepAmplitude = effectiveAmplitude;
         GroundStepEmissionCount++;
     }
 
