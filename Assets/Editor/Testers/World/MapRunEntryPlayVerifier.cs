@@ -309,7 +309,7 @@ public static class MapRunEntryPlayVerifier
             var gate = scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<RunWorldGate>()).Single();
             Check(gate.IsReady && gate.EntryPoint && Vector3.Distance(PlayerContext.Instance.CurrentActor.transform.position, gate.EntryPoint.position) < 2, label + ": player placed at prepared entry");
             var roster = gate.Roster;
-            Check(roster != null && roster.PlacementReady && roster.Total >= (MapGenerationPolicy.EffectiveAreaCount(item.map) - (item.map.terrain == MapTerrainKind.Desert ? 1 : 0)) * 50, label + ": finite population and physical placements prepared before consumption");
+            Check(roster != null && roster.PlacementReady && roster.Total >= (MapGenerationPolicy.EffectiveAreaCount(item.map) - (item.map.terrain == MapTerrainKind.Desert ? 1 : 0)) * (item.map.terrain == MapTerrainKind.Cave ? 30 : 40), label + ": reduced finite population and physical placements prepared before consumption");
             Check(roster.ThemeId == item.map.monsterThemeId && roster.Areas.Count == MapGenerationPolicy.EffectiveAreaCount(item.map)
                 && roster.Kills == 0 && roster.Active > 0 && gate.SpawnBudget.InitialReady
                 && roster.Active + roster.Pending == roster.Total, label + ": stored single theme and finite initial actors prepared before entry");

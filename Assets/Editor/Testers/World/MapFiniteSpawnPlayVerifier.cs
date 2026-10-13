@@ -23,6 +23,9 @@ public static class MapFiniteSpawnPlayVerifier
         check(field.TryGetActor(first.Index, out var actor), label + ": logical member resolves to actual actor");
         yield return Frames(3);
         check(actor.AI.enabled && actor.Movement.enabled && actor.Animator.enabled, label + ": prepared actor resumes after input opens");
+        VerifyClearedPositions(gate, check);
+        check(budget.Fields.All(f => f.LocalFightLimit >= (f.FiniteArea.BasePopulation <= 60 ? 12 : f.FiniteArea.BasePopulation <= 110 ? 18 : 28)
+            && f.LocalFightLimit <= (f.FiniteArea.BasePopulation <= 60 ? 16 : f.FiniteArea.BasePopulation <= 110 ? 26 : 40)), label + ": reduced local fight limits in every platform");
         ScreenCapture.CaptureScreenshot(Path.Combine(output, "initial-" + roster.Terrain + "-" + roster.Areas.Count + ".png"));
         yield return Frames(3);
         int total = roster.Total, target = roster.Target, before = roster.Kills;
@@ -114,7 +117,7 @@ public static class MapFiniteSpawnPlayVerifier
             int previousKills = roster.Kills; double movedAt = 0; int destination = 0, samples = 0;
             bool frameLimits = true;
             until = EditorApplication.timeSinceStartup + 120;
-            while (roster.Kills < total && EditorApplication.timeSinceStartup < until)
+            while (!roster.Areas.Where(a => a.Count > 0).All(a => a.Cleared) && EditorApplication.timeSinceStartup < until)
             {
                 foreach (var member in roster.Members)
                     if (member.State == MapRunRoster.Life.Active && budget.Fields[member.AreaIndex].TryGetActor(member.Index, out var enemy))
@@ -132,13 +135,63 @@ public static class MapFiniteSpawnPlayVerifier
             }
             Write(output, label, gate);
             check(frameLimits && samples > 0, label + ": shared frame budget and monotonic deaths across " + samples + " sweep samples");
-            check(roster.Kills == total && roster.Active == 0 && roster.Pending == 0, label + ": all natural IDs can be reached and exhausted once");
+            check(roster.Areas.Where(a => a.Count > 0).All(a => a.Cleared && a.Kills >= a.ClearTarget)
+                && roster.Kills + roster.Active + roster.Pending == total, label + ": every natural platform reaches 95 percent with its remaining IDs preserved");
+            check(roster.Terrain != Overburst.Persistence.MapTerrainKind.Cave || roster.CaveTargetReached, label + ": platform clearing still reaches the fixed cave completion target");
+            var leases = roster.Members.Select(m => m.Lease).ToArray();
             yield return Frames(20);
-            check(roster.Kills == total && roster.Active == 0, label + ": exhausted map never replenishes itself");
+            check(roster.Members.Select(m => m.Lease).SequenceEqual(leases), label + ": cleared map never spawns or restores another natural ID");
         }
         Write(output, label, gate);
         ScreenCapture.CaptureScreenshot(Path.Combine(output, "density-" + roster.Terrain + "-" + roster.Areas.Count + ".png"));
         yield return Frames(3);
+    }
+
+    static void VerifyClearedPositions(RunWorldGate gate, Action<bool, string> check)
+    {
+        var roster = gate.Roster; var fields = gate.SpawnBudget.Fields;
+        var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+        var slotType = typeof(MapMonsterField).GetNestedType("Slot", System.Reflection.BindingFlags.NonPublic);
+        var groupType = typeof(MapMonsterField).GetNestedType("SpawnGroup", System.Reflection.BindingFlags.NonPublic);
+        var place = typeof(MapMonsterField).GetMethod("TryFinitePosition", flags);
+        var kills = typeof(MapRunRoster.Area).GetProperty(nameof(MapRunRoster.Area.Kills));
+        var player = PlayerContext.Instance.CurrentActor.transform.position;
+        foreach (var court in roster.Areas.Where(a => a.Count > 0))
+        {
+            var source = roster.Areas.FirstOrDefault(a => a.Count > 0 && a != court);
+            if (source == null) continue;
+            var member = roster.Members.Skip(source.FirstMember).Take(source.Count).First(m => !m.Initial);
+            var body = MapCombatGeometry.BodyFor(member.Definition);
+            var slot = Activator.CreateInstance(slotType, true);
+            void Set(string name, object value) => slotType.GetField(name).SetValue(slot, value);
+            Set("Member", member); Set("Radius", body.Radius); Set("Height", body.Height);
+            var group = Activator.CreateInstance(groupType, true);
+            groupType.GetField("Ground").SetValue(group, court.Ground); Set("Group", group);
+            foreach (var point in court.Ground.Points)
+            {
+                groupType.GetField("Point").SetValue(group, point); Set("GroupCursor", 0); Set("Cursor", 0);
+                var args = new object[] { slot, player, false, Vector3.zero };
+                if (!(bool)place.Invoke(fields[source.Ground.Index], args) || !MapCombatGeometry.Contains(court.Ground, (Vector3)args[3])) continue;
+                int before = court.Kills;
+                try
+                {
+                    // Synchronous fault injection: the same cached neighbour group must be rejected after clearing.
+                    kills.SetValue(court, court.ClearTarget); Set("GroupCursor", 0); Set("Cursor", 0);
+                    args[3] = Vector3.zero;
+                    bool accepted = (bool)place.Invoke(fields[source.Ground.Index], args);
+                    check(!accepted || !MapCombatGeometry.Contains(court.Ground, (Vector3)args[3]),
+                        "Cleared platform " + court.Ground.Index + ": previously valid cached neighbour group cannot respawn here");
+                    args[3] = Vector3.zero;
+                    check(!(bool)place.Invoke(fields[court.Ground.Index], args),
+                        "Cleared platform " + court.Ground.Index + ": own floor and approaches reject spawning");
+                }
+                finally { kills.SetValue(court, before); }
+                check(!court.Cleared && roster.Areas.Sum(a => a.Kills) == roster.Kills,
+                    "Cleared placement injection restores the original natural death counts");
+                return;
+            }
+        }
+        check(false, "A real offscreen neighbouring spawn point is required for the cleared-platform regression");
     }
 
     // Scale-only pass: actual population in every area, without repeating the failure-injection suite.

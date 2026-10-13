@@ -47,6 +47,7 @@ public sealed class MinimapGuideSource
             for (int i = area.FirstMember; i < area.FirstMember + area.Count; i++)
             {
                 if (roster.Members[i].State == MapRunRoster.Life.Dead) continue;
+                if (area.Cleared && roster.Members[i].State == MapRunRoster.Life.Pending) continue;
                 alive++; if (roster.Members[i].State == MapRunRoster.Life.Pending) pending++;
             }
             if (alive == 0) continue;

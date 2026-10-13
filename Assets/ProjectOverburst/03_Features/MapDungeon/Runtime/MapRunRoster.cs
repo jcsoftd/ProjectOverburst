@@ -30,6 +30,9 @@ public sealed class MapRunRoster
         public int Small { get; internal set; }
         public int Medium { get; internal set; }
         public int Elite { get; internal set; }
+        public int Kills { get; internal set; }
+        public int ClearTarget => Count > 0 ? CaveTarget(Count) : 0;
+        public bool Cleared => Count > 0 && Kills >= ClearTarget;
     }
     public string RunId { get; }
     public string ThemeId { get; }
@@ -65,8 +68,9 @@ public sealed class MapRunRoster
             || float.IsNaN(density) || density < .9f || density > 1.1f) throw new ArgumentOutOfRangeException(nameof(squareMetres));
         float anchor = terrain == MapTerrainKind.Cave ? 85f : terrain == MapTerrainKind.Desert ? 130f
             : throw new ArgumentException("Product terrain required.");
-        int minimum = terrain == MapTerrainKind.Cave ? 50 : 60;
-        float count = minimum * Mathf.Pow(squareMetres / anchor, .75f) * density;
+        int minimum = terrain == MapTerrainKind.Cave ? 30 : 40;
+        int previousMinimum = terrain == MapTerrainKind.Cave ? 50 : 60;
+        float count = Mathf.Max(previousMinimum, previousMinimum * Mathf.Pow(squareMetres / anchor, .75f) * density) * .65f;
         return Mathf.Max(minimum, 5 * Mathf.RoundToInt(count / 5f));
     }
     public static MapRunRoster Build(string runId, MapInstanceState map, IReadOnlyList<MapCombatGeometry.Area> ground, int bossArea = -1)
@@ -156,6 +160,7 @@ public sealed class MapRunRoster
     {
         if (!Current(index, lease)) return false;
         Members[index].State = Life.Dead; Active--; Kills++;
+        Areas[Members[index].AreaIndex].Kills++;
         DeathRecorded?.Invoke(); return true;
     }
     bool Current(int index, int lease) => index >= 0 && index < Total && lease > 0

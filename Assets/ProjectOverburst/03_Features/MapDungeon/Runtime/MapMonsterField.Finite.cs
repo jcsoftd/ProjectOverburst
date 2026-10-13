@@ -63,8 +63,8 @@ public sealed partial class MapMonsterField
         finiteRoster.DeathRecorded += ApplyNaturalProgress;
         spawnPath = new NavMeshPath();
         finiteRandom = new System.Random(unchecked(seed ^ 0x310AB));
-        LocalFightLimit = area.BasePopulation <= 90 ? finiteRandom.Next(18, 25)
-            : area.BasePopulation <= 170 ? finiteRandom.Next(28, 41) : finiteRandom.Next(40, 61);
+        LocalFightLimit = area.BasePopulation <= 60 ? finiteRandom.Next(12, 17)
+            : area.BasePopulation <= 110 ? finiteRandom.Next(18, 27) : finiteRandom.Next(28, 41);
         foreach (var point in area.Ground.Points) areaRadius = Mathf.Max(areaRadius, Vector3.Distance(point, area.Ground.Center));
         approaches = MapCombatGeometry.Approaches(area.Ground);
         // Adjacent courts come from this generated terrain's links, never fixed coordinates.
@@ -153,32 +153,27 @@ public sealed partial class MapMonsterField
     {
         foreach (var slot in slots)
             if (!slot.Member.Initial && Valid(slot) && !slot.Actor.Health.IsDead && FlatDistance(slot.Actor.transform.position, player) > 24) nearby++;
-        if (preparing || !triggered || !NearForInitial(player) || !InitialPlaced || nearby >= LocalFightLimit * .6f) return;
+        if (preparing || finiteArea.Cleared || !triggered || !NearForInitial(player) || !InitialPlaced || nearby >= LocalFightLimit * .6f) return;
         foreach (var slot in slots) if (!slot.Member.Initial && slot.Released && slot.Member.State == MapRunRoster.Life.Pending) return;
         if (nearby > 0 && Time.unscaledTime < nextPackAt) return;
-        int pack = finiteRandom.Next(6, 13);
-        int amount = Mathf.Min(LocalFightLimit - nearby, pack * (nearby == 0 ? 2 : 1));
-        while (amount > 0)
+        Slot first = null;
+        foreach (var slot in slots)
+            if (!slot.Released && slot.Member.State == MapRunRoster.Life.Pending) { first = slot; break; }
+        if (first == null) return;
+        var group = new SpawnGroup();
+        int remaining = Mathf.Min(LocalFightLimit - nearby, MapCombatGeometry.GroupSize(first.Member.Tier));
+        foreach (var slot in slots)
         {
-            Slot first = null;
-            foreach (var slot in slots)
-                if (!slot.Released && slot.Member.State == MapRunRoster.Life.Pending) { first = slot; break; }
-            if (first == null) break;
-            var group = new SpawnGroup();
-            int remaining = Mathf.Min(amount, MapCombatGeometry.GroupSize(first.Member.Tier));
-            foreach (var slot in slots)
-            {
-                if (remaining == 0) break;
-                if (slot.Released || slot.Member.State != MapRunRoster.Life.Pending || slot.Member.Definition != first.Member.Definition) continue;
-                slot.Group = group; slot.Released = true; remaining--; amount--; ReinforcementReleased++;
-            }
+            if (remaining == 0) break;
+            if (slot.Released || slot.Member.State != MapRunRoster.Life.Pending || slot.Member.Definition != first.Member.Definition) continue;
+            slot.Group = group; slot.Released = true; remaining--; ReinforcementReleased++;
         }
         nextPackAt = Time.unscaledTime + .8f;
     }
     internal bool TrySpawnFinite(Vector3 player, bool preparing, out bool spawned)
     {
         spawned = false;
-        if (preparing ? !PrepareAtEntry : !NearForInitial(player)) return false;
+        if (finiteArea.Cleared || (preparing ? !PrepareAtEntry : !NearForInitial(player))) return false;
         Slot chosen = null;
         // A visible returning actor must not monopolize the frame budget ahead of reserves.
         for (int n = 0; n < slots.Count; n++)
@@ -227,12 +222,18 @@ public sealed partial class MapMonsterField
     }
     bool TryFinitePosition(Slot slot, Vector3 player, bool preparing, out Vector3 position)
     {
+        position = default;
+        if (finiteArea.Cleared) return false;
         bool Clear(MapCombatGeometry.Area ground, Vector3 candidate, bool approach, out Vector3 result)
         {
             result = default;
+            if (finiteRoster.Areas[ground.Index].Cleared) return false;
             if (FlatDistance(candidate, player) < MapCombatGeometry.EntrySafety + (preparing ? 0 : slot.Radius)) return false;
             if (!preparing && budget.InView(candidate, .12f, slot.Radius, slot.Height)) return false;
             if (!MapCombatGeometry.TryRuntimePoint(ground, slot.Member.Definition, candidate, approach, spawnOverlaps, spawnPath, out result)) return false;
+            // Approach points and restored actors can belong to a different platform than their roster owner.
+            foreach (var area in finiteRoster.Areas)
+                if (area.Cleared && MapCombatGeometry.Contains(area.Ground, result)) return false;
             if (ground != finiteArea.Ground && (!NavMesh.CalculatePath(result, finiteArea.Ground.Center, NavMesh.AllAreas, spawnPath)
                 || spawnPath.status != NavMeshPathStatus.PathComplete)) return false;
             if (!budget.IsSeparated(result, slot.Radius)) return false;

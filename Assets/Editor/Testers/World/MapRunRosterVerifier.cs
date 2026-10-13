@@ -27,10 +27,11 @@ public static class MapRunRosterVerifier
             Check(MapRunRoster.CaveTarget(100) == 95 && MapRunRoster.CaveTarget(125) == 119 && MapRunRoster.CaveTarget(1240) == 1178, "95 percent target rounds up using integer arithmetic");
             Check(MapCombatGeometry.BandForDistance(0, 1) == 0 && MapCombatGeometry.BandForDistance(1, 1) == 2
                 && MapCombatGeometry.BandForDistance(1, 2) == 1 && MapCombatGeometry.BandForDistance(2, 2) == 2, "Short branches still have an entry and farthest combat band");
-            Check(MapRunRoster.BasePopulation(MapTerrainKind.Desert, 122, 1) >= 60
-                && MapRunRoster.BasePopulation(MapTerrainKind.Desert, 174, 1) <= 90, "Measured small desert floors start within adopted 60..90 tuning");
+            Check(MapRunRoster.BasePopulation(MapTerrainKind.Cave, 55, 1) == 30
+                && MapRunRoster.BasePopulation(MapTerrainKind.Desert, 122, 1) == 40
+                && MapRunRoster.BasePopulation(MapTerrainKind.Desert, 174, 1) <= 60, "Reduced population includes small-floor minima of cave 30 and desert 40");
             var areas = new List<MapCombatGeometry.Area>();
-            int[] metres = { 55, 85, 300, 950 };
+            int[] metres = { 55, 85, 300, 1950 };
             for (int i = 0; i < 4; i++) areas.Add(new MapCombatGeometry.Area(i, "Synthetic " + i, Vector3.right * i * 100, Math.Min(2, i),
                 Enumerable.Range(0, metres[i]).Select(n => new Vector3(n % 40, 0, n / 40)).ToList()));
             MapRunRoster last = null; MapInstanceState lastMap = null;
@@ -49,7 +50,7 @@ public static class MapRunRosterVerifier
                 Check(a.Members.Select(m => m.Id).Distinct().Count() == a.Total && a.Members.All(m => m.Id.StartsWith("run-a/")), theme.ThemeId + ": stable unique logical IDs independent of pooled actors");
                 Check(a.Areas.All(x => x.InitialCount >= Math.Ceiling(x.Count * .3) && x.InitialCount <= Math.Floor(x.Count * .5))
                     && a.Members.Count(m => m.Initial) == a.Areas.Sum(x => x.InitialCount), theme.ThemeId + ": 30..50 percent initial allocation plus finite reserve");
-                Check(a.Areas[0].Count >= 50 && a.Areas[3].Count > a.Areas[2].Count && a.Areas[2].Count > a.Areas[1].Count, theme.ThemeId + ": measured area changes population");
+                Check(a.Areas[0].Count >= 30 && a.Areas[3].Count > a.Areas[2].Count && a.Areas[2].Count > a.Areas[1].Count, theme.ThemeId + ": measured area changes reduced population");
                 map.options.Add(new MapOptionRoll { optionId = MapOptionPolicy.MoreSmall, value = .9f });
                 map.options.Add(new MapOptionRoll { optionId = MapOptionPolicy.MoreMedium, value = .6f });
                 map.options.Add(new MapOptionRoll { optionId = MapOptionPolicy.MoreElite, value = .4f });
@@ -80,6 +81,26 @@ public static class MapRunRosterVerifier
             last.TryActivate(target, out int afterTargetLease); last.TryRecordDeath(target, afterTargetLease);
             Check(Mathf.Abs(last.NaturalProgressMultiplier - 1.15f) < .000001f, "Optional remaining population keeps the progression cap");
             Check(!last.TryRecordDeath(-1, 1) && !last.TryRecordDeath(total, 1), "Unknown IDs never count");
+            var clearing = MapRunRoster.Build("clear-area", lastMap, areas);
+            typeof(MapRunRoster).GetProperty(nameof(MapRunRoster.PlacementReady)).SetValue(clearing, true);
+            var court = clearing.Areas[0];
+            foreach (var member in clearing.Members.Take(court.InitialCount))
+            { clearing.TryActivate(member.Index, out int lease); clearing.TryRecordDeath(member.Index, lease); }
+            Check(!court.Cleared && court.Kills == court.InitialCount, "Empty initial packs do not clear a platform with reserves");
+            for (int i = court.InitialCount; i < court.ClearTarget - 1; i++)
+            { clearing.TryActivate(i, out int lease); clearing.TryRecordDeath(i, lease); }
+            int final = court.ClearTarget - 1;
+            clearing.TryActivate(final, out int finalLease); clearing.TryReturn(final, finalLease);
+            Check(!court.Cleared && court.Kills == court.ClearTarget - 1, "Streaming out the last required living ID does not clear its platform");
+            clearing.TryActivate(final, out int newLease);
+            Check(!clearing.TryRecordDeath(final, finalLease) && !court.Cleared, "Stale pooled lease cannot clear a platform");
+            clearing.TryRecordDeath(final, newLease);
+            Check(court.Cleared && court.Kills == court.ClearTarget && !clearing.TryRecordDeath(final, newLease)
+                && clearing.Areas.Skip(1).All(a => !a.Cleared && a.Kills == 0), "Only 95 percent unique natural deaths clear their own platform once");
+            Check(court.Count - court.Kills == clearing.Members.Take(court.Count).Count(m => m.State == MapRunRoster.Life.Pending)
+                && clearing.Kills + clearing.Active + clearing.Pending == clearing.Total, "Clearing preserves the unspawned remainder and fixed denominator without fabricated deaths");
+            var newRun = MapRunRoster.Build("new-run", lastMap, areas);
+            Check(newRun.Areas.All(a => !a.Cleared && a.Kills == 0), "New map run resets platform clearing independently of seed");
             preview = EditorSceneManager.NewPreviewScene();
             var go = new GameObject("Owned roster gate fixture"); SceneManager.MoveGameObjectToScene(go, preview);
             var gate = go.AddComponent<RunWorldGate>();

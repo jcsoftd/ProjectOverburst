@@ -132,6 +132,11 @@ public static class MapGuidanceVerifier
                 check(controller.Guides.Remaining == remaining, "Guidance uses target remaining, not the full population: " + remaining);
                 check(remaining == 11 ? hints.Length == 0 : hints.Length > 0, "11/10/5 guidance threshold: " + remaining);
                 check(hints.All(h => controller.Exploration.IsRevealed(h.Position)), "All objective positions are on explored floor: " + remaining);
+                check(hints.Where(h => h.Type == MinimapGuideSource.Kind.Approach).All(h => !roster.Areas[h.Id].Cleared),
+                    "Pending spawn hints exclude cleared platforms: " + remaining);
+                check(hints.Where(h => h.Type == MinimapGuideSource.Kind.Area).All(h => !roster.Areas[h.Id].Cleared
+                    || roster.Members.Skip(roster.Areas[h.Id].FirstMember).Take(roster.Areas[h.Id].Count).Any(m => m.State == MapRunRoster.Life.Active)),
+                    "Cleared region hints require an already living actor: " + remaining);
                 check(hints.Where(h => h.Type == MinimapGuideSource.Kind.Frontier).All(h => !controller.Exploration.IsRevealed(h.Position + h.Direction)), "Frontier arrows stop before unknown floor: " + remaining);
                 if (remaining == 10) check(hints.All(h => h.Type == MinimapGuideSource.Kind.Area || h.Type == MinimapGuideSource.Kind.Frontier), "Ten remaining shows regions and known frontiers only");
                 if (remaining == 5)
