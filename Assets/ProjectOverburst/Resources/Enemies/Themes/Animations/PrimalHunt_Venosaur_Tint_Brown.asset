@@ -22,7 +22,6 @@ MonoBehaviour:
   - {fileID: 1827226128182048838, guid: e9837cffd3675734ea67f8a7a860e513, type: 3}
   - {fileID: 1827226128182048838, guid: 8f4d9b985f4cc99408c82e2acab07aa8, type: 3}
   - {fileID: 1827226128182048838, guid: 247d930700a93814ba241646584d53b0, type: 3}
-  - {fileID: 1827226128182048838, guid: 711382fa8f78ddf4c90f4f826d9ef5e2, type: 3}
   hit: {fileID: 1827226128182048838, guid: 687782e31a0ed5f41a8878f1dd5ad1bd, type: 3}
   death: {fileID: 1827226128182048838, guid: c854de7106ddbc74a9af3cdae0868a5b, type: 3}
   optional:

@@ -17,7 +17,7 @@ MonoBehaviour:
   vendorPrefab: {fileID: 7704895131363459432, guid: c9b245711d0f2124296197dc7ec6c915, type: 3}
   animationProfile: {fileID: 11400000, guid: ca36c669e9db86d409cddfdc45bc9dcf, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: f7a8a2d22367e8045b7992320522c9b2, type: 2}
-  combatRole: 5
+  combatRole: 1
   baseMaxHealth: 110
   movementProfile: {fileID: 11400000, guid: e2692fa67e585bc4ca0ab92cd05ba225, type: 2}
   behaviorProfile: {fileID: 11400000, guid: 3ce1673f6aac4724ca25140a73222b55, type: 2}
