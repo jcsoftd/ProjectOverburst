@@ -67,8 +67,11 @@ public sealed class OptionalTutorialController : MonoBehaviour
         if (!WorldSessionState.IsHideout || !AccountBootstrap.Ready || IsTraining) return;
         if (!LoadProgress()) return;
         if (progress.offered) return;
+        var state = AccountGameplaySession.Current?.Read();
+        if (state == null || string.IsNullOrEmpty(progress.firstCharacterId)
+            || progress.firstCharacterId != state.activeCharacterId) return;
         progress.offered = true;
-        SaveProgress();
+        if (!SaveProgress() || state.level != 1) return;
         ShowModal(); view.ShowInvitation();
     }
     private bool LoadProgress()
@@ -80,10 +83,10 @@ public sealed class OptionalTutorialController : MonoBehaviour
         }
         catch (Exception error) { LastError = error.Message; Debug.LogException(error); return false; }
     }
-    private void SaveProgress()
+    private bool SaveProgress()
     {
-        try { progress?.Save(progressDirectory); }
-        catch (Exception error) { LastError = "학습 기록 저장 실패: " + error.Message; Debug.LogException(error); }
+        try { progress?.Save(progressDirectory); return true; }
+        catch (Exception error) { LastError = "학습 기록 저장 실패: " + error.Message; Debug.LogException(error); return false; }
     }
     public void ShowChapters()
     {

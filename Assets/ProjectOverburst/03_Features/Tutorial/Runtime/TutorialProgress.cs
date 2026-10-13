@@ -6,6 +6,7 @@ public sealed class TutorialProgress
 {
     public int version = 1;
     public bool offered;
+    public string firstCharacterId;
     public int completed;
     public int skipped;
     public int lastLesson;
@@ -20,6 +21,13 @@ public sealed class TutorialProgress
             || value.lastLesson < 0 || value.lastLesson >= TutorialLessons.Count)
             throw new InvalidDataException("튜토리얼 기록을 읽지 못했습니다. 기존 파일은 유지됩니다.");
         return value;
+    }
+    public static void RecordFirstCharacter(string directory, string characterId)
+    {
+        var progress = Load(directory);
+        if (progress.offered || !string.IsNullOrEmpty(progress.firstCharacterId)) return;
+        progress.firstCharacterId = characterId;
+        progress.Save(directory);
     }
     public void Save(string directory)
     {

@@ -104,18 +104,25 @@ public static class TutorialVerifier
         string corrupt=Path.Combine(output,"Corrupt");Directory.CreateDirectory(corrupt);string path=Path.Combine(corrupt,"tutorial.es3");File.WriteAllText(path,"deliberately malformed training record");string hash=Hash(path);bool rejected=false;
         try{TutorialProgress.Load(corrupt);}catch{rejected=true;}
         Check(rejected&&hash==Hash(path),"Corrupted tutorial record is preserved and rejected");
+        string firstDirectory=Path.Combine(output,"FirstCharacter");string firstId=Guid.NewGuid().ToString("N");
+        Check(TutorialProgress.Load(firstDirectory).firstCharacterId==null,"Legacy/missing records do not imply a new character");
+        TutorialProgress.RecordFirstCharacter(firstDirectory,firstId);
+        Check(TutorialProgress.Load(firstDirectory).firstCharacterId==firstId,"First creation eligibility survives record reload");
+        TutorialProgress.RecordFirstCharacter(firstDirectory,Guid.NewGuid().ToString("N"));
+        Check(TutorialProgress.Load(firstDirectory).firstCharacterId==firstId,"Additional creation cannot replace the first character");
+        var consumed=TutorialProgress.Load(firstDirectory);consumed.offered=true;consumed.Save(firstDirectory);
+        TutorialProgress.RecordFirstCharacter(firstDirectory,Guid.NewGuid().ToString("N"));
+        Check(TutorialProgress.Load(firstDirectory).offered&&TutorialProgress.Load(firstDirectory).firstCharacterId==firstId,"Consumed account offer cannot reset on character creation");
         var result=new {status="PASS",scope="Native",count=checks.Count,checks=checks.ToArray()};Write("native-results.json",result);return result;
     }
-    public static void Start(string directory)
+    public static void Start(string directory, bool firstEntryOnly = false)
     {
         AppearanceCustomizationBuilder.RequireIdle();
         if(IsolatedSavePlayGuard.ActiveDirectory!="" || SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared", "")!="" || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable)) || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OVERBURST_SETTINGS_DIRECTORY")) || SessionState.GetString("Overburst.UIPrefabPlayBoot.account", "")!="" || SessionState.GetString("Overburst.VisualPlay.Session.plan", "")!="")throw new InvalidOperationException("Another Editor session is prepared");
         output=Path.GetFullPath(directory);if(Directory.Exists(output))throw new InvalidOperationException("Fresh Play evidence folder required");Directory.CreateDirectory(output);
         string real=Path.Combine(Application.persistentDataPath,"Account");
         Write("before.json",new{pid=System.Diagnostics.Process.GetCurrentProcess().Id,scenes=Scenes(),start=AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene),input=InputSystem.settings.GetInstanceID(),background=Application.runInBackground,account=real,files=Directory.Exists(real)?Directory.GetFiles(real,"*",SearchOption.AllDirectories).OrderBy(p=>p).Select(p=>new{path=p,hash=Hash(p)}).ToArray():null});
-        var registry=Resources.Load<AccountContentRegistry>(AccountContentRegistry.ResourcePath);var catalog=Resources.Load<CharacterAppearanceCatalog>(CharacterAppearanceCatalog.ResourcePath);
-        var seed=AccountCharacterCommands.First(Guid.NewGuid().ToString("N"),"튜토리얼검증","knight",catalog.defaultAppearance,registry);
-        new EasySaveAccountStore(Path.Combine(output,"Account")).Save(seed,"tutorial-fixture");
+        SessionState.SetBool(Key+"firstEntryOnly",firstEntryOnly);
         SessionState.SetString(Key+"pending",output);SessionState.SetString(Key+"return",output);SessionState.SetFloat(Key+"deadline",(float)EditorApplication.timeSinceStartup+480);
         Environment.SetEnvironmentVariable("OVERBURST_SETTINGS_DIRECTORY",Path.Combine(output,"Settings"));
         EditorSceneManager.playModeStartScene=AssetDatabase.LoadAssetAtPath<SceneAsset>("Assets/ProjectOverburst/00_Scenes/PersistentScene.unity");
@@ -128,7 +135,7 @@ public static class TutorialVerifier
         output=SessionState.GetString(Key+"pending", "");if(output==""){EditorApplication.update-=Begin;return;}
         if(EditorApplication.timeSinceStartup>SessionState.GetFloat(Key+"deadline",0)){Finish(new TimeoutException("Tutorial boot timeout"));return;}
         if(!EditorApplication.isPlaying||!OwnPlay||!TitleCharacterPanel.Instance)return;
-        EditorApplication.update-=Begin;SessionState.EraseString(Key+"pending");checks.Clear();Application.runInBackground=true;deadline=EditorApplication.timeSinceStartup+420;frame=-1;tasks.Push(Verify());EditorApplication.update+=Tick;
+        EditorApplication.update-=Begin;SessionState.EraseString(Key+"pending");checks.Clear();Application.runInBackground=true;deadline=EditorApplication.timeSinceStartup+420;frame=-1;tasks.Push(SessionState.GetBool(Key+"firstEntryOnly",false)?VerifyFirstEntry():Verify());EditorApplication.update+=Tick;
     }
     private static void Tick()
     {
@@ -158,9 +165,68 @@ public static class TutorialVerifier
         Check(result==WeaponActionResult.Accepted,heavy?"Actual heavy accepted":"Actual weak attack accepted");
         yield return Wait(()=>!melee.IsAttackInProgress,"Attack recovery finishes",10);yield return Frames(3);
     }
+    private static IEnumerator CreateCharacter(string name)
+    {
+        var title=TitleCharacterPanel.Instance;title.create.onClick.Invoke();yield return Frames(3);
+        title.classNext.onClick.Invoke();title.nameInput.text=name;title.nameNext.onClick.Invoke();yield return Frames(3);
+        Check(AppearanceCustomizationPanel.Instance?.IsCreation==true,"Actual name/appearance creation opens: "+name);
+        AppearanceCustomizationPanel.Instance.apply.onClick.Invoke();yield return Frames(5);
+        Check(title.Screen=="characters"&&title.SelectedId!=null,"Actual creation saves and selects: "+name);
+    }
+    private static IEnumerator EnterTown()
+    {
+        TitleCharacterPanel.Instance.enter.onClick.Invoke();
+        yield return Wait(()=>AccountBootstrap.Ready&&WorldSessionState.IsHideout&&!PersistentSceneFlow.Instance.IsSwitching,"Production title selection enters town",100);
+        yield return Frames(12);tutorial=OptionalTutorialController.Instance;actor=PlayerContext.Instance.CurrentActor;
+    }
+    private static IEnumerator ReturnToTitle()
+    {
+        Check(PersistentSceneFlow.Instance.TryReturnToTitle(out var error),"Production return to title accepted: "+error);
+        yield return Wait(()=>TitleCharacterPanel.Instance&&TitleCharacterPanel.Instance.Screen=="title","Production title ready after account flush",100);
+        TitleCharacterPanel.Instance.start.onClick.Invoke();yield return Frames(3);
+    }
+    private static IEnumerator VerifyFirstEntry()
+    {
+        yield return Frames(5);TitleCharacterPanel.Instance.start.onClick.Invoke();yield return Frames(3);
+        string directory=Path.Combine(output,"Account");
+        Check(new EasySaveAccountStore(directory).Load()==null,"First run begins without an account");
+        yield return CreateCharacter("첫캐릭터검증");string firstId=TitleCharacterPanel.Instance.SelectedId;
+        Check(TutorialProgress.Load(directory).firstCharacterId==firstId&&!TutorialProgress.Load(directory).offered,"Successful first creation persists pending eligibility");
+        TitleCharacterPanel.Instance.Open(directory);TitleCharacterPanel.Instance.start.onClick.Invoke();yield return Frames(3);
+        yield return EnterTown();
+        Check(AccountGameplaySession.Current.Read().level==1&&tutorial.view.modal.activeSelf,"Level 1 first created character receives invitation after title reload");
+        yield return Capture("first-created-level1-invitation");
+        tutorial.view.secondary.onClick.Invoke();
+        Check(TutorialProgress.Load(directory).offered&&!tutorial.view.modal.activeSelf&&!GameplayInputBlocker.IsGameplayInputBlocked,"Decline is persisted and resumes normal gameplay");
+        tutorial.OfferIfNeeded();Check(!tutorial.view.modal.activeSelf,"Duplicate offer callback does not prompt again");
+        yield return ReturnToTitle();yield return EnterTown();
+        Check(!tutorial.view.modal.activeSelf,"Level 1 relogin after decline does not prompt again");
+        yield return ReturnToTitle();new TutorialProgress().Save(directory);
+        yield return CreateCharacter("추가캐릭터검증");yield return EnterTown();
+        Check(AccountGameplaySession.Current.Read().level==1&&!tutorial.view.modal.activeSelf,"Additional level 1 character never arms invitation even without prior offer record");
+        Check(TutorialProgress.Load(directory).firstCharacterId==null,"Additional creation leaves legacy tutorial record ineligible");
+        yield return ReturnToTitle();
+        TitleCharacterPanel.Instance.rosterContent.Find("Character "+firstId).GetComponent<UnityEngine.UI.Button>().onClick.Invoke();yield return Frames(3);
+        yield return EnterTown();Check(!tutorial.view.modal.activeSelf,"Existing original level 1 character without eligibility is not prompted");
+        yield return ReturnToTitle();
+        var store=new EasySaveAccountStore(directory);var state=store.Load();state.level=2;state.skillTree=AccountSkillTree.GrantEligible(state.skillTree,2);store.Save(state,"gate-level2-fixture");
+        new TutorialProgress{firstCharacterId=firstId}.Save(directory);
+        TitleCharacterPanel.Instance.Open(directory);TitleCharacterPanel.Instance.start.onClick.Invoke();yield return Frames(3);yield return EnterTown();
+        Check(AccountGameplaySession.Current.Read().level==2&&!tutorial.view.modal.activeSelf,"First-entry eligibility at level 2 suppresses invitation");
+        Check(TutorialProgress.Load(directory).offered,"Ineligible first entry is consumed instead of deferred");
+        OverburstGameMenu.Instance.Open();OverburstGameMenu.Instance.returnButton.onClick.Invoke();yield return Frames(4);
+        Check(tutorial.view.chapters.activeSelf,"Manual town tutorial entry remains available at level 2");
+        tutorial.view.primary.onClick.Invoke();yield return Frames(15);
+        Check(tutorial.IsTraining,"Manual tutorial still enters training through production menu");
+        Check(tutorial.TryExit(out var exitError),"Manual training returns to normal account: "+exitError);yield return Frames(4);
+        Check(AccountGameplaySession.Current.Read().level==2&&!tutorial.view.modal.activeSelf,"Training returns without automatic invitation");
+        yield return ReturnToTitle();yield return EnterTown();
+        Check(!tutorial.view.modal.activeSelf,"Consumed level 2 entry remains quiet on relogin");
+    }
     private static IEnumerator Verify()
     {
-        yield return Frames(5);TitleCharacterPanel.Instance.start.onClick.Invoke();yield return Frames(3);TitleCharacterPanel.Instance.enter.onClick.Invoke();
+        yield return Frames(5);TitleCharacterPanel.Instance.start.onClick.Invoke();yield return Frames(3);
+        yield return CreateCharacter("튜토리얼검증");TitleCharacterPanel.Instance.enter.onClick.Invoke();
         yield return Wait(()=>AccountBootstrap.Ready&&WorldSessionState.IsHideout&&!PersistentSceneFlow.Instance.IsSwitching,"Title enters town through production flow",100);yield return Frames(12);
         tutorial=OptionalTutorialController.Instance;actor=PlayerContext.Instance.CurrentActor;
         Check(tutorial&&tutorial.view.modal.activeSelf,"First account entry offers optional tutorial");yield return Capture("01-invitation");
@@ -409,6 +475,6 @@ public static class TutorialVerifier
         var files=before["files"]as JArray;bool account=files!=null?files.All(f=>File.Exists((string)f["path"])&&Hash((string)f["path"])==(string)f["hash"])&&Directory.GetFiles((string)before["account"],"*",SearchOption.AllDirectories).Length==files.Count:!Directory.Exists((string)before["account"]);
         bool scenes=JToken.DeepEquals(before["scenes"],JToken.FromObject(Scenes())),input=(int)before["input"]==InputSystem.settings.GetInstanceID();
         Write("return-results.json",new{status=account&&scenes&&input&&!IsolatedSavePlayGuard.RequiresAccountChoice?"PASS":"FAIL",realAccountUnchanged=account,scenes,input,playing=EditorApplication.isPlaying,guardReady=!IsolatedSavePlayGuard.RequiresAccountChoice,environment=Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable),start=AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene),prepared=SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared", "")});
-        SessionState.EraseString(Key+"return");SessionState.EraseFloat(Key+"deadline");EditorApplication.update-=Return;
+        SessionState.EraseString(Key+"return");SessionState.EraseFloat(Key+"deadline");SessionState.EraseBool(Key+"firstEntryOnly");EditorApplication.update-=Return;
     }
 }

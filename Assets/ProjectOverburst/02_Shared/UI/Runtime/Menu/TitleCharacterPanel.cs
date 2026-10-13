@@ -43,6 +43,7 @@ public sealed class TitleCharacterPanel : MonoBehaviour
     private readonly string[] classIds={"knight","mage","archer"},classNames={"기사","마법사","궁수"};
     private readonly int[] outfits={6,9,10};
     private EasySaveAccountStore store;
+    private string saveDirectory;
     private AccountContentRegistry registry;
     private AccountSnapshot snapshot;
     private string selectedId,draftId,draftName;
@@ -103,7 +104,7 @@ public sealed class TitleCharacterPanel : MonoBehaviour
     public void Open(string directory)
     {
         Wire();registry=Resources.Load<AccountContentRegistry>(AccountContentRegistry.ResourcePath);
-        store=new EasySaveAccountStore(directory);entering=false;
+        saveDirectory=directory;store=new EasySaveAccountStore(directory);entering=false;
         navigate=PlayerInputFacade.Current?.RuntimeAsset?.FindAction("UI/Navigate",false);previousNavigate=Vector2.zero;
         if(Application.isPlaying){GameplayInputBlocker.Block(this);PlayerInputFacade.Current?.SetGameplayMapDisabled(this,true);}
         Reload();Show("title");
@@ -331,6 +332,8 @@ public sealed class TitleCharacterPanel : MonoBehaviour
             {
                 var first=AccountCharacterCommands.First(draftId,draftName,"knight",appearance,registry);first.lastTransactionId="create-"+draftId;
                 store.Save(first,first.lastTransactionId);snapshot=first;
+                try{TutorialProgress.RecordFirstCharacter(saveDirectory,draftId);}
+                catch(Exception error){Debug.LogWarning("[Tutorial] 최초 캐릭터 안내 기록을 저장하지 못했습니다. "+error.Message);}
             }
             else
             {
