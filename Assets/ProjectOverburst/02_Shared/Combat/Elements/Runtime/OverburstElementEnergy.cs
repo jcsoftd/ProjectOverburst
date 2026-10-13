@@ -30,6 +30,24 @@ public sealed class OverburstElementEnergy : MonoBehaviour
     private float holdUntil;
     private float changedThrottle;
     public event Action Changed;
+    public int DischargeCount { get; private set; }
+
+    // Explicit preparation, never credited as a combat hit. Only the isolated lesson may call this.
+    internal void PrepareTutorialEnergy(float normalized)
+        => RestoreTutorialEnergy(Mathf.Clamp01(normalized) * BaseMaximum, 0, 0);
+
+    internal void RestoreTutorialEnergy(float amount, int radianceStacks, float holdRemaining)
+    {
+        if (WorldSessionState.Phase != WorldPhase.Tutorial)
+            throw new InvalidOperationException("Energy preparation requires the tutorial world.");
+        SyncWeapon();
+        Clear();
+        Amount = Mathf.Clamp(amount, 0, Capacity);
+        RadianceStacks = IsOvercharged ? Mathf.Clamp(radianceStacks, 0, RadianceMaximum) : 0;
+        holdUntil = Time.time + Mathf.Max(0, holdRemaining);
+        MeleeHeavyVfxPreparation.RequestForEquippedWeapon(equipment, Element);
+        Changed?.Invoke();
+    }
 
     private void OnEnable()
     {
@@ -147,6 +165,7 @@ public sealed class OverburstElementEnergy : MonoBehaviour
         Amount = 0f;
         RadianceStacks = 0;
         holdUntil = 0f;
+        DischargeCount++;
         Changed?.Invoke();
         return true;
     }

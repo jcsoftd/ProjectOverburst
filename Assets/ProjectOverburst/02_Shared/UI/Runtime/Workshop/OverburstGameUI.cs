@@ -203,6 +203,8 @@ public sealed class OverburstGameUI : MonoBehaviour
         var completion = regionGate ? regionGate.Completion : null;
         var state = (scene.handle, dungeon, roster != null ? Mathf.Min(roster.Kills, roster.Target) : 0,
             completion && completion.IsCompleted, completion && completion.Portal && completion.Portal.gameObject.activeInHierarchy);
+        bool tutorial = WorldSessionState.Phase == WorldPhase.Tutorial;
+        if (region.transform.parent.gameObject.activeSelf == tutorial) region.transform.parent.gameObject.SetActive(!tutorial);
         if (shownRegion == state) return;
         shownRegion = state;
         region.text = dungeon ? "던전" : "은신처";

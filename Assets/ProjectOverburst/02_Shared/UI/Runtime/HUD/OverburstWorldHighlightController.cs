@@ -194,6 +194,7 @@ public sealed class OverburstWorldHighlightController : MonoBehaviour
 
     private EnemyHoverEntry ResolveEnemyHover(Ray ray, float nearest)
     {
+        if (WorldSessionState.Phase == WorldPhase.Tutorial) return null;
         if (enemyCacheDirty || enemyRevision != EnemyRank.ActiveRevision)
         {
             enemyCandidates.Clear();

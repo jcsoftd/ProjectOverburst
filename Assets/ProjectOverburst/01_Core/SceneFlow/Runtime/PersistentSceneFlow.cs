@@ -148,6 +148,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
             health?.ResetHealth();
         }
         GameplayInputBlocker.Unblock(this);
+        OptionalTutorialController.Install()?.OfferIfNeeded();
     }
 
     public string RunEntryError { get; private set; }
@@ -381,6 +382,8 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
     public bool TryReturnToTitle(out string error)
     {
         error = null;
+        if (OptionalTutorialController.Instance != null && OptionalTutorialController.Instance.IsTraining
+            && !OptionalTutorialController.Instance.TryExit(out error)) return false;
         var account = Overburst.Persistence.AccountGameplaySession.Current;
         var persistent = SceneManager.GetSceneByName(PersistentSceneName);
         if (isSwitching || account == null || !persistent.IsValid() || !persistent.isLoaded

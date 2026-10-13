@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-public enum WorldPhase { Booting, Hideout, Loading, Run, Settling }
+public enum WorldPhase { Booting, Hideout, Loading, Run, Settling, Tutorial }
 
 // Shared presentation/interaction state. Scene adapters publish readiness;
 // account transactions remain responsible for rewards and settlement.

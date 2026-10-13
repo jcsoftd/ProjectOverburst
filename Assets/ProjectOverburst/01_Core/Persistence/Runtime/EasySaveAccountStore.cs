@@ -23,6 +23,8 @@ namespace Overburst.Persistence
         public const int SchemaVersion = 3;
         private readonly string directory;
         private readonly string profileId;
+        private readonly bool memoryOnly;
+        public bool IsMemoryOnly => memoryOnly;
         private AccountSaveEnvelope latest;
         private int latestSlot = -1;
         private bool loaded;
@@ -39,6 +41,16 @@ namespace Overburst.Persistence
             this.profileId = profileId ?? throw new ArgumentNullException(nameof(profileId));
         }
 
+        private EasySaveAccountStore()
+        {
+            memoryOnly = true;
+            profileId = "default";
+            loaded = true;
+        }
+
+        // Training uses normal account transactions without opening or replacing account files.
+        public static EasySaveAccountStore CreateMemoryOnly() => new EasySaveAccountStore();
+
         private string FilePath(int slot) => Path.Combine(directory, slot == 0 ? "account-A.es3" : "account-B.es3");
         private ES3Settings Settings(int slot) => new ES3Settings(FilePath(slot))
         {
@@ -49,6 +61,7 @@ namespace Overburst.Persistence
 
         public AccountSnapshot Load()
         {
+            if (memoryOnly) return latest == null ? null : ES3.Deserialize<AccountSnapshot>(latest.payload);
             Directory.CreateDirectory(directory);
             using (AcquireLock()) return LoadCore();
         }
@@ -114,6 +127,14 @@ namespace Overburst.Persistence
 
         public void Save(AccountSnapshot snapshot, string transactionId)
         {
+            if (memoryOnly)
+            {
+                if (snapshot == null || snapshot.schemaVersion != SchemaVersion || snapshot.profileId != profileId
+                    || string.IsNullOrWhiteSpace(transactionId)) throw new InvalidDataException("Invalid training account save request.");
+                latest = new AccountSaveEnvelope { profileId = profileId, generation = checked(Generation + 1),
+                    transactionId = transactionId, payload = ES3.Serialize(snapshot) };
+                return;
+            }
             Directory.CreateDirectory(directory);
             using (AcquireLock()) SaveCore(snapshot, transactionId);
         }
