@@ -76,9 +76,6 @@ public sealed class MainTownAtmosphereTrial : MonoBehaviour
     [SerializeField] private EnvironmentState overcastDay;
     [SerializeField, HideInInspector] private EnvironmentState originalNight;
     private bool refreshRequested;
-    private GameObject temporaryToggleCanvas;
-    private UnityEngine.UI.Button temporaryToggle;
-    private TMPro.TMP_Text temporaryToggleLabel;
 
     public Atmosphere Current => atmosphere;
     public EnvironmentState OriginalNight => originalNight;
@@ -109,7 +106,6 @@ public sealed class MainTownAtmosphereTrial : MonoBehaviour
 #if UNITY_EDITOR
         UnityEditor.SceneManagement.EditorSceneManager.activeSceneChangedInEditMode += ActiveSceneChanged;
 #endif
-        if (Application.isPlaying) CreateTemporaryToggle();
         ApplyCurrent();
     }
 
@@ -119,16 +115,6 @@ public sealed class MainTownAtmosphereTrial : MonoBehaviour
 #if UNITY_EDITOR
         UnityEditor.SceneManagement.EditorSceneManager.activeSceneChangedInEditMode -= ActiveSceneChanged;
 #endif
-        GameplayInputBlocker.Unblock(this);
-        if (temporaryToggleCanvas != null)
-        {
-            temporaryToggleCanvas.SetActive(false);
-            if (Application.isPlaying) Destroy(temporaryToggleCanvas);
-            else DestroyImmediate(temporaryToggleCanvas);
-        }
-        temporaryToggleCanvas = null;
-        temporaryToggle = null;
-        temporaryToggleLabel = null;
         if (CanApply) originalNight.Apply(sun, globalVolume);
     }
 
@@ -136,13 +122,6 @@ public sealed class MainTownAtmosphereTrial : MonoBehaviour
 
     private void Update()
     {
-        if (Application.isPlaying && temporaryToggleCanvas != null)
-        {
-            temporaryToggleCanvas.SetActive(CanApply && !OverburstGameMenu.IsOpen);
-            var mouse = UnityEngine.InputSystem.Mouse.current;
-            GameplayInputBlocker.SetBlocked(this, temporaryToggleCanvas.activeInHierarchy && mouse != null
-                && RectTransformUtility.RectangleContainsScreenPoint((RectTransform)temporaryToggle.transform, mouse.position.ReadValue(), null));
-        }
         if (!refreshRequested) return;
         refreshRequested = false;
         ApplyCurrent();
@@ -154,8 +133,6 @@ public sealed class MainTownAtmosphereTrial : MonoBehaviour
     {
         if (!isActiveAndEnabled || !CanApply) return;
         (atmosphere == Atmosphere.OvercastDay ? overcastDay : originalNight).Apply(sun, globalVolume);
-        if (temporaryToggleLabel != null)
-            temporaryToggleLabel.text = atmosphere == Atmosphere.OvercastDay ? "흐린 낮 · 밤으로" : "밤 · 낮으로";
     }
 
     public void SetAtmosphere(Atmosphere value)
@@ -170,31 +147,6 @@ public sealed class MainTownAtmosphereTrial : MonoBehaviour
     [ContextMenu("Restore Original Night")]
     public void RestoreOriginalNight() => SetAtmosphere(Atmosphere.OriginalNight);
 
-    private void CreateTemporaryToggle()
-    {
-        var font = Resources.Load<TMPro.TMP_FontAsset>("UI/Fonts/ProjectMT/FontAssets/TMP_SpoqaHanSansNeo_Body");
-        if (font == null) throw new InvalidOperationException("The temporary atmosphere toggle requires the existing UI body font.");
-        temporaryToggleCanvas = new GameObject("Temporary Atmosphere Toggle", typeof(RectTransform), typeof(Canvas),
-            typeof(UnityEngine.UI.CanvasScaler), typeof(UnityEngine.UI.GraphicRaycaster));
-        temporaryToggleCanvas.layer = 5;
-        temporaryToggleCanvas.transform.SetParent(transform, false);
-        var canvas = temporaryToggleCanvas.GetComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = 100;
-        var scaler = temporaryToggleCanvas.GetComponent<UnityEngine.UI.CanvasScaler>();
-        scaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920, 1080);
-        scaler.matchWidthOrHeight = .5f;
-        temporaryToggle = RunUiLayout.Button(temporaryToggleCanvas.transform, "Day Night Toggle", "", font, null,
-            0, 0, 194, 38, () => SetAtmosphere(atmosphere == Atmosphere.OvercastDay ? Atmosphere.OriginalNight : Atmosphere.OvercastDay));
-        var rect = (RectTransform)temporaryToggle.transform;
-        rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(1, 1);
-        rect.anchoredPosition = new Vector2(-24, -442);
-        temporaryToggle.navigation = new UnityEngine.UI.Navigation { mode = UnityEngine.UI.Navigation.Mode.None };
-        temporaryToggle.targetGraphic.color = new Color(.09f, .12f, .14f, .94f);
-        temporaryToggleLabel = temporaryToggle.GetComponentInChildren<TMPro.TMP_Text>();
-        temporaryToggleLabel.fontSize = 17;
-    }
 }
 
 #if UNITY_EDITOR
