@@ -6,10 +6,12 @@ using Overburst.Mojave;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.SceneManagement;
+using Unity.Profiling;
 
 // Grid integration of connected, unobstructed floor. Bounds only limit the search, never the population.
 public static class MapCombatGeometry
 {
+    static readonly ProfilerMarker BodyForMarker = new ProfilerMarker("OVERBURST.MapGeometry.BodyFor");
     public const float CellSize = 1f;
     public const float EntrySafety = 4f;
     public const float BodyGap = .05f;
@@ -109,11 +111,21 @@ public static class MapCombatGeometry
     }
     public static Body BodyFor(EnemyDefinition definition)
     {
-        var actor = definition ? definition.ActorPrefab : null;
-        var capsule = actor && actor.CollisionRoot ? actor.CollisionRoot.GetComponentInChildren<CapsuleCollider>(true) : null;
-        if (!capsule || capsule.direction != 1) throw new InvalidOperationException("몬스터 배치 충돌체가 유효하지 않습니다: " + (definition ? definition.EnemyId : "null"));
-        var scale = Vector3.Scale(capsule.transform.lossyScale, definition.ResolveRuntimeStats().CollisionScale);
-        return new Body(capsule.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z)), capsule.height * Mathf.Abs(scale.y));
+        using (BodyForMarker.Auto())
+        {
+            var actor = definition ? definition.ActorPrefab : null;
+            var capsule = actor && actor.CollisionRoot ? actor.CollisionRoot.GetComponentInChildren<CapsuleCollider>(true) : null;
+            if (!capsule || capsule.direction != 1) throw new InvalidOperationException("몬스터 배치 충돌체가 유효하지 않습니다: " + (definition ? definition.EnemyId : "null"));
+            var scale = Vector3.Scale(capsule.transform.lossyScale, definition.ResolveRuntimeStats().CollisionScale);
+            return new Body(capsule.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z)), capsule.height * Mathf.Abs(scale.y));
+        }
+    }
+    static Body BodyForPreparation(EnemyDefinition definition, Dictionary<EnemyDefinition, Body> bodies)
+    {
+        if (!definition) return BodyFor(definition);
+        if (!bodies.TryGetValue(definition, out var body))
+        { body = BodyFor(definition); bodies.Add(definition, body); }
+        return body;
     }
     static bool Clear(Source source, Vector3 point, Body body, Collider[] overlaps, bool ignoreActors = false)
     {
@@ -168,7 +180,11 @@ public static class MapCombatGeometry
     public static bool CanPlace(Area area, EnemyDefinition definition, Vector3 point, bool ignoreActors = false, bool approach = false)
     {
         if (area?.Source == null) return false;
-        var body = BodyFor(definition);
+        return CanPlacePrepared(area, BodyFor(definition), point, null, ignoreActors, approach);
+    }
+    static bool CanPlacePrepared(Area area, Body body, Vector3 point, Collider[] overlaps, bool ignoreActors = false, bool approach = false)
+    {
+        if (area?.Source == null) return false;
         Vector3 floor;
         if (approach && area.Source.desert)
         {
@@ -177,7 +193,7 @@ public static class MapCombatGeometry
             floor = area.Source.desert.Ground(xz);
         }
         else if (!area.Source.Floor(point, body.Radius + .1f, out floor)) return false;
-        return Mathf.Abs(floor.y - point.y) <= .3f && Clear(area.Source, floor, body, new Collider[32], ignoreActors);
+        return Mathf.Abs(floor.y - point.y) <= .3f && Clear(area.Source, floor, body, overlaps ?? new Collider[32], ignoreActors);
     }
     public static bool Contains(Area area, Vector3 point)
         => area?.Source != null && area.Source.Floor(point, 0, out var floor) && Mathf.Abs(floor.y - point.y) < 3;
@@ -225,6 +241,12 @@ public static class MapCombatGeometry
         Collider[] overlaps, NavMeshPath path, out Vector3 point)
     {
         point = default; var source = area.Source; var body = BodyFor(definition);
+        return TryRuntimePointPrepared(source, area.Center, body, desired, approach, overlaps, path, out point);
+    }
+    static bool TryRuntimePointPrepared(Source source, Vector3 center, Body body, Vector3 desired, bool approach,
+        Collider[] overlaps, NavMeshPath path, out Vector3 point)
+    {
+        point = default;
         if (source == null) return false;
         if (!approach)
         { if (!source.Floor(desired, body.Radius + .1f, out point)) return false; }
@@ -241,12 +263,13 @@ public static class MapCombatGeometry
         }
         if (!Clear(source, point, body, overlaps, true)
             || !NavMesh.SamplePosition(point, out var nav, .25f, NavMesh.AllAreas)
-            || !NavMesh.CalculatePath(nav.position, area.Center, NavMesh.AllAreas, path)
+            || !NavMesh.CalculatePath(nav.position, center, NavMesh.AllAreas, path)
             || path.status != NavMeshPathStatus.PathComplete) return false;
         return true;
     }
     // Move one existing small pack onto a connected road; measured population and seeded IDs stay unchanged.
-    static IEnumerator PlanRoadGroup(MapRunRoster roster, MapRunRoster.Area area, Vector3 entry, System.Random random, System.Diagnostics.Stopwatch watch)
+    static IEnumerator PlanRoadGroup(MapRunRoster roster, MapRunRoster.Area area, Vector3 entry, System.Random random,
+        System.Diagnostics.Stopwatch watch, Dictionary<EnemyDefinition, Body> bodies, Collider[] overlaps)
     {
         var source = area.Ground.Source;
         if (!source.desert || area.InitialCount < GroupSize(EnemyThemeTier.Small)) yield break;
@@ -257,7 +280,7 @@ public static class MapCombatGeometry
         if (roads.Count < GroupSize(EnemyThemeTier.Small)) yield break;
         for (int i = roads.Count - 1; i > 0; i--) { int j = random.Next(i + 1); (roads[i], roads[j]) = (roads[j], roads[i]); }
         var definitions = new HashSet<EnemyDefinition>();
-        var path = new NavMeshPath(); var overlaps = new Collider[32];
+        var path = new NavMeshPath();
         for (int i = area.FirstMember; i < area.FirstMember + area.Count; i++)
         {
             var first = roster.Members[i];
@@ -269,10 +292,10 @@ public static class MapCombatGeometry
                 if (member.Initial && member.Definition == first.Definition && member.Tier == EnemyThemeTier.Small) group.Add(member);
             }
             if (group.Count != GroupSize(EnemyThemeTier.Small)) continue;
-            var body = BodyFor(first.Definition);
+            var body = BodyForPreparation(first.Definition, bodies);
             var occupied = new List<(Vector3 position, float radius)>();
             foreach (var member in roster.Members)
-                if (member.Initial && !group.Contains(member)) occupied.Add((member.PlannedPosition, BodyFor(member.Definition).Radius));
+                if (member.Initial && !group.Contains(member)) occupied.Add((member.PlannedPosition, BodyForPreparation(member.Definition, bodies).Radius));
             for (int anchor = 0; anchor < Mathf.Min(16, roads.Count); anchor++)
             {
                 var chosen = new List<Vector3>();
@@ -281,7 +304,7 @@ public static class MapCombatGeometry
                     if (watch.Elapsed.TotalMilliseconds >= 3) { yield return null; watch.Restart(); }
                     var delta = roads[j] - roads[anchor]; delta.y = 0;
                     if (delta.sqrMagnitude > 8 * 8
-                        || !TryRuntimePoint(area.Ground, first.Definition, roads[j], true, overlaps, path, out var point)
+                        || !TryRuntimePointPrepared(source, area.Ground.Center, body, roads[j], true, overlaps, path, out var point)
                         || !SafeDistance(source, point, entry)) continue;
                     bool blocked = false;
                     foreach (var prior in chosen)
@@ -362,6 +385,8 @@ public static class MapCombatGeometry
             }
         }
         var areas = new List<Area>(); var path = new NavMeshPath(); var overlaps = new Collider[32];
+        // Definitions and prefab bodies are fixed for this preparation; a new run owns a fresh cache.
+        var bodies = new Dictionary<EnemyDefinition, Body>();
         var watch = System.Diagnostics.Stopwatch.StartNew();
         foreach (var source in sources)
         {
@@ -395,7 +420,7 @@ public static class MapCombatGeometry
             var initial = new List<MapRunRoster.Member>();
             for (int i = 0; i < area.InitialCount; i++) initial.Add(roster.Members[area.FirstMember + i]);
             // Place broad bodies first so small monsters do not consume their only clear patch.
-            initial.Sort((a, b) => { int order = BodyFor(b.Definition).Radius.CompareTo(BodyFor(a.Definition).Radius); return order != 0 ? order : a.Index.CompareTo(b.Index); });
+            initial.Sort((a, b) => { int order = BodyForPreparation(b.Definition, bodies).Radius.CompareTo(BodyForPreparation(a.Definition, bodies).Radius); return order != 0 ? order : a.Index.CompareTo(b.Index); });
             var reserved = new List<Vector3>(); var radii = new List<float>();
             var safeByDefinition = new Dictionary<EnemyDefinition, List<Vector3>>();
             var bakedDefinitions = new HashSet<EnemyDefinition>();
@@ -415,7 +440,7 @@ public static class MapCombatGeometry
             {
                 var member = roster.Members[area.FirstMember + i];
                 if (safeByDefinition.ContainsKey(member.Definition)) continue;
-                var body = BodyFor(member.Definition); var safe = new List<Vector3>();
+                var body = BodyForPreparation(member.Definition, bodies); var safe = new List<Vector3>();
                 int bakedBody = groundSource.BakedBodyIndex(member.Definition, body);
                 if (bakedBody >= 0)
                     foreach (var point in bakedPoints)
@@ -444,12 +469,12 @@ public static class MapCombatGeometry
             bool compact = false;
             while (true)
             {
-                initial.Sort((a, b) => { int order = BodyFor(b.Definition).Radius.CompareTo(BodyFor(a.Definition).Radius); return order != 0 ? order : a.Index.CompareTo(b.Index); });
+                initial.Sort((a, b) => { int order = BodyForPreparation(b.Definition, bodies).Radius.CompareTo(BodyForPreparation(a.Definition, bodies).Radius); return order != 0 ? order : a.Index.CompareTo(b.Index); });
                 reserved.Clear(); radii.Clear(); MapRunRoster.Member failed = null;
                 var groupCounts = new Dictionary<EnemyDefinition, int>();
                 foreach (var member in initial)
                 {
-                    float radius = BodyFor(member.Definition).Radius; bool placed = false;
+                    var body = BodyForPreparation(member.Definition, bodies); float radius = body.Radius; bool placed = false;
                     groupCounts.TryGetValue(member.Definition, out int grouped);
                     bool sameGroup = grouped % GroupSize(member.Tier) != 0;
                     var candidates = safeByDefinition[member.Definition];
@@ -462,7 +487,7 @@ public static class MapCombatGeometry
                         { if (!BodiesSeparated(point, radius, reserved[i], radii[i])) { blocked = true; break; } }
                         if (blocked) continue;
                         // Only shortlisted baked positions need the live floor/static-collider check.
-                        if (bakedDefinitions.Contains(member.Definition) && !CanPlace(area.Ground, member.Definition, point)) continue;
+                        if (bakedDefinitions.Contains(member.Definition) && !CanPlacePrepared(area.Ground, body, point, overlaps)) continue;
                         member.PlannedPosition = point; reserved.Add(point); radii.Add(radius); placed = true; break;
                     }
                     if (!placed) { failed = member; break; }
@@ -486,12 +511,12 @@ public static class MapCombatGeometry
                 // A small court may stage its larger members in the finite reinforcement roster instead.
                 // Exchange roles only: preserve initial count, all tier counts, IDs and the 95% denominator.
                 MapRunRoster.Member replacement = null;
-                float largest = BodyFor(initial[0].Definition).Radius;
+                float largest = BodyForPreparation(initial[0].Definition, bodies).Radius;
                 for (int i = 0; i < area.Count; i++)
                 {
                     var candidate = roster.Members[area.FirstMember + i];
-                    if (initial.Contains(candidate) || BodyFor(candidate.Definition).Radius >= largest - .001f) continue;
-                    if (replacement == null || BodyFor(candidate.Definition).Radius < BodyFor(replacement.Definition).Radius) replacement = candidate;
+                    if (initial.Contains(candidate) || BodyForPreparation(candidate.Definition, bodies).Radius >= largest - .001f) continue;
+                    if (replacement == null || BodyForPreparation(candidate.Definition, bodies).Radius < BodyForPreparation(replacement.Definition, bodies).Radius) replacement = candidate;
                 }
                 if (replacement == null) throw new InvalidOperationException(area.Ground.Name + "의 기본 배치 공간이 부족합니다: "
                     + area.InitialCount + "마리 / 배치 " + reserved.Count + " / 면적 " + area.Ground.SquareMetres + "㎡ / " + failed.Definition.EnemyId);
@@ -512,7 +537,7 @@ public static class MapCombatGeometry
             foreach (var area in roster.Areas)
             {
                 gate.PreparationStage = "도로 소형 무리 배치 확인 " + (area.Ground.Index + 1) + "/" + roster.Areas.Count;
-                yield return PlanRoadGroup(roster, area, entry, roadRandom, watch);
+                yield return PlanRoadGroup(roster, area, entry, roadRandom, watch, bodies, overlaps);
                 yield return null;
             }
         }
