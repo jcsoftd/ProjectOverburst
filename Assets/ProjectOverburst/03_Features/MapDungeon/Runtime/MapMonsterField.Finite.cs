@@ -1,9 +1,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
+using Unity.Profiling;
 
 public sealed partial class MapMonsterField
 {
+    static readonly ProfilerMarker RefreshGroundMarker = new ProfilerMarker("OVERBURST.MapSpawnFinite.Refresh.Detail.Ground");
+    static readonly ProfilerMarker RefreshReturnMarker = new ProfilerMarker("OVERBURST.MapSpawnFinite.Refresh.Detail.Return");
     sealed class SpawnGroup
     {
         public Vector3 Point;
@@ -176,15 +179,15 @@ public sealed partial class MapMonsterField
         {
             if (!MapSpawnBudget.HasFiniteTime(started)) return false;
             var slot = activeSlots[refreshCursor++];
-            if (!Valid(slot)) { ReturnSlot(slot, false); continue; }
+            if (!Valid(slot)) { using (RefreshReturnMarker.Auto()) ReturnSlot(slot, false); continue; }
             var actor = slot.Actor;
             slot.HealthRatio = actor.Health.CurrentHp / actor.Health.MaxHp;
             if (actor.Health.IsDead) continue;
             if (slot.HealthRatio < 1f || actor.AI && actor.AI.IsAggroActive) triggered = true;
             if (preparing) continue;
-            CheckFiniteGround(slot);
+            using (RefreshGroundMarker.Auto()) CheckFiniteGround(slot);
             if (FlatDistance(actor.transform.position, player) > 80 && !budget.InView(actor.transform.position, .5f))
-            { slot.Position = actor.transform.position; ReturnSlot(slot, true); budget.StreamReturns++; }
+            { slot.Position = actor.transform.position; using (RefreshReturnMarker.Auto()) ReturnSlot(slot, true); budget.StreamReturns++; }
         }
         refreshCursor = 0; return true;
     }

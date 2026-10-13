@@ -38,7 +38,12 @@ public sealed class EncounterContext
         return IsRun ? active && string.Equals(run.runId, RunId, StringComparison.Ordinal) : !active;
     }
 
-    public bool CanGrantRewards => RewardsAllowed && MatchesRun(AccountGameplaySession.Current?.ReadRun())
+    // Reward eligibility needs current identity and phase, not a serialized copy of the entire run.
+    bool MatchesCurrentRun(AccountGameplaySession account) => IsRun
+        ? account != null && account.CanAcquireFromRun(RunId)
+        : MatchesRun(account?.ReadRun());
+
+    public bool CanGrantRewards => RewardsAllowed && MatchesCurrentRun(AccountGameplaySession.Current)
         && (IsRun ? WorldSessionState.Phase == WorldPhase.Run : WorldSessionState.IsHideout)
         && (!IsOutdoor || (OutdoorWorldSpawner.Current && OutdoorWorldSpawner.Current.SessionId == OutdoorSessionId));
 }

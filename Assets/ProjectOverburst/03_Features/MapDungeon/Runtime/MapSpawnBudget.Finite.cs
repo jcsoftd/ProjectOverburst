@@ -10,6 +10,7 @@ public sealed partial class MapSpawnBudget
     static readonly ProfilerMarker FiniteTotalMarker = new ProfilerMarker("OVERBURST.MapSpawnFinite.Total");
     static readonly ProfilerMarker ReconcileMarker = new ProfilerMarker("OVERBURST.MapSpawnFinite.Reconcile");
     static readonly ProfilerMarker RefreshMarker = new ProfilerMarker("OVERBURST.MapSpawnFinite.Refresh");
+    static readonly ProfilerMarker ReinforcementMarker = new ProfilerMarker("OVERBURST.MapSpawnFinite.Refresh.Detail.Reinforcement");
     static readonly ProfilerMarker PriorityMarker = new ProfilerMarker("OVERBURST.MapSpawnFinite.Priority");
     RunWorldGate runGate;
     readonly List<MapMonsterField> finiteFields = new List<MapMonsterField>();
@@ -105,8 +106,11 @@ public sealed partial class MapSpawnBudget
                     && finiteFields[finiteRefreshField].RefreshFinite(player, preparing, started)) finiteRefreshField++;
                 if (finiteRefreshField == finiteFields.Count)
                 {
-                    int local = LocalAlive(player);
-                    foreach (var field in finiteFields) field.PrepareReinforcement(player, local, preparing);
+                    using (ReinforcementMarker.Auto())
+                    {
+                        int local = LocalAlive(player);
+                        foreach (var field in finiteFields) field.PrepareReinforcement(player, local, preparing);
+                    }
                     nextFiniteRefresh = Time.unscaledTime + .1f;
                     finiteRefreshing = false; finiteRefreshField = 0;
                 }
