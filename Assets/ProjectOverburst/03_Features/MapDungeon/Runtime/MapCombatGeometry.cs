@@ -57,6 +57,21 @@ public static class MapCombatGeometry
         public CavePlatformBoundary boundary;
         public MojaveWorld desert;
         public MojavePlace place;
+        public CavePlatformLibrary spawnLibrary;
+        public CavePlatformLibrary.Platform spawnPlatform;
+        public int BakedBodyIndex(EnemyDefinition definition, Body body)
+        {
+            if (!spawnLibrary || spawnPlatform == null || spawnLibrary.spawnBodies == null
+                || spawnLibrary.spawnBodies.Length > 63 || boundary.transform.lossyScale != Vector3.one) return -1;
+            for (int i = 0; i < spawnLibrary.spawnBodies.Length; i++)
+            {
+                var shape = spawnLibrary.spawnBodies[i];
+                if (shape == null || shape.definitions == null || Mathf.Abs(shape.radius - body.Radius) > .00001f
+                    || Mathf.Abs(shape.height - body.Height) > .00001f) continue;
+                foreach (var candidate in shape.definitions) if (candidate == definition) return i;
+            }
+            return -1;
+        }
         public readonly List<Vector3> contacts = new List<Vector3>();
         public bool Floor(Vector3 near, float margin, out Vector3 floor)
         {
@@ -219,14 +234,22 @@ public static class MapCombatGeometry
         var edges = new List<Vector2Int>();
         if (cave)
         {
+            var generator = cave.GetComponent<CaveRuntimeGenerator>();
+            var library = generator && generator.assets ? generator.assets.library : null;
             for (int i = 0; i < cave.courts.Count; i++)
             {
                 var court = cave.courts[i]; var boundary = court.tile.GetComponent<CavePlatformBoundary>();
                 if (!boundary || boundary.Data.loops.Length == 0) throw new InvalidOperationException("전투 발판 경계가 없습니다.");
                 var bounds = new Bounds(court.center, Vector3.zero);
                 foreach (var loop in boundary.Data.loops) foreach (var p in loop.points) bounds.Encapsulate(boundary.transform.TransformPoint(p));
-                sources.Add(new Source { index = i, name = court.name, center = court.center, bounds = bounds,
-                    scene = cave.gameObject.scene, cave = cave, boundary = boundary });
+                var source = new Source { index = i, name = court.name, center = court.center, bounds = bounds,
+                    scene = cave.gameObject.scene, cave = cave, boundary = boundary };
+                if (library && !string.IsNullOrEmpty(library.spawnBakeSignature) && library.spawnBodies != null
+                    && boundary.transform.lossyScale == Vector3.one)
+                    foreach (var platform in library.platforms)
+                        if (platform.source == boundary.Data.gameObject && platform.spawnPoints != null && platform.spawnPoints.Length > 0)
+                        { source.spawnLibrary = library; source.spawnPlatform = platform; break; }
+                sources.Add(source);
             }
             foreach (var passage in cave.passages)
             {
@@ -300,22 +323,45 @@ public static class MapCombatGeometry
             initial.Sort((a, b) => { int order = BodyFor(b.Definition).Radius.CompareTo(BodyFor(a.Definition).Radius); return order != 0 ? order : a.Index.CompareTo(b.Index); });
             var reserved = new List<Vector3>(); var radii = new List<float>();
             var safeByDefinition = new Dictionary<EnemyDefinition, List<Vector3>>();
+            var bakedDefinitions = new HashSet<EnemyDefinition>();
+            var bakedPoints = new List<CavePlatformLibrary.SpawnPoint>();
+            var groundSource = area.Ground.Source;
+            if (groundSource.spawnPlatform != null)
+                foreach (var candidate in groundSource.spawnPlatform.spawnPoints)
+                {
+                    if (watch.Elapsed.TotalMilliseconds >= 3) { yield return null; watch.Restart(); }
+                    var point = groundSource.boundary.transform.TransformPoint(candidate.position);
+                    if (candidate.bodyMask <= 0 || !SafeDistance(groundSource, point, entry)
+                        || !NavMesh.SamplePosition(point, out var nav, .18f, NavMesh.AllAreas)
+                        || !NavMesh.CalculatePath(area.Ground.Center, nav.position, NavMesh.AllAreas, path)
+                        || path.status != NavMeshPathStatus.PathComplete) continue;
+                    bakedPoints.Add(new CavePlatformLibrary.SpawnPoint { position = point, bodyMask = candidate.bodyMask });
+                }
             for (int i = 0; i < area.Count; i++)
             {
                 var member = roster.Members[area.FirstMember + i];
                 if (safeByDefinition.ContainsKey(member.Definition)) continue;
                 var body = BodyFor(member.Definition); var safe = new List<Vector3>();
-                // Population uses 1m area cells. Refine positions inside those cells for small bodies.
-                foreach (var cell in area.Ground.Points) for (int sample = 0; sample < 5; sample++)
+                int bakedBody = groundSource.BakedBodyIndex(member.Definition, body);
+                if (bakedBody >= 0)
+                    foreach (var point in bakedPoints)
+                        if ((point.bodyMask & (1L << bakedBody)) != 0) safe.Add(point.position);
+                if (safe.Count > 0) bakedDefinitions.Add(member.Definition);
+                else
                 {
-                    if (watch.Elapsed.TotalMilliseconds >= 3) { yield return null; watch.Restart(); }
-                    var point = cell + (sample == 0 ? Vector3.zero : new Vector3((sample & 1) == 0 ? -.25f : .25f, 0, sample <= 2 ? -.25f : .25f));
-                    if (!area.Ground.Source.Floor(point, body.Radius + .1f, out var floor)
-                        || !SafeDistance(area.Ground.Source, floor, entry) || !Clear(area.Ground.Source, floor, body, overlaps)
-                        || !NavMesh.SamplePosition(floor, out var nav, .18f, NavMesh.AllAreas)
-                        || !NavMesh.CalculatePath(area.Ground.Center, nav.position, NavMesh.AllAreas, path)
-                        || path.status != NavMeshPathStatus.PathComplete) continue;
-                    safe.Add(floor);
+                    // Missing/changed bodies and unbaked or scaled platforms retain the measured-grid path.
+                    // Population uses 1m area cells. Refine positions inside those cells for small bodies.
+                    foreach (var cell in area.Ground.Points) for (int sample = 0; sample < 5; sample++)
+                    {
+                        if (watch.Elapsed.TotalMilliseconds >= 3) { yield return null; watch.Restart(); }
+                        var point = cell + (sample == 0 ? Vector3.zero : new Vector3((sample & 1) == 0 ? -.25f : .25f, 0, sample <= 2 ? -.25f : .25f));
+                        if (!area.Ground.Source.Floor(point, body.Radius + .1f, out var floor)
+                            || !SafeDistance(area.Ground.Source, floor, entry) || !Clear(area.Ground.Source, floor, body, overlaps)
+                            || !NavMesh.SamplePosition(floor, out var nav, .18f, NavMesh.AllAreas)
+                            || !NavMesh.CalculatePath(area.Ground.Center, nav.position, NavMesh.AllAreas, path)
+                            || path.status != NavMeshPathStatus.PathComplete) continue;
+                        safe.Add(floor);
+                    }
                 }
                 if (safe.Count == 0) throw new InvalidOperationException(area.Ground.Name + "에 배치 가능한 위치가 없는 몬스터: " + member.Definition.EnemyId);
                 for (int j = safe.Count - 1; j > 0; j--) { int k = random.Next(j + 1); (safe[j], safe[k]) = (safe[k], safe[j]); }
@@ -341,6 +387,8 @@ public static class MapCombatGeometry
                         for (int i = 0; i < reserved.Count; i++)
                         { if (!BodiesSeparated(point, radius, reserved[i], radii[i])) { blocked = true; break; } }
                         if (blocked) continue;
+                        // Only shortlisted baked positions need the live floor/static-collider check.
+                        if (bakedDefinitions.Contains(member.Definition) && !CanPlace(area.Ground, member.Definition, point)) continue;
                         member.PlannedPosition = point; reserved.Add(point); radii.Add(radius); placed = true; break;
                     }
                     if (!placed) { failed = member; break; }

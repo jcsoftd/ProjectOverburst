@@ -7,6 +7,17 @@ namespace Overburst.Caves
     [CreateAssetMenu(menuName = "Overburst/Caves/Authored platform library")]
     public sealed class CavePlatformLibrary : ScriptableObject
     {
+        [Serializable] public sealed class SpawnBody
+        {
+            public float radius, height;
+            public EnemyDefinition[] definitions;
+        }
+        [Serializable] public struct SpawnPoint
+        {
+            public Vector3 position;
+            // Bit i refers to spawnBodies[i]. Coordinates belong to the platform prefab root.
+            public long bodyMask;
+        }
         [Serializable] public sealed class Region
         {
             public string name;
@@ -46,6 +57,7 @@ namespace Overburst.Caves
             public Vector3 spawn;
             public Region[] regions;
             public Bounds[] obstacles;
+            [HideInInspector] public SpawnPoint[] spawnPoints = Array.Empty<SpawnPoint>();
             [NonSerialized] Vector3[] indexedTriangles;
             [NonSerialized] Dictionary<Vector2Int, List<int>> surfaceCells;
             const float SurfaceCellSize = 2f;
@@ -119,6 +131,8 @@ namespace Overburst.Caves
             }
         }
         public Platform[] platforms;
+        public SpawnBody[] spawnBodies = Array.Empty<SpawnBody>();
+        public string spawnBakeSignature;
         public Connector timber, singleStair, doubleStair;
         void OnValidate()
         {

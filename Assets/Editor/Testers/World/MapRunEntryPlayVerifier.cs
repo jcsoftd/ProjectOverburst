@@ -50,7 +50,7 @@ public static class MapRunEntryPlayVerifier
         if (!value) throw new InvalidOperationException(name);
         checks.Add(name); Write("progress.json", new { checks = checks.Count, last = name, utc = DateTime.UtcNow });
     }
-    public static void Start(string directory, bool desertOnly = false, bool largeOnly = false, int completionCases = 0, int bossCases = 0, bool minimapOnly = false, bool guidanceOnly = false, bool minimapCycles = false, bool includeLargeCave = true, int desertCandidateIndex = 0, bool minimapCompatibility = false, bool minimapResolution = false, bool progressionOnly = false, bool escapeSettlementOnly = false, int escapeCases = 0, int caveCount = 0, bool verifyMapRequired = false, bool speciesGroupsOnly = false, bool caveOnly = false)
+    public static void Start(string directory, bool desertOnly = false, bool largeOnly = false, int completionCases = 0, int bossCases = 0, bool minimapOnly = false, bool guidanceOnly = false, bool minimapCycles = false, bool includeLargeCave = true, int desertCandidateIndex = 0, bool minimapCompatibility = false, bool minimapResolution = false, bool progressionOnly = false, bool escapeSettlementOnly = false, int escapeCases = 0, int caveCount = 0, bool verifyMapRequired = false, bool speciesGroupsOnly = false, bool caveOnly = false, bool caveBakedSpawnOnly = false, string caveTheme = null)
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
             || IsolatedSavePlayGuard.ActiveDirectory != "" || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable))
@@ -88,6 +88,7 @@ public static class MapRunEntryPlayVerifier
             map.monsterThemeId = map.terrain == MapTerrainKind.Desert ? "PrimalHunt" : i == 1 ? "SpiderBrood" : "CavernMutants";
             if (bossCases > 0 && map.terrain == MapTerrainKind.Desert)
             { map.options.Add(new MapOptionRoll { optionId = MapOptionPolicy.EnemyHealth, value = .5f }); }
+            if (map.terrain == MapTerrainKind.Cave && !string.IsNullOrEmpty(caveTheme)) map.monsterThemeId = caveTheme;
             map.monsterThemes[0].themeId = map.monsterThemeId;
             if (i == 1)
             {
@@ -117,6 +118,7 @@ public static class MapRunEntryPlayVerifier
         SessionState.SetBool(Key + "verifyMapRequired", verifyMapRequired);
         SessionState.SetBool(Key + "speciesGroupsOnly", speciesGroupsOnly);
         SessionState.SetBool(Key + "caveOnly", caveOnly);
+        SessionState.SetBool(Key + "caveBakedSpawnOnly", caveBakedSpawnOnly);
         SessionState.SetBool(Key + "includeLargeCave", includeLargeCave);
         Write("scope.json", new { caveCount, scaleOnly = caveCount > 0, excludes = caveCount > 0 ? "prior failure-injection, escape, resolution and full-exhaustion tests" : null, includeLargeCave, deferred = includeLargeCave ? null : "20-platform cave deferred by user until platform roster expansion" });
         SessionState.SetString(Key + "start", AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene));
@@ -327,6 +329,8 @@ public static class MapRunEntryPlayVerifier
                 yield return MapEscapeRuntimeVerifier.Verify(gate, completionCase++ / 2, output, Check);
                 continue;
             }
+            if (SessionState.GetBool(Key + "caveBakedSpawnOnly", false) && gate.GetComponent<Overburst.Caves.CaveWorld>())
+                CaveBakedSpawnIntegrationVerifier.VerifyPlay(gate, output, Check);
             if (caveCount > 0) yield return MapFiniteSpawnPlayVerifier.VerifyScale(gate, output, Check);
             else if (SessionState.GetBool(Key + "progressionOnly", false)) yield return MapCaveProgressionPlayVerifier.Verify(gate, Check);
             if (SessionState.GetBool(Key + "minimapOnly", false))
@@ -401,6 +405,7 @@ public static class MapRunEntryPlayVerifier
         SessionState.EraseBool(Key + "verifyMapRequired");
         SessionState.EraseBool(Key + "speciesGroupsOnly");
         SessionState.EraseBool(Key + "caveOnly");
+        SessionState.EraseBool(Key + "caveBakedSpawnOnly");
         SessionState.EraseBool(Key + "includeLargeCave");
     }
 }
