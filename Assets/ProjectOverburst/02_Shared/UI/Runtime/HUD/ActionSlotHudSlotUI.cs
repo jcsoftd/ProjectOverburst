@@ -426,7 +426,7 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
         }
 
         if (gradeEffect == null)
-            gradeEffect = GetComponent<SlotGradeEffect>();
+            TryGetComponent(out gradeEffect);
 
         if (gradeEffect != null)
             gradeEffect.Init(itemIcon, slotBackground);
