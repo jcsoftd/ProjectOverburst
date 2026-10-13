@@ -21,6 +21,14 @@ public static class MapCompletionPlayVerifier
     }
     static EnemyActor Living(RunWorldGate gate) => gate.Roster.Members.Where(m => m.State == MapRunRoster.Life.Active)
         .Select(m => gate.SpawnBudget.Fields[m.AreaIndex].TryGetActor(m.Index, out var actor) ? actor : null).FirstOrDefault(a => a);
+    public static IEnumerator ConfirmDeathReturn(RunLifetimeDriver driver, Action<bool, string> check, string label)
+    {
+        yield return Wait(() => driver.DeathScreen && driver.DeathScreen.IsOpen && driver.DeathSettled
+            && driver.DeathScreen.returnButton.interactable, check, label + ": death settles and manual return is available");
+        driver.DeathScreen.returnButton.onClick.Invoke();
+        yield return Wait(() => WorldSessionState.IsHideout && !PersistentSceneFlow.Instance.IsSwitching,
+            check, label + ": confirmed death return reaches hub");
+    }
     public static IEnumerator Verify(RunWorldGate gate, int scenario, string output, Action<bool, string> check)
     {
         var flow = PersistentSceneFlow.Instance; var driver = flow.GetComponent<RunLifetimeDriver>();
@@ -77,7 +85,7 @@ public static class MapCompletionPlayVerifier
             {
                 player.Health.SetDamageDeathPrevention(flow, false);
                 player.Health.TakeDamage(new DamageInfo(1000000, player.transform.position, last.gameObject, suppressDefaultHitVfx: true));
-                yield return Wait(() => WorldSessionState.IsHideout && !flow.IsSwitching, check, label + ": simultaneous final kill and player death return");
+                yield return ConfirmDeathReturn(driver, check, label + ": simultaneous final kill and player death return");
                 var failed = account.ReadRun();
                 check(failed.phase == RunPhase.Failed && failed.completionReward == null && account.Read().bossClearCount == bosses,
                     label + ": same-frame death prevents completion reward and success");
@@ -157,12 +165,25 @@ public static class MapCompletionPlayVerifier
             yield return Frames(3);
             if (scenario == 0)
             {
-                yield return Wait(() => Living(gate), check, label + ": remainder still spawns after completion");
-                int kills = roster.Kills; int xp = account.Read().experience; int level = account.Read().level;
-                var remaining = Living(gate); remaining.Health.TakeDamage(new DamageInfo(1000000, remaining.transform.position, player.gameObject, suppressDefaultHitVfx: true));
-                PlayerProgression.Current?.FlushPendingExperience();
-                check(roster.Kills == kills + 1 && (account.Read().experience > xp || account.Read().level > level) && account.ReadRun().phase == RunPhase.Completed,
-                    label + ": post-clear kill still awards XP without re-completion");
+                var clearedMembers = roster.Members.Where(m => roster.Areas[m.AreaIndex].Cleared).ToArray();
+                var leases = clearedMembers.Select(m => m.Lease).ToArray();
+                int kills = roster.Kills;
+                yield return Frames(20);
+                check(clearedMembers.Length > 0 && roster.CaveTargetReached
+                    && roster.Kills == kills && clearedMembers.Select(m => m.Lease).SequenceEqual(leases)
+                    && roster.Kills + roster.Active + roster.Pending == roster.Total,
+                    label + ": 95-percent cleared areas preserve remaining IDs without spawning or restoring them");
+                var remaining = Living(gate);
+                if (remaining)
+                {
+                    int xp = account.Read().experience; int level = account.Read().level;
+                    remaining.Health.TakeDamage(new DamageInfo(1000000, remaining.transform.position, player.gameObject, suppressDefaultHitVfx: true));
+                    PlayerProgression.Current?.FlushPendingExperience();
+                    check(roster.Kills == kills + 1 && (account.Read().experience > xp || account.Read().level > level) && account.ReadRun().phase == RunPhase.Completed,
+                        label + ": an existing post-clear survivor awards XP without re-completion");
+                }
+                else check(roster.Pending + roster.Active == roster.Total - roster.Kills,
+                    label + ": unspawned remainder is retained without forcing a post-clear respawn");
                 store.FaultInjector = stage => { if (stage == "before-write") throw new IOException("G04 fixture extraction failure"); };
                 for (int i = 0; i < 3; i++) check(driver.RequestPortalExit(), label + ": repeated return request " + i);
                 yield return Wait(() => driver.LastError != null, check, label + ": extraction write failure observed");
@@ -174,6 +195,7 @@ public static class MapCompletionPlayVerifier
                 if (scenario == 2) check(driver.RequestPortalExit(), label + ": return requested before same-frame fatal damage");
                 player.Health.SetDamageDeathPrevention(flow, false);
                 player.Health.TakeDamage(new DamageInfo(1000000, player.transform.position, null, suppressDefaultHitVfx: true));
+                yield return ConfirmDeathReturn(driver, check, label + ": post-completion death");
             }
             yield return Wait(() => WorldSessionState.IsHideout && !flow.IsSwitching, check, label + ": settled run returns to hub");
             run = account.ReadRun();

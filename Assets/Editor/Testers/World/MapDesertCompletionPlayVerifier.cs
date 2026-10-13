@@ -170,7 +170,7 @@ public static class MapDesertCompletionPlayVerifier
         if (scenario == 1)
         {
             player.Health.SetDamageDeathPrevention(flow, false); Hit(player.Health, actor.gameObject);
-            yield return Wait(() => WorldSessionState.IsHideout && !flow.IsSwitching, check, label + ": same-frame boss kill and player death settle");
+            yield return MapCompletionPlayVerifier.ConfirmDeathReturn(driver, check, label + ": same-frame boss kill and player death settle");
             check(account.ReadRun().phase == RunPhase.Failed && account.ReadRun().completionReward == null && account.Read().bossClearCount == bosses,
                 label + ": simultaneous death wins over uncommitted boss completion");
             yield break;

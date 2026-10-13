@@ -10,11 +10,15 @@ using UnityEngine.AI;
 [DefaultExecutionOrder(31000)]
 public sealed class MapRunCompletion : MonoBehaviour
 {
+    static readonly Unity.Profiling.ProfilerMarker PollMarker = new Unity.Profiling.ProfilerMarker("Overburst.MapCompletion.Poll");
+    static readonly Unity.Profiling.ProfilerMarker SnapshotMarker = new Unity.Profiling.ProfilerMarker("Overburst.MapCompletion.Snapshot");
     RunWorldGate gate;
     PlayerActorRuntime player;
     int lastArea, completionArea, completionFrame;
     Vector3 lastSafe, completionAnchor, portalPoint, rewardPoint;
     bool requested, placed;
+    AccountGameplaySession idleAccount;
+    long idleRevision = -1;
     float nextAttempt;
     ItemSnapshot pendingReward;
     readonly Collider[] overlaps = new Collider[64];
@@ -84,14 +88,25 @@ public sealed class MapRunCompletion : MonoBehaviour
         if (!requested) { ObservePlayer(); ObserveDeath(); }
         Poll();
     }
+    bool IsUnchangedIdleRun(AccountGameplaySession account) => !requested && account != null
+        && ReferenceEquals(idleAccount, account) && idleRevision == account.Revision;
+
     public void Poll()
     {
+        using var pollSample = PollMarker.Auto();
         if (!gate || !player || player.Health == null || player.Health.IsDead
             || Time.unscaledTime < nextAttempt || WorldSessionState.Phase != WorldPhase.Run) return;
         var account = AccountGameplaySession.Current;
-        var run = account?.ReadRun();
+        if (IsUnchangedIdleRun(account)) return;
+        RunSnapshot run;
+        using (SnapshotMarker.Auto()) run = account?.ReadRun();
         if (run == null || run.runId != gate.Context.RunId || !AccountInvariants.IsRunning(run.phase)) return;
-        if (!requested && run.phase != RunPhase.Completed) return;
+        if (!requested && run.phase != RunPhase.Completed)
+        {
+            // Commits change Revision; completion requests bypass this unchanged-idle check immediately.
+            idleAccount = account; idleRevision = account.Revision;
+            return;
+        }
         // Capture the completion platform, then let that frame's player damage finish.
         if (run.phase == RunPhase.Active && Time.frameCount <= completionFrame) return;
         nextAttempt = Time.unscaledTime + .5f;
@@ -195,6 +210,7 @@ public sealed class MapRunCompletion : MonoBehaviour
     }
     void OnDestroy()
     {
+        idleAccount = null;
         if (gate && gate.Roster != null) gate.Roster.DeathRecorded -= ObserveDeath;
     }
 }

@@ -612,8 +612,11 @@ public static class EnemySquadPursuitRuntimeService // 프리셋별 대량 웨�
     }
     private static readonly Unity.Profiling.ProfilerMarker SquadUpdateMarker = new Unity.Profiling.ProfilerMarker("Overburst.AI.SquadUpdate");
 
+    private static readonly Unity.Profiling.ProfilerMarker EncounterBindingMarker = new Unity.Profiling.ProfilerMarker("Overburst.AI.SquadBinding");
+
     private static void RefreshAgentEncounters()
     {
+        using var bindingSample = EncounterBindingMarker.Auto();
         StaleControllers.Clear();
         foreach (KeyValuePair<EnemyAIController, AgentData> pair in Agents)
         {
