@@ -3,9 +3,14 @@ using System.Collections;
 using System.Collections.Generic;
 using Overburst.Persistence;
 using UnityEngine;
+using Unity.Profiling;
 
 public sealed partial class MapSpawnBudget
 {
+    static readonly ProfilerMarker FiniteTotalMarker = new ProfilerMarker("OVERBURST.MapSpawnFinite.Total");
+    static readonly ProfilerMarker ReconcileMarker = new ProfilerMarker("OVERBURST.MapSpawnFinite.Reconcile");
+    static readonly ProfilerMarker RefreshMarker = new ProfilerMarker("OVERBURST.MapSpawnFinite.Refresh");
+    static readonly ProfilerMarker PriorityMarker = new ProfilerMarker("OVERBURST.MapSpawnFinite.Priority");
     RunWorldGate runGate;
     readonly List<MapMonsterField> finiteFields = new List<MapMonsterField>();
     readonly List<MapMonsterField> priorityFields = new List<MapMonsterField>();
@@ -83,34 +88,42 @@ public sealed partial class MapSpawnBudget
     void TickFinite(Vector3 player, bool preparing)
     {
         if (lastFiniteFrame == Time.frameCount) return;
-        lastFiniteFrame = Time.frameCount; SpawnedThisFrame = 0; LastSpawnMilliseconds = 0;
-        foreach (var field in finiteFields) field.ReconcileFinite();
-        if (preparing || Time.unscaledTime >= nextFiniteRefresh)
+        using (FiniteTotalMarker.Auto())
         {
-            foreach (var field in finiteFields) field.RefreshFinite(player, preparing);
-            int local = 0;
-            foreach (var field in finiteFields) local += field.CountNear(player, 24);
-            foreach (var field in finiteFields) field.PrepareReinforcement(player, local, preparing);
-            nextFiniteRefresh = Time.unscaledTime + .1f;
-        }
-        PendingCount = runGate.Roster.Pending;
-        priorityFields.Clear(); priorityFields.AddRange(finiteFields);
-        priorityFields.Sort((a, b) => a.Priority(player).CompareTo(b.Priority(player)));
-        long start = System.Diagnostics.Stopwatch.GetTimestamp();
-        using (SpawnMarker.Auto())
-        {
-            int attempts = 0;
-            while (attempts < MaxPerFrame && service.Pool.LeasedCount + service.Pool.PendingReturnCount < AliveLimit)
+            lastFiniteFrame = Time.frameCount; SpawnedThisFrame = 0; LastSpawnMilliseconds = 0;
+            using (ReconcileMarker.Auto())
+                foreach (var field in finiteFields) field.ReconcileFinite();
+            if (preparing || Time.unscaledTime >= nextFiniteRefresh)
+            using (RefreshMarker.Auto())
             {
-                bool attempted = false;
-                foreach (var field in priorityFields)
+                foreach (var field in finiteFields) field.RefreshFinite(player, preparing);
+                int local = 0;
+                foreach (var field in finiteFields) local += field.CountNear(player, 24);
+                foreach (var field in finiteFields) field.PrepareReinforcement(player, local, preparing);
+                nextFiniteRefresh = Time.unscaledTime + .1f;
+            }
+            PendingCount = runGate.Roster.Pending;
+            using (PriorityMarker.Auto())
+            {
+            priorityFields.Clear(); priorityFields.AddRange(finiteFields);
+            priorityFields.Sort((a, b) => a.Priority(player).CompareTo(b.Priority(player)));
+            }
+            long start = System.Diagnostics.Stopwatch.GetTimestamp();
+            using (SpawnMarker.Auto())
+            {
+                int attempts = 0;
+                while (attempts < MaxPerFrame && service.Pool.LeasedCount + service.Pool.PendingReturnCount < AliveLimit)
                 {
-                    if (!field.TrySpawnFinite(player, preparing, out bool spawned)) continue;
-                    attempted = true; attempts++; if (spawned) SpawnedThisFrame++;
-                    break;
+                    bool attempted = false;
+                    foreach (var field in priorityFields)
+                    {
+                        if (!field.TrySpawnFinite(player, preparing, out bool spawned)) continue;
+                        attempted = true; attempts++; if (spawned) SpawnedThisFrame++;
+                        break;
+                    }
+                    LastSpawnMilliseconds = (System.Diagnostics.Stopwatch.GetTimestamp() - start) * 1000d / System.Diagnostics.Stopwatch.Frequency;
+                    if (!attempted || LastSpawnMilliseconds >= FrameBudgetMilliseconds) break;
                 }
-                LastSpawnMilliseconds = (System.Diagnostics.Stopwatch.GetTimestamp() - start) * 1000d / System.Diagnostics.Stopwatch.Frequency;
-                if (!attempted || LastSpawnMilliseconds >= FrameBudgetMilliseconds) break;
             }
         }
     }

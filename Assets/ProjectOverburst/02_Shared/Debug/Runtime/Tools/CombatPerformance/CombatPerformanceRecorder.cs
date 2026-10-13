@@ -35,6 +35,7 @@ namespace Overburst.DebugTools.Performance
         readonly FrameTiming[] timingBuffer = new FrameTiming[1];
         readonly Frame[] frames; readonly PerformanceEvent[] events; readonly Timing[] timings;
         double[] metricValues;
+        long[] metricSampleCounts;
         int count, eventCount, timingCount, droppedEvents, tracked = -1, hitchStreak;
         long start, previous;
         ulong lastTiming;
@@ -46,8 +47,9 @@ namespace Overburst.DebugTools.Performance
         public CombatPerformanceSegment Result { get; }
         public bool CapacityReached => count >= frames.Length;
 
-        public CombatPerformanceRecorder(CombatPerformanceProfile profile, CombatPerformanceSegment segment, BloodHitVfxService bloodService)
+        public CombatPerformanceRecorder(CombatPerformanceProfile profile, CombatPerformanceSegment segment, BloodHitVfxService bloodService, int maximumMetrics = MaximumMetrics, bool captureSampleCounts = false)
         {
+            if (maximumMetrics < 1 || maximumMetrics > 256) throw new ArgumentOutOfRangeException(nameof(maximumMetrics));
             Result = segment; blood = bloodService;
             frames = new Frame[profile.frameCapacity]; events = new PerformanceEvent[profile.eventCapacity]; timings = new Timing[profile.frameCapacity];
             var handles = new List<ProfilerRecorderHandle>(); ProfilerRecorderHandle.GetAvailable(handles);
@@ -55,7 +57,7 @@ namespace Overburst.DebugTools.Performance
             foreach (var handle in handles)
             {
                 var d = ProfilerRecorderHandle.GetDescription(handle);
-                if (descriptors.Count >= MaximumMetrics || (!d.Name.StartsWith("Overburst.", StringComparison.Ordinal)
+                if (descriptors.Count >= maximumMetrics || (!d.Name.StartsWith("Overburst.", StringComparison.Ordinal)
                     && !d.Name.StartsWith("OVERBURST.", StringComparison.Ordinal) && Array.IndexOf(EngineNames, d.Name) < 0)) continue;
                 if (!used.Add(d.Category.Name + "/" + d.Name)) continue;
                 var recorder = ProfilerRecorder.StartNew(d.Category, d.Name, 1,
@@ -64,6 +66,7 @@ namespace Overburst.DebugTools.Performance
                 descriptors.Add(new CombatPerformanceMetric { name = d.Name, category = d.Category.Name, unit = d.UnitType.ToString(), nanoseconds = d.UnitType == ProfilerMarkerDataUnit.TimeNanoseconds });
             }
             metricValues = new double[frames.Length * recorders.Count];
+            if (captureSampleCounts) metricSampleCounts = new long[metricValues.Length];
             bloodRequestStart = blood != null ? blood.RequestedCount : 0;
             bloodPlayStart = blood != null ? blood.PlayedCount : 0;
             for (int i = 0; i < 3; i++) gcStart[i] = GC.CollectionCount(i);
@@ -84,6 +87,7 @@ namespace Overburst.DebugTools.Performance
                     var rec = recorders[m];
                     metricValues[row * recorders.Count + m] = rec.Valid && rec.Count > 0
                         ? rec.LastValue / (descriptors[m].nanoseconds ? 1000000d : 1d) : double.NaN;
+                    if (metricSampleCounts != null) metricSampleCounts[row * recorders.Count + m] = rec.Valid && rec.Count > 0 ? rec.GetSample(rec.Count - 1).Count : -1;
                 }
                 frames[row] = current;
                 if (current.wall > 33.333333) Result.hitches33++;
@@ -168,6 +172,7 @@ namespace Overburst.DebugTools.Performance
             {
                 w.Write("frame,seconds,wall_ms,time_scale,observer_ms,targets,alive,hits_total,kills_total,requests_total,accepted_total,parries_total,blood_requested_total,blood_played_total");
                 foreach (var d in descriptors) w.Write("," + Q(d.category + "/" + d.name + " [" + (d.nanoseconds ? "ms" : d.unit) + "]"));
+                if (metricSampleCounts != null) foreach (var d in descriptors) w.Write("," + Q(d.category + "/" + d.name + " samples [count]"));
                 w.WriteLine();
                 for (int i = 0; i < count; i++)
                 {
@@ -175,6 +180,8 @@ namespace Overburst.DebugTools.Performance
                     w.Write(string.Join(",", new[] { N(f.id), N(f.seconds), N(f.wall), N(f.scale), N(f.observer), N(f.targets), N(f.alive), N(f.hits),
                         N(f.kills), N(f.requests), N(f.accepted), N(f.parries), N(f.bloodRequests), N(f.bloodPlayed) }));
                     for (int m = 0; m < descriptors.Count; m++) w.Write("," + N(metricValues[i * descriptors.Count + m]));
+                    if (metricSampleCounts != null) for (int m = 0; m < descriptors.Count; m++)
+                    { long value = metricSampleCounts[i * descriptors.Count + m]; w.Write("," + (value < 0 ? "" : value.ToString(CultureInfo.InvariantCulture))); }
                     w.WriteLine();
                 }
             }

@@ -50,7 +50,7 @@ public static class MapRunEntryPlayVerifier
         if (!value) throw new InvalidOperationException(name);
         checks.Add(name); Write("progress.json", new { checks = checks.Count, last = name, utc = DateTime.UtcNow });
     }
-    public static void Start(string directory, bool desertOnly = false, bool largeOnly = false, int completionCases = 0, int bossCases = 0, bool minimapOnly = false, bool guidanceOnly = false, bool minimapCycles = false, bool includeLargeCave = true, int desertCandidateIndex = 0, bool minimapCompatibility = false, bool minimapResolution = false, bool progressionOnly = false, bool escapeSettlementOnly = false, int escapeCases = 0, int caveCount = 0, bool verifyMapRequired = false, bool speciesGroupsOnly = false, bool caveOnly = false, bool caveBakedSpawnOnly = false, string caveTheme = null, bool desertRoadSpawnOnly = false)
+    public static void Start(string directory, bool desertOnly = false, bool largeOnly = false, int completionCases = 0, int bossCases = 0, bool minimapOnly = false, bool guidanceOnly = false, bool minimapCycles = false, bool includeLargeCave = true, int desertCandidateIndex = 0, bool minimapCompatibility = false, bool minimapResolution = false, bool progressionOnly = false, bool escapeSettlementOnly = false, int escapeCases = 0, int caveCount = 0, bool verifyMapRequired = false, bool speciesGroupsOnly = false, bool caveOnly = false, bool caveBakedSpawnOnly = false, string caveTheme = null, bool desertRoadSpawnOnly = false, string desertPerformanceProfile = null)
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
             || IsolatedSavePlayGuard.ActiveDirectory != "" || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable))
@@ -58,6 +58,7 @@ public static class MapRunEntryPlayVerifier
             throw new InvalidOperationException("Use an idle real-account Editor.");
         if (caveCount != 0 && caveCount != 5 && caveCount != 10 && caveCount != 15) throw new ArgumentException("Scale case must be 5, 10 or 15.");
         finishing = false;
+        var performance = string.IsNullOrEmpty(desertPerformanceProfile) ? null : DesertPerformanceProfile.Read(desertPerformanceProfile);
         if (minimapCycles) minimapOnly = true;
         output = Path.GetFullPath(directory);
         string allowed = Path.GetFullPath(Path.Combine(Application.dataPath, "../../개인파일/코덱스산출")) + Path.DirectorySeparatorChar;
@@ -90,6 +91,13 @@ public static class MapRunEntryPlayVerifier
             { map.options.Add(new MapOptionRoll { optionId = MapOptionPolicy.EnemyHealth, value = .5f }); }
             if (map.terrain == MapTerrainKind.Cave && !string.IsNullOrEmpty(caveTheme)) map.monsterThemeId = caveTheme;
             map.monsterThemes[0].themeId = map.monsterThemeId;
+            if (performance != null && map.terrain == MapTerrainKind.Desert)
+            {
+                map.level = performance.level; map.seed = performance.seed; map.monsterThemeId = performance.theme; map.monsterThemes[0].themeId = performance.theme;
+                if (performance.monsterMultiplier > 1)
+                    foreach (string id in new[] { MapOptionPolicy.MoreSmall, MapOptionPolicy.MoreMedium, MapOptionPolicy.MoreElite })
+                        map.options.Add(new MapOptionRoll { optionId = id, value = performance.monsterMultiplier - 1 });
+            }
             if (i == 1)
             {
                 map.options.Add(new MapOptionRoll { optionId = MapOptionPolicy.MoreSmall, value = .9f });
@@ -104,6 +112,7 @@ public static class MapRunEntryPlayVerifier
         SessionState.SetString(Key + "pending", output); SessionState.SetString(Key + "return", output);
         SessionState.SetBool(Key + "desertOnly", desertOnly);
         SessionState.SetBool(Key + "desertRoadSpawnOnly", desertRoadSpawnOnly);
+        SessionState.SetString(Key + "desertPerformanceProfile", desertPerformanceProfile ?? "");
         SessionState.SetBool(Key + "largeOnly", largeOnly);
         SessionState.SetInt(Key + "completionCases", completionCases);
         SessionState.SetInt(Key + "bossCases", bossCases);
@@ -124,7 +133,7 @@ public static class MapRunEntryPlayVerifier
         Write("scope.json", new { caveCount, scaleOnly = caveCount > 0, excludes = caveCount > 0 ? "prior failure-injection, escape, resolution and full-exhaustion tests" : null, includeLargeCave, deferred = includeLargeCave ? null : "20-platform cave deferred by user until platform roster expansion" });
         SessionState.SetString(Key + "start", AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene));
         SessionState.SetString(Key + "scenes", Scenes()); SessionState.SetBool(Key + "background", Application.runInBackground);
-        SessionState.SetFloat(Key + "deadline", (float)EditorApplication.timeSinceStartup + (minimapCycles ? 1200 : 600));
+        SessionState.SetFloat(Key + "deadline", (float)EditorApplication.timeSinceStartup + (performance != null ? 7200 : minimapCycles ? 1200 : 600));
         Write("edit-before.json", new { scenes = Scenes(), start = AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene), previewCount = EditorSceneManager.previewSceneCount });
         Environment.SetEnvironmentVariable("OVERBURST_SETTINGS_DIRECTORY", Path.Combine(output, "Settings"));
         Application.runInBackground = true;
@@ -142,7 +151,7 @@ public static class MapRunEntryPlayVerifier
         if (!EditorApplication.isPlaying || !OwnPlay || !TitleCharacterPanel.Instance) return;
         EditorApplication.update -= Begin; SessionState.EraseString(Key + "pending");
         checks.Clear(); observations.Clear(); work.Clear(); Application.runInBackground = true;
-        deadline = EditorApplication.timeSinceStartup + (SessionState.GetBool(Key + "minimapCycles", false) || SessionState.GetInt(Key + "completionCases", 0) + SessionState.GetInt(Key + "bossCases", 0) + SessionState.GetInt(Key + "escapeCases", 0) > 0 ? 1200 : 600); lastFrame = -1; work.Push(Verify()); EditorApplication.update += Tick;
+        deadline = EditorApplication.timeSinceStartup + (SessionState.GetString(Key + "desertPerformanceProfile", "") != "" ? 7200 : SessionState.GetBool(Key + "minimapCycles", false) || SessionState.GetInt(Key + "completionCases", 0) + SessionState.GetInt(Key + "bossCases", 0) + SessionState.GetInt(Key + "escapeCases", 0) > 0 ? 1200 : 600); lastFrame = -1; work.Push(Verify()); EditorApplication.update += Tick;
     }
     static IEnumerator Frames(int n) { while (n-- > 0) yield return null; }
     static IEnumerator Wait(Func<bool> ready, string label, float seconds = 100)
@@ -155,6 +164,28 @@ public static class MapRunEntryPlayVerifier
     {
         if (finishing) return;
         EditorApplication.QueuePlayerLoopUpdate();
+        if (SessionState.GetString(Key + "desertPerformanceProfile", "") != "")
+        {
+            if (Time.frameCount == lastFrame && EditorApplication.timeSinceStartup < deadline) return;
+            lastFrame = Time.frameCount;
+            DesertPerformanceProbe.Tick();
+            try
+            {
+                if (!EditorApplication.isPlaying || !OwnPlay) throw new Exception("Owned performance Play ended unexpectedly");
+                if (EditorApplication.timeSinceStartup > deadline) throw new TimeoutException("Desert performance map timeout");
+                while (work.Count > 0)
+                {
+                    var current = work.Peek();
+                    if (!current.MoveNext()) { (current as IDisposable)?.Dispose(); work.Pop(); continue; }
+                    if (current.Current is IEnumerator nested) { work.Push(nested); continue; }
+                    return;
+                }
+                Finish(null);
+            }
+            catch (Exception error) { Finish(error); }
+            finally { DesertPerformanceProbe.EndTick(); }
+            return;
+        }
         var generator = UnityEngine.Object.FindFirstObjectByType<Overburst.Caves.CaveRuntimeGenerator>();
         var pendingGate = UnityEngine.Object.FindFirstObjectByType<RunWorldGate>();
         string stage = pendingGate && pendingGate.PreparationStage != null ? pendingGate.PreparationStage : generator ? generator.Stage : null;
@@ -191,6 +222,13 @@ public static class MapRunEntryPlayVerifier
         var account = AccountGameplaySession.Current; var flow = PersistentSceneFlow.Instance;
         PlayerContext.Instance.CurrentActor.Health.SetDamageDeathPrevention(flow, true);
         Check(AccountBootstrap.SaveDirectory == Path.Combine(output, "Account"), "Account is isolated");
+        string performanceProfile = SessionState.GetString(Key + "desertPerformanceProfile", "");
+        if (performanceProfile != "")
+        {
+            var item = account.Read().items.Single(i => i.map != null && i.map.terrain == MapTerrainKind.Desert);
+            yield return DesertPerformanceProbe.Verify(item.map, item.instanceId, output, DesertPerformanceProfile.Read(performanceProfile));
+            yield break;
+        }
         if (SessionState.GetBool(Key + "speciesGroupsOnly", false) && !SessionState.GetBool(Key + "caveOnly", false))
             yield return SpeciesSpawnGroupVerifier.VerifyOutdoor(output, Check);
         if (SessionState.GetBool(Key + "minimapCompatibility", false))
@@ -436,11 +474,22 @@ public static class MapRunEntryPlayVerifier
         if (finishing) return;
         finishing = true;
         EditorApplication.update -= Tick; EditorApplication.update -= Begin;
-        while (work.Count > 0) (work.Pop() as IDisposable)?.Dispose();
+        while (work.Count > 0)
+            try { (work.Pop() as IDisposable)?.Dispose(); }
+            catch (Exception cleanupError) { error = error == null ? cleanupError : new AggregateException(error, cleanupError); }
         SessionState.EraseString(Key + "pending"); output = SessionState.GetString(Key + "return", output);
-        Write("play-result.json", new { status = error == null ? "PASS" : "FAIL", checks, observations, error = error?.ToString(), scope = "Editor Play: entry, finite population and selected completion/persistence cases; Player performance and direct control feel not covered" });
-        if (EditorApplication.isPlaying && OwnPlay) EditorApplication.ExitPlaymode();
-        EditorApplication.update -= Return; EditorApplication.update += Return;
+        try { Write("play-result.json", new { status = error == null ? "PASS" : "FAIL", checks, observations, error = error?.ToString(), scope = SessionState.GetString(Key + "desertPerformanceProfile", "") != "" ? "Editor desert traversal capture; completion is coverage, not an FPS acceptance or Player result" : "Editor Play: entry, finite population and selected completion/persistence cases; Player performance and direct control feel not covered" }); }
+        finally
+        {
+            if (EditorApplication.isPlaying && OwnPlay) EditorApplication.ExitPlaymode();
+            EditorApplication.update -= Return; EditorApplication.update += Return;
+        }
+    }
+    public static void StopDesertPerformance(string directory)
+    {
+        if (SessionState.GetString(Key + "return", "") != directory || SessionState.GetString(Key + "desertPerformanceProfile", "") == "")
+            throw new InvalidOperationException("This folder does not own a desert performance session.");
+        Finish(new OperationCanceledException("Desert performance cancelled by user"));
     }
     static void State(PlayModeStateChange state)
     {
@@ -462,6 +511,7 @@ public static class MapRunEntryPlayVerifier
         SessionState.EraseFloat(Key + "deadline"); SessionState.EraseBool(Key + "background"); EditorApplication.update -= Return;
         SessionState.EraseBool(Key + "desertOnly");
         SessionState.EraseBool(Key + "desertRoadSpawnOnly");
+        SessionState.EraseString(Key + "desertPerformanceProfile");
         SessionState.EraseBool(Key + "largeOnly"); SessionState.EraseInt(Key + "completionCases"); SessionState.EraseInt(Key + "bossCases");
         SessionState.EraseBool(Key + "minimapOnly");
         SessionState.EraseBool(Key + "guidanceOnly");

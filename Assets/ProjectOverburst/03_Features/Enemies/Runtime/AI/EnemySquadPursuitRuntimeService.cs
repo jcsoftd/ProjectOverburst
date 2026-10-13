@@ -583,30 +583,34 @@ public static class EnemySquadPursuitRuntimeService // 프리셋별 대량 웨�
         if (updatedFrame == frame)
             return;
 
-        updatedFrame = frame;
-        float now = Time.time;
-        float deltaTime = lastUpdateTime > 0f ? Mathf.Clamp(now - lastUpdateTime, 0f, 0.1f) : Time.deltaTime;
-        lastUpdateTime = now;
-        RefreshAgentEncounters();
-        StaleEncounterKeys.Clear();
-        foreach (KeyValuePair<EncounterKey, EncounterData> pair in Encounters)
+        using (SquadUpdateMarker.Auto())
         {
-            EncounterData encounter = pair.Value;
-            if (pair.Key.Owner == null
-                || pair.Key.Preset == null
-                || encounter == null
-                || encounter.Anchor == null
-                || encounter.Agents.Count <= 0)
+            updatedFrame = frame;
+            float now = Time.time;
+            float deltaTime = lastUpdateTime > 0f ? Mathf.Clamp(now - lastUpdateTime, 0f, 0.1f) : Time.deltaTime;
+            lastUpdateTime = now;
+            RefreshAgentEncounters();
+            StaleEncounterKeys.Clear();
+            foreach (KeyValuePair<EncounterKey, EncounterData> pair in Encounters)
             {
-                StaleEncounterKeys.Add(pair.Key);
-                continue;
-            }
+                EncounterData encounter = pair.Value;
+                if (pair.Key.Owner == null
+                    || pair.Key.Preset == null
+                    || encounter == null
+                    || encounter.Anchor == null
+                    || encounter.Agents.Count <= 0)
+                {
+                    StaleEncounterKeys.Add(pair.Key);
+                    continue;
+                }
 
-            UpdateEncounter(encounter, deltaTime, now);
+                UpdateEncounter(encounter, deltaTime, now);
+            }
+            for (int i = 0; i < StaleEncounterKeys.Count; i++)
+                Encounters.Remove(StaleEncounterKeys[i]);
         }
-        for (int i = 0; i < StaleEncounterKeys.Count; i++)
-            Encounters.Remove(StaleEncounterKeys[i]);
     }
+    private static readonly Unity.Profiling.ProfilerMarker SquadUpdateMarker = new Unity.Profiling.ProfilerMarker("Overburst.AI.SquadUpdate");
 
     private static void RefreshAgentEncounters()
     {
