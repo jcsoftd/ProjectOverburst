@@ -34,6 +34,32 @@ public struct MeleeComboStepData
     public AttackTrailPhaseData[] trailPhases;
     [InspectorName("공격 판정 구간")]
     public AttackPhaseData[] attackPhases;
+    [InspectorName("베기별 휘두름음")]
+    public MeleeSwingSfxCueData[] swingSfxCues;
+
+    public bool TryValidateSwingSfx(out string error)
+    {
+        error = null;
+        if (swingSfxCues == null || swingSfxCues.Length == 0) return true;
+        if (attackPhases == null || swingSfxCues.Length != attackPhases.Length || swingSfxCues.Length > 32)
+        { error = "휘두름음 개수는 판정 구간 수와 같고 32개 이하여야 합니다."; return false; }
+        for (int i = 0; i < swingSfxCues.Length; i++)
+            if (!swingSfxCues[i].IsValid)
+            { error = $"{i + 1}번째 휘두름음의 클립·피크 시간·정렬 진행률을 확인하세요."; return false; }
+        return true;
+    }
+}
+
+[Serializable]
+public struct MeleeSwingSfxCueData
+{
+    public AudioClip clip;
+    [Min(0f)] public float peakSeconds;
+    [Range(0f, 1f)] public float alignmentProgress;
+
+    public bool IsValid => clip != null && !float.IsNaN(peakSeconds) && !float.IsInfinity(peakSeconds)
+        && peakSeconds >= 0f && peakSeconds < clip.length
+        && !float.IsNaN(alignmentProgress) && alignmentProgress >= 0f && alignmentProgress <= 1f;
 }
 
 // Both the Animator and combat executors use this clock, preserving every source pose.

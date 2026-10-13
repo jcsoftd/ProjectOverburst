@@ -94,6 +94,7 @@ namespace Overburst.EditorTools.ComboMaker
             {
                 var step = Working.steps[i];
                 if (!MeleeComboStepValidator.TryValidate(step, out var error)) errors.Add($"{i + 1}타: {error}");
+                if (!step.TryValidateSwingSfx(out var soundError)) errors.Add($"{i + 1}타: {soundError}");
                 if (!FinitePositive(step.animationSpeedMultiplier)) errors.Add($"{i + 1}타: 속도는 0보다 커야 합니다.");
                 if (!FiniteNormalized(step.actionCancelStartNormalized) || !FiniteNormalized(step.continuationStartNormalizedTime) || !FiniteNormalized(step.settledIdleStartNormalizedTime))
                     errors.Add($"{i + 1}타: 진입점과 취소 시점은 0~1이어야 합니다.");

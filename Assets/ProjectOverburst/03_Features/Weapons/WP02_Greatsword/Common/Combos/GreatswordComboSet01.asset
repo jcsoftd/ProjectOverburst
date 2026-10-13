@@ -124,6 +124,10 @@ MonoBehaviour:
         verticalPivotHeight: 1
         verticalHalfWidth: 1.25
         reverseDirection: 0
+    swingSfxCues:
+    - clip: {fileID: 8300000, guid: 1b44340839eed574ea2b4d55bd8465f5, type: 3}
+      peakSeconds: 0.02
+      alignmentProgress: 0.25
   - attackId: Greatsword.ComboSet01.2
     attackName: "\uB300\uAC80 \uCF64\uBCF4 03 2\uD0C0 \uC88C\u2192\uC6B0 \uBCA0\uAE30"
     animationClip: {fileID: 7400000, guid: 0f8b7bf971e09b546b9be6e8bd2d3836, type: 2}
@@ -232,6 +236,10 @@ MonoBehaviour:
         verticalPivotHeight: 1
         verticalHalfWidth: 1.25
         reverseDirection: 0
+    swingSfxCues:
+    - clip: {fileID: 8300000, guid: 38ece99d7d3a0364b9f0665a6d40b192, type: 3}
+      peakSeconds: 0.035
+      alignmentProgress: 0.25
   - attackId: Greatsword.ComboSet01.3
     attackName: "\uB300\uAC80 \uCF64\uBCF4 03 3\uD0C0 \uD68C\uC804 2\uC5F0\uD0C0"
     animationClip: {fileID: 7400000, guid: f55e4bfae818fc94795aeaea51609d5e, type: 2}
@@ -388,6 +396,13 @@ MonoBehaviour:
         verticalPivotHeight: 1
         verticalHalfWidth: 1.25
         reverseDirection: 1
+    swingSfxCues:
+    - clip: {fileID: 8300000, guid: 93b6b2124d1b4dd4782132237979ff8a, type: 3}
+      peakSeconds: 0.045
+      alignmentProgress: 0.25
+    - clip: {fileID: 8300000, guid: f4160f565aa0f0c488917a41132b44a1, type: 3}
+      peakSeconds: 0.045
+      alignmentProgress: 0.25
   - attackId: Greatsword.ComboSet01.4
     attackName: "\uB300\uAC80 \uCF64\uBCF4 03 4\uD0C0 \uB3C4\uC57D \uD68C\uC804 3\uC5F0\uD0C0"
     animationClip: {fileID: 7400000, guid: 3a64e1ba2df667a44bf0739ebea65b40, type: 2}
@@ -592,6 +607,16 @@ MonoBehaviour:
         verticalPivotHeight: 1
         verticalHalfWidth: 1.25
         reverseDirection: 0
+    swingSfxCues:
+    - clip: {fileID: 8300000, guid: 434360bba973cfc41bf6763b8a259a7b, type: 3}
+      peakSeconds: 0.025
+      alignmentProgress: 0.25
+    - clip: {fileID: 8300000, guid: 9fc2507a8fcca4f45a6d9177dc0e557a, type: 3}
+      peakSeconds: 0.03
+      alignmentProgress: 0.25
+    - clip: {fileID: 8300000, guid: 5595b2384c7fde546acce320c395d0c4, type: 3}
+      peakSeconds: 0.035
+      alignmentProgress: 0.25
   attackTrajectoryBakeData:
     schemaVersion: 1
     sourceFingerprint: cd9d46f2d6888bc87d079acea6f32461

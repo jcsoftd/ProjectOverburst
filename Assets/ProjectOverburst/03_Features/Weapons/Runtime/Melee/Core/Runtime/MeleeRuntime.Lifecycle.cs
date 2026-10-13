@@ -52,6 +52,8 @@ public partial class MeleeRuntime
             return;
         }
 
+        TickSwingSfx(normalizedTime);
+
         if (normalizedTime >= 1f)
             FinishActiveAttack();
     }
@@ -168,6 +170,7 @@ public partial class MeleeRuntime
 
     private void StopActiveAttackStep()
     {
+        ResetSwingSfx();
         EndDashHeavyPresentation();
         ResetHeavyParryMotion();
         GetComponent<PlayerParryController>()?.CloseWindow();
@@ -220,6 +223,7 @@ public partial class MeleeRuntime
 
     private void FinishActiveAttackStep()
     {
+        ResetSwingSfx();
         EndDashHeavyPresentation();
         ResetHeavyParryMotion();
         heavyDischargeExecutor.End();

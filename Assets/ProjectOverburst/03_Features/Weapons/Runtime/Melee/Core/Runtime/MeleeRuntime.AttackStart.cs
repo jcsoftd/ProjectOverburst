@@ -153,7 +153,8 @@ public partial class MeleeRuntime
         if (!isHeavy && activeWeaponData != null && activeWeaponData.weaponClass == WeaponClass.Greatsword)
         {
             if (activeDodgeFollowUp == PlayerDodgeFollowUpKind.Light) PlayDodgeLightSwing();
-            else CombatActionSfxService.PlayGreatswordSwing(comboStepIndex, isHeavy, transform.position);
+            else if (!BeginSwingSfx(entryProgress))
+                CombatActionSfxService.PlayGreatswordSwing(comboStepIndex, isHeavy, transform.position);
         }
 
         BeginHeavyFocusPresentation();

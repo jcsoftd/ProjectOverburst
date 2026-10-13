@@ -73,6 +73,9 @@ public sealed class CombatActionSfxService : MonoBehaviour
         return instance.Play(clipIndex, position, 0.6f, 0.9f, 4f, 28f, 100);
     }
 
+    public static bool PlayGreatswordLightSwing(AudioClip clip, Vector3 position) => clip != null
+        && EnsureInstance() && instance.Play(clip, position, .6f, .9f, 4f, 28f, 100);
+
     public static bool PlayDashHeavySwing(float playbackSpeed, Vector3 position)
     {
         PlayerVoiceService.Attack();
