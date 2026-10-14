@@ -18,6 +18,7 @@ public sealed class PlayerActorRuntime : MonoBehaviour
 
     private CombatHealth subscribedHealth;
     private PlayerStateCoordinator stateCoordinator;
+    private Light ambientLight;
 
     public ActorControlAuthority Authority => playerKit != null ? playerKit.Authority : ActorControlAuthority.Disabled;
     public int ActorIndex => actorIndex;
@@ -42,10 +43,12 @@ public sealed class PlayerActorRuntime : MonoBehaviour
         playerKit?.SetIncapacitated(health != null && health.IsDead);
         ResolveStateCoordinator()?.BindActor(this);
         SyncDeathState();
+        RefreshAmbientLight();
     }
 
     private void OnDisable()
     {
+        CharacterAmbientLightVisibility.Unregister(ambientLight);
         UnsubscribeHealth();
         // 비활성화된 액터가 Dead 요청을 남기지 않도록 명시 해제한다. 같은 GO 코디네이터에만 해제한다.
         ReleaseDeathState();
@@ -53,6 +56,7 @@ public sealed class PlayerActorRuntime : MonoBehaviour
 
     private void OnDestroy()
     {
+        CharacterAmbientLightVisibility.Unregister(ambientLight);
         UnsubscribeHealth();
         ReleaseDeathState();
     }
@@ -81,6 +85,7 @@ public sealed class PlayerActorRuntime : MonoBehaviour
 
     private void HandleDead(CombatHealth source, DamageInfo info)
     {
+        CharacterAmbientLightVisibility.Unregister(ambientLight);
         playerKit?.SetIncapacitated(true);
         // GOAL A2: 사망을 Condition.Dead로 명시 연결한다.
         ResolveStateCoordinator()?.RequestDeath(this);
@@ -88,6 +93,7 @@ public sealed class PlayerActorRuntime : MonoBehaviour
 
     private void HandleHealthReset(CombatHealth source)
     {
+        RefreshAmbientLight();
         playerKit?.SetIncapacitated(source.IsDead);
         // GOAL A2: 리셋 시 Dead를 명시 해제한다. 차단 상태는 별도 소유로 유지된다.
         PlayerStateCoordinator coordinator = ResolveStateCoordinator();
@@ -97,6 +103,17 @@ public sealed class PlayerActorRuntime : MonoBehaviour
             coordinator.RequestDeath(this);
         else
             coordinator.ReleaseDeath(this);
+    }
+
+    private void RefreshAmbientLight()
+    {
+        if (!Application.isPlaying || !isActiveAndEnabled) return;
+        if (ambientLight == null)
+            ambientLight = transform.Find("VisualRoot/PlayerAmbientLight")?.GetComponent<Light>();
+        if (health == null || !health.IsDead)
+            CharacterAmbientLightVisibility.Register(ambientLight, characterController);
+        else
+            CharacterAmbientLightVisibility.Unregister(ambientLight);
     }
 
     public void Initialize(int index, string id, string name)

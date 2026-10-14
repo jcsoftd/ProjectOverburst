@@ -25,11 +25,21 @@ public sealed class EnemyAmbientLight : MonoBehaviour
             health.OnDead -= OnDead;
             health.OnReset -= OnReset;
         }
-        if (ambientLight != null) ambientLight.enabled = false;
+        CharacterAmbientLightVisibility.Unregister(ambientLight);
     }
 
     private void RefreshLight()
     {
+        CharacterAmbientLightVisibility.Unregister(ambientLight);
+        var map = GetComponent<EnemyRank>()?.Encounter.Map;
+        if (map != null && map.terrain == Overburst.Persistence.MapTerrainKind.Desert)
+        {
+            // Preserve reused/authored lights without creating a light the desert never uses.
+            if (ambientLight == null) ambientLight = transform.Find(LightName)?.GetComponent<Light>();
+            if (ambientLight != null) ambientLight.enabled = false;
+            return;
+        }
+
         var actor = GetComponent<EnemyActor>();
         var body = actor != null && actor.CollisionRoot != null
             ? actor.CollisionRoot.GetComponentInChildren<CapsuleCollider>(true) : null;
@@ -51,15 +61,15 @@ public sealed class EnemyAmbientLight : MonoBehaviour
         ambientLight.intensity = .15f;
         ambientLight.range = Mathf.Clamp(radius + 1.2f, 1.6f, 3f);
         ambientLight.cullingMask = ~LayerMask.GetMask("Enemy", "Player");
-        ambientLight.shadows = LightShadows.None;
-        ambientLight.bounceIntensity = 0f;
-        ambientLight.lightmapBakeType = LightmapBakeType.Realtime;
-        ambientLight.enabled = health != null && !health.IsDead;
+        if (health != null && !health.IsDead)
+            CharacterAmbientLightVisibility.Register(ambientLight, body);
+        else
+            ambientLight.enabled = false;
     }
 
     private void OnDead(CombatHealth _, DamageInfo __)
     {
-        if (ambientLight != null) ambientLight.enabled = false;
+        CharacterAmbientLightVisibility.Unregister(ambientLight);
     }
 
     private void OnReset(CombatHealth _) => RefreshLight();

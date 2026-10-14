@@ -123,7 +123,12 @@ public static class CaveRuntimeDressing
                     if (existing.Any(l => Vector3.Distance(l.transform.position, p) < 6) || added >= 2) continue;
                     var template = r.name.IndexOf("torch", StringComparison.OrdinalIgnoreCase) >= 0 ? assets.warmLight : r.name.Contains("yellow") ? assets.yellowLight : assets.blueLight;
                     var light = Object.Instantiate(template, root.transform).GetComponent<Light>();
-                    light.name = "Demo1 local light · " + r.name; light.transform.position = p; light.lightmapBakeType = LightmapBakeType.Realtime;
+                    light.name = "Demo1 local light · " + r.name; light.transform.position = p;
+                    // Use the runtime baking state; Light.lightmapBakeType is Editor-only.
+                    var baking = light.bakingOutput;
+                    baking.lightmapBakeType = LightmapBakeType.Realtime;
+                    baking.isBaked = false;
+                    light.bakingOutput = baking;
                     existing.Add(light); added++;
                 }
             }
