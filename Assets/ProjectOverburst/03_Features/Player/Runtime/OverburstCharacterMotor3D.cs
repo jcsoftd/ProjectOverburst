@@ -272,7 +272,7 @@ public sealed class OverburstCharacterMotor3D : MonoBehaviour
         }
     }
 
-    // 수평 명령 + 점프 소비 + 단일 CharacterController.Move + 이동 후 접지 갱신.
+    // 수평 명령 + 점프 소비 + 충돌 이동 + 제한된 하강 접지 보정.
     public MotorStepResult Step(MotorStepCommand command, float deltaTime)
     {
         EnsureInitialized();
@@ -356,8 +356,13 @@ public sealed class OverburstCharacterMotor3D : MonoBehaviour
         if (controller == null)
             return;
 
+        bool startedGrounded = isGrounded && !jumpStartedThisStep && verticalVelocity <= 0f && displacement.y <= 0f;
         CollisionFlags flags = ExecuteMove(displacement);
-        isGrounded = (controller.isGrounded && !standingOnEnemy) || (flags & CollisionFlags.Below) != 0;
+        bool controllerGrounded = (controller.isGrounded && !standingOnEnemy) || (flags & CollisionFlags.Below) != 0;
+        bool followedGround = RefreshGroundAfterMove(startedGrounded, controllerGrounded);
+        isGrounded = controllerGrounded || followedGround;
+        groundSnapActive = followedGround && !controllerGrounded;
+        if (isGrounded && !jumpStartedThisStep) verticalVelocity = 0f;
         ResolveExternalCollisions(flags);
         ReanchorPlatform();
     }
@@ -558,6 +563,20 @@ public sealed class OverburstCharacterMotor3D : MonoBehaviour
         if (snapDistance > followDistance)
             return false;
 
+        // Collision resolution can leave the capsule above a descending seam.
+        // Apply the existing bounded ground follow to the actual final position.
+        if (!controllerGrounded && snapDistance > controller.skinWidth + 0.005f)
+        {
+            CollisionFlags snapFlags = ExecuteMove(Vector3.down * snapDistance);
+            ResolveExternalCollisions(snapFlags);
+            controllerGrounded = (controller.isGrounded && !standingOnEnemy)
+                || (snapFlags & CollisionFlags.Below) != 0;
+            if (!TryProbeWalkableGroundAt(transform.position, 0f, followDistance,
+                    out groundHit, out surfaceOffset))
+                return controllerGrounded;
+            snapDistance = Mathf.Max(0f, -surfaceOffset);
+        }
+
         hasWalkableGround = true;
         groundGap = snapDistance;
         groundSurfaceHeight = GetCharacterFootPosition(transform.position).y + surfaceOffset;
@@ -639,6 +658,39 @@ public sealed class OverburstCharacterMotor3D : MonoBehaviour
             bestHit = hit;
             bestDistance = hit.distance;
             bestSurfaceOffset = safeUpwardAllowance + startOffset - hit.distance;
+        }
+
+        if (bestHit.collider != null || hitCount == 0)
+            return bestHit.collider != null;
+
+        // Sphere casts can return a radial edge normal at a mesh seam.
+        // Confirm the surface beneath the feet before rejecting it as too steep.
+        float minimumNormalY = Mathf.Max(0.01f, Mathf.Cos(slopeLimit * Mathf.Deg2Rad));
+        float planeAllowance = probeRadius * (1f / minimumNormalY - 1f);
+        Vector3 rayOrigin = foot + Vector3.up * (startOffset + safeUpwardAllowance);
+        hitCount = Physics.RaycastNonAlloc(
+            rayOrigin,
+            Vector3.down,
+            groundProbeHits,
+            castDistance + planeAllowance,
+            settings.groundLayer,
+            QueryTriggerInteraction.Ignore);
+        for (int i = 0; i < hitCount; i++)
+        {
+            RaycastHit hit = groundProbeHits[i];
+            Collider collider = hit.collider;
+            if (collider == null
+                || collider.transform.IsChildOf(transform)
+                || Vector3.Angle(hit.normal, Vector3.up) > slopeLimit + 0.01f
+                || hit.distance >= bestDistance)
+            {
+                continue;
+            }
+
+            bestHit = hit;
+            bestDistance = hit.distance;
+            bestSurfaceOffset = hit.point.y - foot.y
+                + probeRadius * (1f / Mathf.Max(minimumNormalY, hit.normal.y) - 1f);
         }
 
         return bestHit.collider != null;
