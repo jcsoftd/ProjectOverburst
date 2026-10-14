@@ -133,6 +133,9 @@ public sealed class EnemySpawnService : MonoBehaviour
         }
 
         actor = rented;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        Overburst.DebugTools.Performance.CombatSpawnQualityTrace.Emit(20, actor: actor, definition: definition, point: request.Position);
+#endif
         return true;
     }
 
@@ -146,6 +149,9 @@ public sealed class EnemySpawnService : MonoBehaviour
             return;
         }
 
+        #if UNITY_EDITOR || DEVELOPMENT_BUILD
+        Overburst.DebugTools.Performance.CombatSpawnQualityTrace.Emit(21, actor: actor);
+#endif
         pool.Release(actor);
     }
 

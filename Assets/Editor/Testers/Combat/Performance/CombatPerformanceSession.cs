@@ -4,6 +4,7 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using Overburst.DebugTools.Performance;
+using Overburst.Persistence;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -81,6 +82,13 @@ public static class CombatPerformanceSession
             throw new InvalidOperationException("제품 시작 씬 또는 검사 무기가 없습니다.");
         foreach (string id in profile.themes) if (MapThemeCatalog.Resolve(id) == null) throw new InvalidOperationException("테마 누락: " + id);
         string folder = NewFolder();
+        if (profile.csp)
+        {
+            var registry = Resources.Load<AccountContentRegistry>(AccountContentRegistry.ResourcePath);
+            var seed = NewAccountFactory.Create(registry); seed.level = 10;
+            AccountCharacterCommands.EnsureLegacy(seed);
+            new EasySaveAccountStore(Path.Combine(folder, "IsolatedAccount")).Save(seed, "CSP-G00-fixture");
+        }
         var before = new Before { pid = System.Diagnostics.Process.GetCurrentProcess().Id, project = Application.dataPath,
             startScene = AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene), scenes = Scenes(), accountHash = AccountHash(),
             inputSettings = InputSettingsHash(), playOptionsEnabled = EditorSettings.enterPlayModeOptionsEnabled, playOptions = EditorSettings.enterPlayModeOptions };

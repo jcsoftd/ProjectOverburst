@@ -46,8 +46,9 @@ namespace Overburst.DebugTools.Performance
         readonly int[] gcStart = new int[3];
         public CombatPerformanceSegment Result { get; }
         public bool CapacityReached => count >= frames.Length;
+        public double ElapsedSeconds => Milliseconds(start, Stopwatch.GetTimestamp()) / 1000d;
 
-        public CombatPerformanceRecorder(CombatPerformanceProfile profile, CombatPerformanceSegment segment, BloodHitVfxService bloodService, int maximumMetrics = MaximumMetrics, bool captureSampleCounts = false)
+        public CombatPerformanceRecorder(CombatPerformanceProfile profile, CombatPerformanceSegment segment, BloodHitVfxService bloodService, int maximumMetrics = MaximumMetrics, bool captureSampleCounts = false, string[] metricNames = null)
         {
             if (maximumMetrics < 1 || maximumMetrics > 256) throw new ArgumentOutOfRangeException(nameof(maximumMetrics));
             Result = segment; blood = bloodService;
@@ -57,6 +58,7 @@ namespace Overburst.DebugTools.Performance
             foreach (var handle in handles)
             {
                 var d = ProfilerRecorderHandle.GetDescription(handle);
+                if (metricNames != null && Array.IndexOf(metricNames, d.Name) < 0) continue;
                 if (descriptors.Count >= maximumMetrics || (!d.Name.StartsWith("Overburst.", StringComparison.Ordinal)
                     && !d.Name.StartsWith("OVERBURST.", StringComparison.Ordinal) && Array.IndexOf(EngineNames, d.Name) < 0)) continue;
                 if (!used.Add(d.Category.Name + "/" + d.Name)) continue;

@@ -14,7 +14,7 @@ using UnityEngine.SceneManagement;
 namespace Overburst.DebugTools.Performance
 {
     [DefaultExecutionOrder(-31000)]
-    public sealed class CombatPerformanceRunner : MonoBehaviour
+    public sealed partial class CombatPerformanceRunner : MonoBehaviour
     {
         public static CombatPerformanceRunner Current { get; private set; }
         public static CombatPerformanceRun LastRun { get; private set; }
@@ -113,6 +113,7 @@ namespace Overburst.DebugTools.Performance
             { InputSystem.QueueStateEvent(keyboard, new KeyboardState()); releaseKeyboardFrame = -1; }
             try
             {
+                if (Run.profile.csp) CspTick();
                 if (Time.realtimeSinceStartupAsDouble > deadline) throw new TimeoutException("성능 검사 제한 시간이 지났습니다.");
                 int steps = 0;
                 while (routines.Count > 0 && steps++ < 32)
@@ -130,10 +131,13 @@ namespace Overburst.DebugTools.Performance
         {
             if (recorder == null) return;
             long started = Stopwatch.GetTimestamp();
-            recorder.Observe(Alive()); recorder.AddObserverTicks(started);
+            recorder.Observe(Alive());
+            if (Run.profile.csp) CspLateTick();
+            recorder.AddObserverTicks(started);
         }
         IEnumerator Execute()
         {
+            if (Run.profile.csp) { yield return ExecuteCsp(); yield break; }
             if (Run.profile.mode == CombatPerformanceMode.Observation)
             {
                 BindObservationPlayer();
@@ -303,7 +307,7 @@ namespace Overburst.DebugTools.Performance
                     settings.Append("Quality.").Append(property.Name).Append('=').Append(Convert.ToString(property.GetValue(null), System.Globalization.CultureInfo.InvariantCulture)).Append(';');
             if (GraphicsSettings.currentRenderPipeline != null) settings.Append("Pipeline=").Append(JsonUtility.ToJson(GraphicsSettings.currentRenderPipeline));
             Run.gameSettings = settings.ToString();
-            Run.inputBindings = input != null && input.RuntimeAsset != null ? CombatPerformancePaths.Hash(input.RuntimeAsset.ToJson()) : "UNAVAILABLE";
+            Run.inputBindings = Run.profile.csp ? CspInputBindings() : (input != null && input.RuntimeAsset != null ? CombatPerformancePaths.Hash(input.RuntimeAsset.ToJson()) : "UNAVAILABLE");
             Run.environmentHash = CombatPerformancePaths.Hash(Run.origin + Run.unityVersion + Run.cpu + Run.gpu + Run.os + Run.graphicsApi + Run.scene
                 + Run.width + "/" + Run.height + "/" + Run.vSync + "/" + Run.targetFrameRate + Run.quality + Run.renderPipeline + Run.camera + Run.effectSettings + Run.gameSettings + Run.inputBindings
                 + Time.fixedDeltaTime.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + Time.maximumDeltaTime.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + Physics.gravity.ToString("F6"));
@@ -336,7 +340,7 @@ namespace Overburst.DebugTools.Performance
             segment.rosterSignature = CombatPerformancePaths.Hash(string.Join("|", Run.rosterIds ?? Array.Empty<string>()));
             poolStart = spawner != null ? spawner.Pool.CreatedCount : 0; parryStart = player != null ? player.GetComponent<PlayerParryController>()?.SuccessCount ?? 0 : 0;
             Progress = scenario + " · " + theme + " · " + count + " · " + element + " · 반복 " + (repeat + 1);
-            recorder = new CombatPerformanceRecorder(Run.profile, segment, blood);
+            recorder = new CombatPerformanceRecorder(Run.profile, segment, blood, metricNames: Run.profile.csp ? CspMetrics() : null);
         }
         void End()
         {
@@ -436,6 +440,7 @@ namespace Overburst.DebugTools.Performance
         void Finish(string status, string reason)
         {
             if (Finished) return; Finished = true; Run.status = status; Run.reason = reason;
+            if (Run.profile.csp) CleanupStep(CspExportAndCleanup);
             try { End(); } catch (Exception error) { Run.status = "FAILED"; Run.reason += "\nExport: " + error; recorder?.Dispose(); recorder = null; }
             try
             {

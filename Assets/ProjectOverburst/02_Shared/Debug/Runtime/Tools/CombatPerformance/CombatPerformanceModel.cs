@@ -16,6 +16,8 @@ namespace Overburst.DebugTools.Performance
     {
         public int schema = 1;
         public string label = "Quick";
+        public bool csp, cspTown = true, cspCombat = true;
+        public string cspObservation = "Detailed";
         public CombatPerformanceMode mode;
         public string[] themes = { "SpiderBrood" };
         public int[] enemyCounts = { 50 };
@@ -47,6 +49,8 @@ namespace Overburst.DebugTools.Performance
         };
         public void Validate()
         {
+            if (csp && cspObservation != "Detailed" && cspObservation != "Minimal" && cspObservation != "WallOnly") throw new ArgumentException("CSP observation mode");
+            if (csp && !cspTown && !cspCombat) throw new ArgumentException("CSP scenario missing");
             if (schema != 1) throw new ArgumentException("지원하지 않는 프로필 버전입니다.");
             if (!Enum.IsDefined(typeof(CombatPerformanceMode), mode)) throw new ArgumentException("실행 모드가 잘못됐습니다.");
             if (themes == null || themes.Length == 0 || themes.Length > 16) throw new ArgumentException("테마는 1~16개입니다.");
