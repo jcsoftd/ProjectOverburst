@@ -61,6 +61,7 @@ namespace Overburst.Persistence
             state.appearance = appearance.Copy();
             state.skillTree = AccountSkillTree.GrantEligible(null, state.level);
             state.activeCharacterId = id;
+            state.tutorialFirstCharacterId = id;
             state.characters = new List<AccountCharacterSnapshot> { new AccountCharacterSnapshot { id = id, name = name, classId = classId } };
             AccountInvariants.Validate(state, registry);
             return state;

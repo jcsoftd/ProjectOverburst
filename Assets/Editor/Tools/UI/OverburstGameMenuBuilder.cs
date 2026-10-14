@@ -30,6 +30,12 @@ public static partial class OverburstGameMenuBuilder
 
     public static string Build()
     {
+        var existing = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
+        var current = existing ? existing.GetComponent<OverburstGameMenu>() : null;
+        if (current && current.settings && (current.settings.playerVoice || current.settings.mapOverlayOpacity
+            || current.settings.mapOverlayScale || (current.settings.keyRows?.Any(row => row
+                && MapOverlayBuilder.Actions.Contains(row.actionName)) ?? false)))
+            return "FAILED: 확장 설정이 있는 메뉴는 단독 재생성할 수 없습니다. 기존 프리팹을 유지합니다.";
         LoadFonts();
         if (serif == null || sans == null) return "FAILED: fonts not found";
 

@@ -10,26 +10,36 @@ public static class AccountGameplayTransactionVerifier
     public static string RunPlay(string outputDirectory)
     {
         if (!EditorApplication.isPlaying) throw new InvalidOperationException("This verifier requires Play mode.");
+        string isolated = IsolatedSavePlayGuard.ActiveDirectory;
+        if (string.IsNullOrWhiteSpace(isolated) || string.IsNullOrWhiteSpace(AccountBootstrap.SaveDirectory)
+            || !string.Equals(Path.GetFullPath(isolated).TrimEnd(Path.DirectorySeparatorChar),
+                Path.GetFullPath(AccountBootstrap.SaveDirectory).TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Run this verifier in an initialized isolated account.");
+        outputDirectory = IsolatedSavePlayGuard.ValidateDirectory(outputDirectory);
         var originalSession = AccountGameplaySession.Current;
         var account = PlayerAccountInventoryService.Instance;
         var registry = Resources.Load<AccountContentRegistry>(AccountContentRegistry.ResourcePath);
+        if (originalSession == null || account == null || registry == null)
+            throw new InvalidOperationException("Account services are not ready.");
         var definitions = registry.Entries.Select(x => x.asset).OfType<MerchantDefinition>().ToArray();
-        foreach (var definition in definitions)
-        {
-            MerchantStockRefreshService.GetOrCreateInventory(definition);
-            MerchantReputationService.AddReputationExperience(definition, 7);
-        }
-        var baseline = AccountGameplayProjection.Capture(new AccountSnapshot(), account, registry);
+        var baseline = originalSession.Read();
         string directory = Path.Combine(outputDirectory, "gameplay-transactions-" + Guid.NewGuid().ToString("N"));
         var store = new EasySaveAccountStore(directory);
         store.Save(baseline, "baseline");
         var session = new AccountGameplaySession(account, registry, store, baseline);
-        session.Attach();
         int notifications = 0;
         Action changed = () => notifications++;
         account.Inventory.Changed += changed;
         try
         {
+            session.Attach();
+            foreach (var value in definitions)
+            {
+                MerchantStockRefreshService.GetOrCreateInventory(value);
+                MerchantReputationService.AddReputationExperience(value, 7);
+            }
+            long preparedRevision = session.Revision;
+            notifications = 0;
             var definition = definitions.First(x => MerchantStockRefreshService.GetOrCreateInventory(x).Items.Any(i => i != null));
             var merchant = MerchantStockRefreshService.GetOrCreateInventory(definition);
             int slot = Enumerable.Range(0, merchant.Capacity).First(i => merchant.GetItemAt(i) != null);
@@ -49,7 +59,7 @@ public static class AccountGameplayTransactionVerifier
             catch (IOException) { }
             Check(ReferenceEquals(merchant, MerchantStockRefreshService.GetOrCreateInventory(definition)), "cached merchant reference preserved");
             Check(merchant.GetItemAt(slot)?.runtimeInstanceId == id && !account.Inventory.Items.Any(x => x?.runtimeInstanceId == id), "both owners rolled back");
-            Check(session.Revision == baseline.revision, "failed save revision unchanged");
+            Check(session.Revision == preparedRevision, "failed save revision unchanged");
             store.FaultInjector = null;
             notifications = 0;
             Check(session.Execute(() =>
@@ -114,8 +124,8 @@ public static class AccountGameplayTransactionVerifier
         {
             account.Inventory.Changed -= changed;
             session.Detach();
-            AccountGameplayProjection.Restore(baseline, account, registry);
-            originalSession?.Attach();
+            try { AccountGameplayProjection.Restore(baseline, account, registry); }
+            finally { originalSession.Attach(); }
         }
     }
 

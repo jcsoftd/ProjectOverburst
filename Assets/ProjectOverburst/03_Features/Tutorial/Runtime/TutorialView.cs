@@ -41,7 +41,8 @@ public sealed class TutorialView : MonoBehaviour
     {
         Hide(); shade.SetActive(true); modal.SetActive(true); chapters.SetActive(false);
         var rect = (RectTransform)modal.transform; rect.sizeDelta = new Vector2(980,420); rect.anchoredPosition = new Vector2(470,-280);
-        modalTitle.text = title; modalBody.text = body; modalNote.text = note;
+        modalTitle.text = title; modalBody.text = body;
+        modalNote.text = owner.HasUnsavedProgress ? "학습 기록 미저장 · 다시 시도해 주세요." : note;
         primary.gameObject.SetActive(false); secondary.gameObject.SetActive(false); tertiary.gameObject.SetActive(false);
     }
     private static void ActionButton(Button button, string label, Action action)
@@ -104,6 +105,7 @@ public sealed class TutorialView : MonoBehaviour
         instruction.text = "약공으로 모으고 강공으로 방출하세요.\n아래 버튼으로 패링 비교용 게이지를 준비할 수 있습니다.";
         showingPractice = true; RefreshKeys();
         comparison.SetActive(false); practice.SetActive(true); skip.gameObject.SetActive(false);
+        if (owner.HasUnsavedProgress) Feedback("학습 기록 미저장 · 다시 시도하세요.");
     }
     public void ShowComplete(TutorialProgress state)
     {
@@ -126,6 +128,8 @@ public sealed class TutorialView : MonoBehaviour
     {
         feedback.text = message;
         feedback.gameObject.SetActive(!string.IsNullOrEmpty(message));
+        ((RectTransform)feedback.transform).anchoredPosition = new Vector2(20,
+            shownLesson == TutorialLesson.World && worldConfirm.gameObject.activeSelf ? -230 : -174);
         float height = baseGoalHeight + (string.IsNullOrEmpty(message) ? 0 : 28);
         ((RectTransform)goal.transform).sizeDelta = new Vector2(720, height);
         var belowGoal = new Vector2(24, -(24 + height + 16));

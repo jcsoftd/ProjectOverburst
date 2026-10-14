@@ -40,6 +40,7 @@ namespace Overburst.Persistence
         public SkillTreeSnapshot skillTree;
         public CharacterAppearanceSnapshot appearance;
         public string activeCharacterId;
+        public string tutorialFirstCharacterId;
         public List<AccountCharacterSnapshot> characters;
 
         internal AccountSnapshot WithCurrencyInventory(List<string> slots, List<ItemSnapshot> values, long nextOrder)

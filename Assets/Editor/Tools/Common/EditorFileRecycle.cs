@@ -32,6 +32,21 @@ public static class EditorFileRecycle
         string artifacts = Path.GetFullPath(Path.Combine(project, "../개인파일/코덱스산출"));
         string temporary = Path.Combine(project, "Temp/Codex");
         if (!Within(full, artifacts) && !Within(full, temporary)) throw new ArgumentException("검증 산출물 범위 밖입니다: " + full);
+        MovePathCore(full, recursive);
+    }
+
+    public static void MoveDefaultAccountDirectory()
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
+            || BuildPipeline.isBuildingPlayer || Overburst.Persistence.AccountGameplaySession.Current != null)
+            throw new InvalidOperationException("계정 초기화는 빌드와 Play가 끝난 EditMode에서만 실행할 수 있습니다.");
+        string full = Path.GetFullPath(Path.Combine(Application.persistentDataPath, "Account"));
+        if (!Directory.Exists(full)) return;
+        MovePathCore(full, true);
+    }
+
+    static void MovePathCore(string full, bool recursive)
+    {
         if (Directory.Exists(full) && !recursive && Directory.EnumerateFileSystemEntries(full).Any())
             throw new IOException("비어 있지 않은 폴더의 제거 범위를 확인하세요: " + full);
         for (string current = full; !string.IsNullOrEmpty(current); current = Path.GetDirectoryName(current))

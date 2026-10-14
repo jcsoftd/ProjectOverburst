@@ -144,6 +144,7 @@ public sealed class WeaponPoseTuningWindowV2 : EditorWindow
         minSize = MinimumWindowSize;
         EnsurePreviewUtility();
         EditorApplication.update += TickPreview;
+        Undo.undoRedoPerformed += UndoRedo;
         ResetPreviewClock();
         TryUseSelection(false);
     }
@@ -151,10 +152,18 @@ public sealed class WeaponPoseTuningWindowV2 : EditorWindow
     private void OnDisable()
     {
         EditorApplication.update -= TickPreview;
+        Undo.undoRedoPerformed -= UndoRedo;
         DestroyAnimatorPreviewGraph();
         StopSourceAnimationSampling();
         ClearPreviewInstance();
         CleanupPreviewUtility();
+    }
+
+    private void UndoRedo()
+    {
+        LoadPoseValuesFromSource();
+        ApplyEditedPoseToPreview();
+        Repaint();
     }
 
     private void OnSelectionChange()

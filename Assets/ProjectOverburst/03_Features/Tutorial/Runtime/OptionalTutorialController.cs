@@ -19,6 +19,7 @@ public sealed class OptionalTutorialController : MonoBehaviour
     public bool FreePractice { get; private set; }
     public TutorialArena Arena => arena;
     public string LastError { get; private set; }
+    public bool HasUnsavedProgress { get; private set; }
     public int CompletedMask => progress?.completed ?? 0;
     private TutorialProgress progress;
     private string progressDirectory;
@@ -65,34 +66,43 @@ public sealed class OptionalTutorialController : MonoBehaviour
     public void OfferIfNeeded()
     {
         if (!WorldSessionState.IsHideout || !AccountBootstrap.Ready || IsTraining) return;
-        if (!LoadProgress()) return;
+        if (!LoadProgress()) { ShowModal(); view.ShowError(LastError); return; }
         if (progress.offered) return;
         var state = AccountGameplaySession.Current?.Read();
-        if (state == null || string.IsNullOrEmpty(progress.firstCharacterId)
-            || progress.firstCharacterId != state.activeCharacterId) return;
+        if (state == null) return;
+        if (string.IsNullOrEmpty(progress.firstCharacterId))
+            progress.firstCharacterId = state.tutorialFirstCharacterId;
+        if (string.IsNullOrEmpty(progress.firstCharacterId) || progress.firstCharacterId != state.activeCharacterId) return;
         progress.offered = true;
-        if (!SaveProgress() || state.level != 1) return;
+        if (!SaveProgress()) { progress.offered = false; ShowModal(); view.ShowError(LastError); return; }
+        if (state.level != 1) return;
         ShowModal(); view.ShowInvitation();
     }
     private bool LoadProgress()
     {
         try
         {
-            progressDirectory = AccountBootstrap.SaveDirectory ?? AccountBootstrap.ResolveSaveDirectory();
-            progress = TutorialProgress.Load(progressDirectory); LastError = null; return true;
+            string directory = AccountBootstrap.SaveDirectory ?? AccountBootstrap.ResolveSaveDirectory();
+            if (HasUnsavedProgress && progress != null && string.Equals(progressDirectory, directory, StringComparison.OrdinalIgnoreCase))
+                return SaveProgress();
+            var loaded = TutorialProgress.Load(directory);
+            progressDirectory = directory;
+            progress = loaded; LastError = null; HasUnsavedProgress = false; return true;
         }
         catch (Exception error) { LastError = error.Message; Debug.LogException(error); return false; }
     }
     private bool SaveProgress()
     {
-        try { progress?.Save(progressDirectory); return true; }
-        catch (Exception error) { LastError = "학습 기록 저장 실패: " + error.Message; Debug.LogException(error); return false; }
+        try { progress?.Save(progressDirectory); LastError = null; HasUnsavedProgress = false; return true; }
+        catch (Exception error) { HasUnsavedProgress = true; LastError = "학습 기록 저장 실패: " + error.Message; Debug.LogException(error); return false; }
     }
     public void ShowChapters()
     {
         if (!IsTraining && !WorldSessionState.IsHideout) return;
-        if (progress == null && !LoadProgress()) { ShowModal(); view.ShowError(LastError); return; }
+        if ((progress == null || !string.Equals(progressDirectory, AccountBootstrap.SaveDirectory, StringComparison.OrdinalIgnoreCase))
+            && !LoadProgress()) { ShowModal(); view.ShowError(LastError); return; }
         if (arena) { arena.AttacksEnabled = false; CancelActions(); }
+        if (HasUnsavedProgress) SaveProgress();
         ShowModal(); view.ShowChapters(progress);
     }
     public void StartLesson(int index)
@@ -234,7 +244,9 @@ public sealed class OptionalTutorialController : MonoBehaviour
             }
             health.RestoreLivingHealth(health.MaxHp * .4f);
         }
-        progress.lastLesson = (int)lesson; SaveProgress(); view.ShowLesson(lesson);
+        progress.lastLesson = (int)lesson;
+        bool recorded = SaveProgress(); view.ShowLesson(lesson);
+        if (!recorded) view.Feedback("학습 기록 미저장 · 다시 시도하세요.");
     }
     private void PrepareEquipment()
     {
@@ -312,8 +324,11 @@ public sealed class OptionalTutorialController : MonoBehaviour
     {
         if (!IsTraining || FreePractice || success) return;
         success = true; arena.AttacksEnabled = false;
-        progress.completed |= 1 << (int)Lesson; progress.skipped &= ~(1 << (int)Lesson); SaveProgress();
-        view.Feedback(TutorialLessons.IsParry(Lesson) ? TutorialLessons.Names[(int)Lesson] + " 성공 · 피해와 반격을 확인하세요." : "성공했습니다.");
+        progress.completed |= 1 << (int)Lesson; progress.skipped &= ~(1 << (int)Lesson);
+        bool recorded = SaveProgress();
+        if (Lesson == TutorialLesson.World) view.worldConfirm.gameObject.SetActive(false);
+        view.Feedback(!recorded ? "성공 · 학습 기록을 저장하지 못했습니다."
+            : TutorialLessons.IsParry(Lesson) ? TutorialLessons.Names[(int)Lesson] + " 성공 · 피해와 반격을 확인하세요." : "성공했습니다.");
     }
     public void ConfirmWorld() { if (Lesson == TutorialLesson.World) Succeed(); }
     public void Retry() { if (IsTraining) { bool free = FreePractice; PrepareLesson(Lesson); FreePractice = free; if (free) view.ShowPractice(); } }

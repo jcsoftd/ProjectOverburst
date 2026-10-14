@@ -203,6 +203,7 @@ public static class DesertMovementBoundaryVerifier
         string output = Path.GetFullPath(directory);
         string allowed = Path.GetFullPath(Application.dataPath + "/../../개인파일/코덱스산출") + Path.DirectorySeparatorChar;
         if (!output.StartsWith(allowed, StringComparison.OrdinalIgnoreCase) || Directory.Exists(output)) throw new ArgumentException("Fresh evidence directory required.");
+        if (candidateId != null) MapTerrainCatalog.Resolve(candidateId);
         Directory.CreateDirectory(output);
         string Scenes() => JsonConvert.SerializeObject(Enumerable.Range(0, SceneManager.sceneCount).Select(i => SceneManager.GetSceneAt(i)).Select(s => new { s.path, s.isDirty, s.rootCount }));
         string before = Scenes(); int previews = EditorSceneManager.previewSceneCount;
