@@ -216,11 +216,16 @@ namespace Overburst.Caves
             Surface surface;
             Vector3 safeGround;
             CavePlatformBoundary owner;
-            public bool Active => surface != null && surface.world && surface.world.isActiveAndEnabled;
+            Overburst.Mojave.DesertRunWorld.BoundaryMovement desert;
+            bool CaveActive => surface != null && surface.world && surface.world.isActiveAndEnabled;
+            public bool Active => CaveActive || desert.Active;
 
             public Vector3 Resolve(Vector3 from, Vector3 target, float radius, float rootAboveFoot = 0)
             {
-                if (!Active) { surface = Find(from, out safeGround); owner = surface?.Owner(safeGround); }
+                if (Overburst.Mojave.DesertRunWorld.BoundaryWorld)
+                    return desert.Resolve(from, target, radius);
+                desert = default;
+                if (!CaveActive) { surface = Find(from, out safeGround); owner = surface?.Owner(safeGround); }
                 if (surface == null) return target;
                 float margin = Mathf.Clamp(radius * .7f, .12f, .45f);
                 // Physics contacts may have moved 'from' since the previous call; sweep that displacement too.

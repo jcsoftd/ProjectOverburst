@@ -250,7 +250,7 @@ public static class DesertPerformanceProbe
                 baselineMap.options.RemoveAll(o => o.optionId == MapOptionPolicy.MoreSmall || o.optionId == MapOptionPolicy.MoreMedium || o.optionId == MapOptionPolicy.MoreElite);
                 var ground = gate.Roster.Areas.Select(a => a.Ground).ToArray();
                 int boss = Array.FindIndex(ground, a => authored.layout.places[a.Index].role == MojaveTileRole.Boss);
-                var baseline = MapRunRoster.Build("performance-stress-reference", baselineMap, ground, boss);
+                var baseline = MapRunRoster.Build("performance-stress-reference", baselineMap, ground, boss, gate.Roster.EntryAreaIndex);
                 Require(gate.Roster.Total == baseline.Total * profile.monsterMultiplier, "스트레스 명단 수량 배수가 일치하지 않습니다.");
                 int required = baseline.Areas.Where(a => gate.SpawnBudget.Fields.Any(f => f.FiniteArea.Ground.Index == a.Ground.Index && f.PrepareAtEntry)).Sum(a => a.InitialCount);
                 int baselineLimit = Math.Min(baseline.Total, Math.Max(150, required + 24));

@@ -80,7 +80,7 @@ public static class CaveBakedSpawnIntegrationVerifier
                 members++;
             }
         }
-        var rebuilt = MapRunRoster.Build(gate.Context.RunId, gate.Map, roster.Areas.Select(a => a.Ground).ToList());
+        var rebuilt = MapRunRoster.Build(gate.Context.RunId, gate.Map, roster.Areas.Select(a => a.Ground).ToList(), entryArea: roster.EntryAreaIndex);
         check(rebuilt.Total == roster.Total && rebuilt.Target == roster.Target && rebuilt.Areas.Count == roster.Areas.Count, "Baked population: original measured-area totals and target retained.");
         check(rebuilt.Members.Select(m => m.Definition.EnemyId).SequenceEqual(roster.Members.Select(m => m.Definition.EnemyId)), "Baked population: original seeded definition roster retained.");
         File.WriteAllText(Path.Combine(output, "baked-consumer.json"), JsonConvert.SerializeObject(new { status = "PASS", members, physical, roster.Total, roster.Target,

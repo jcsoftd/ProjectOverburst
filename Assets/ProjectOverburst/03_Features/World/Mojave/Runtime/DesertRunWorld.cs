@@ -10,7 +10,7 @@ using UnityEngine.SceneManagement;
 namespace Overburst.Mojave
 {
     [DisallowMultipleComponent, RequireComponent(typeof(MojaveWorld), typeof(RunWorldGate))]
-    public sealed class DesertRunWorld : MonoBehaviour
+    public sealed partial class DesertRunWorld : MonoBehaviour
     {
         public IReadOnlyList<Vector3> AreaCenters => centers;
         public string PreparationStage { get; private set; }
@@ -49,6 +49,7 @@ namespace Overburst.Mojave
         }
         void OnDisable()
         {
+            ReleaseBoundary();
             if (gameplaySun) { gameplaySun.transform.rotation = originalSunRotation; gameplaySun.shadowStrength = originalShadowStrength; }
             gameplaySun = null; lightingYaw = float.NaN;
         }
@@ -118,6 +119,7 @@ namespace Overburst.Mojave
             yield return null;
             world.EnsureLayout();
             MinimapData = DesertMinimapData.Load(candidate, world);
+            boundary = new WalkBoundary(MinimapData);
             if (world.layout.places.Count != gate.Map.areaCount)
                 throw new InvalidOperationException("사막 전장 수가 저장된 지도와 다릅니다.");
             int ground = LayerMask.NameToLayer("Ground");
@@ -146,6 +148,7 @@ namespace Overburst.Mojave
             }
             var bounds = new Bounds(world.surface.transform.position + world.surface.terrainData.size * .5f, world.surface.terrainData.size);
             bounds.Expand(4);
+            boundary.AppendNavigationSources(sources, bounds, surface.voxelSize);
             var settings = surface.GetBuildSettings(); settings.agentRadius = .4f; settings.agentHeight = 1.8f; settings.agentClimb = .6f;
             yield return NavMeshBuilder.UpdateNavMeshDataAsync(navigation, settings, sources, bounds);
             surface.navMeshData = navigation; surface.AddData();
@@ -167,6 +170,7 @@ namespace Overburst.Mojave
             finally { (roster as IDisposable)?.Dispose(); }
             PreparationStage = "지형 준비 완료";
             if (!gate.CompletePreparation(gate.Context.RunId, point)) throw new InvalidOperationException("사막 준비 완료를 확정하지 못했습니다.");
+            boundaryEntry = point.position; activeBoundary = this;
         }
         bool TryFloor(Vector3 desired, out Vector3 floor)
         {
@@ -179,12 +183,14 @@ namespace Overburst.Mojave
                     if (!world.IsWalkable(p, .65f)) continue;
                     var ground = world.Ground(p);
                     if (!NavMesh.SamplePosition(ground, out var hit, .6f, NavMesh.AllAreas) || Mathf.Abs(hit.position.y - ground.y) > .35f) continue;
+                    if (!ContainsWalkableFootprint(hit.position, .4f)) continue;
                     floor = hit.position; return true;
                 }
             floor = default; return false;
         }
         void OnDestroy()
         {
+            ReleaseBoundary();
             StopAllCoroutines(); (preparation as IDisposable)?.Dispose(); preparation = null;
             if (surface) surface.RemoveData();
             if (navigation) { NavMeshBuilder.Cancel(navigation); Destroy(navigation); }

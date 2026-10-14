@@ -55,6 +55,18 @@ public static class MapRunRosterVerifier
                 map.options.Add(new MapOptionRoll { optionId = MapOptionPolicy.MoreMedium, value = .6f });
                 map.options.Add(new MapOptionRoll { optionId = MapOptionPolicy.MoreElite, value = .4f });
                 var boosted = MapRunRoster.Build("run-boost", map, areas);
+                foreach (int entry in new[] { 0, 2 })
+                {
+                    var safeEntry = MapRunRoster.Build("safe-entry", map, areas, entryArea: entry);
+                    Check(safeEntry.EntryAreaIndex == entry && safeEntry.Areas.Count == areas.Count
+                        && safeEntry.Areas[entry].Count == 0 && safeEntry.Areas[entry].InitialCount == 0
+                        && safeEntry.Areas[entry].BasePopulation == 0 && !safeEntry.Areas[entry].Cleared
+                        && safeEntry.Members.All(m => m.AreaIndex != entry)
+                        && safeEntry.Areas.Where(x => x.Ground.Index != entry).All(x => x.Count > 0)
+                        && safeEntry.Target == MapRunRoster.CaveTarget(safeEntry.Total), theme.ThemeId + ": entry " + entry + " excludes option population while preserving area indices and the completion target");
+                    Check(Signature(safeEntry) == Signature(MapRunRoster.Build("safe-entry-repeat", map, areas, entryArea: entry)),
+                        theme.ThemeId + ": entry-excluded roster is deterministic");
+                }
                 int[] before = { a.Areas.Sum(x => x.Small), a.Areas.Sum(x => x.Medium), a.Areas.Sum(x => x.Elite) };
                 int[] after = { boosted.Areas.Sum(x => x.Small), boosted.Areas.Sum(x => x.Medium), boosted.Areas.Sum(x => x.Elite) };
                 float[] bonuses = { .9f, .6f, .4f };

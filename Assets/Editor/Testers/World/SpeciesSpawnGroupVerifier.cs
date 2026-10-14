@@ -117,7 +117,7 @@ public static class SpeciesSpawnGroupVerifier
     {
         string label = gate.Roster.Terrain.ToString(); var roster = gate.Roster; var budget = gate.SpawnBudget;
         var player = PlayerContext.Instance.CurrentActor; var theme = MapThemeCatalog.Resolve(roster.ThemeId);
-        var baseline = MapRunRoster.Build(roster.RunId, gate.Map, roster.Areas.Select(a => a.Ground).ToArray(), gate.BossArena?.Ground.Index ?? -1);
+        var baseline = MapRunRoster.Build(roster.RunId, gate.Map, roster.Areas.Select(a => a.Ground).ToArray(), gate.BossArena?.Ground.Index ?? -1, roster.EntryAreaIndex);
         check(roster.Total == baseline.Total && roster.Target == baseline.Target && roster.Members.Zip(baseline.Members, (a, b) => a.Id == b.Id && a.Definition == b.Definition && a.Tier == b.Tier).All(ok => ok), label + " unchanged exact natural IDs/species/tier/total/target");
         var initialDistances = new List<float>(); var points = new List<Vector3>(); int actualInitial = 0;
         foreach (var field in budget.Fields)

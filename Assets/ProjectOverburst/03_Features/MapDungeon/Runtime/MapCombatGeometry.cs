@@ -58,6 +58,7 @@ public static class MapCombatGeometry
         public CaveWorld cave;
         public CavePlatformBoundary boundary;
         public MojaveWorld desert;
+        public DesertRunWorld desertRun;
         public MojavePlace place;
         public CavePlatformLibrary spawnLibrary;
         public CavePlatformLibrary.Platform spawnPlatform;
@@ -86,6 +87,7 @@ public static class MapCombatGeometry
             return -1;
         }
         public readonly List<Vector3> contacts = new List<Vector3>();
+        public bool FitsBoundary(Vector3 point, float radius) => !desertRun || desertRun.ContainsWalkableFootprint(point, radius);
         public bool Floor(Vector3 near, float margin, out Vector3 floor)
         {
             floor = default;
@@ -193,7 +195,8 @@ public static class MapCombatGeometry
             floor = area.Source.desert.Ground(xz);
         }
         else if (!area.Source.Floor(point, body.Radius + .1f, out floor)) return false;
-        return Mathf.Abs(floor.y - point.y) <= .3f && Clear(area.Source, floor, body, overlaps ?? new Collider[32], ignoreActors);
+        return Mathf.Abs(floor.y - point.y) <= .3f && area.Source.FitsBoundary(floor, body.Radius)
+            && Clear(area.Source, floor, body, overlaps ?? new Collider[32], ignoreActors);
     }
     public static bool Contains(Area area, Vector3 point)
         => area?.Source != null && area.Source.Floor(point, 0, out var floor) && Mathf.Abs(floor.y - point.y) < 3;
@@ -261,7 +264,7 @@ public static class MapCombatGeometry
             if (!source.desert.IsWalkable(xz, body.Radius + .1f)) return false;
             point = source.desert.Ground(xz);
         }
-        if (!Clear(source, point, body, overlaps, true)
+        if (!source.FitsBoundary(point, body.Radius) || !Clear(source, point, body, overlaps, true)
             || !NavMesh.SamplePosition(point, out var nav, .25f, NavMesh.AllAreas)
             || !NavMesh.CalculatePath(nav.position, center, NavMesh.AllAreas, path)
             || path.status != NavMeshPathStatus.PathComplete) return false;
@@ -365,7 +368,7 @@ public static class MapCombatGeometry
                 var center = prepared.AreaCenters[i];
                 sources.Add(new Source { index = i, name = place.name, center = center,
                     bounds = new Bounds(new Vector3(place.center.x, center.y, place.center.y), new Vector3(2 * radius, 6, 2 * radius)),
-                    scene = desert.gameObject.scene, desert = desert, place = place,
+                    scene = desert.gameObject.scene, desert = desert, desertRun = prepared, place = place,
                     desertSpawnData = spawnData, desertSpawnArea = spawnData ? spawnData.areas[i] : null });
             }
             foreach (var trail in desert.layout.trails) edges.Add(new Vector2Int(trail.from, trail.to));
@@ -412,10 +415,11 @@ public static class MapCombatGeometry
             areas.Add(new Area(source.index, source.name, source.center, source.band, points, source));
         }
         if (desert) gate.BossArena = MapBossArena.Prepare(areas, entry);
-        var roster = MapRunRoster.Build(gate.Context.RunId, gate.Map, areas, gate.BossArena?.Ground.Index ?? -1);
+        var roster = MapRunRoster.Build(gate.Context.RunId, gate.Map, areas, gate.BossArena?.Ground.Index ?? -1, entryArea);
         var random = new System.Random(unchecked(gate.Map.seed ^ 0x76B902));
         foreach (var area in roster.Areas)
         {
+            if (area.Count == 0) continue;
             gate.PreparationStage = "기본 무리 배치 확인 " + (area.Ground.Index + 1) + "/" + roster.Areas.Count;
             var initial = new List<MapRunRoster.Member>();
             for (int i = 0; i < area.InitialCount; i++) initial.Add(roster.Members[area.FirstMember + i]);
@@ -444,7 +448,7 @@ public static class MapCombatGeometry
                 int bakedBody = groundSource.BakedBodyIndex(member.Definition, body);
                 if (bakedBody >= 0)
                     foreach (var point in bakedPoints)
-                        if ((point.bodyMask & (1L << bakedBody)) != 0) safe.Add(point.position);
+                        if ((point.bodyMask & (1L << bakedBody)) != 0 && groundSource.FitsBoundary(point.position, body.Radius)) safe.Add(point.position);
                 if (safe.Count > 0) bakedDefinitions.Add(member.Definition);
                 else
                 {
@@ -455,7 +459,8 @@ public static class MapCombatGeometry
                         if (watch.Elapsed.TotalMilliseconds >= 3) { yield return null; watch.Restart(); }
                         var point = cell + (sample == 0 ? Vector3.zero : new Vector3((sample & 1) == 0 ? -.25f : .25f, 0, sample <= 2 ? -.25f : .25f));
                         if (!area.Ground.Source.Floor(point, body.Radius + .1f, out var floor)
-                            || !SafeDistance(area.Ground.Source, floor, entry) || !Clear(area.Ground.Source, floor, body, overlaps)
+                            || !SafeDistance(area.Ground.Source, floor, entry) || !groundSource.FitsBoundary(floor, body.Radius)
+                            || !Clear(area.Ground.Source, floor, body, overlaps)
                             || !NavMesh.SamplePosition(floor, out var nav, .18f, NavMesh.AllAreas)
                             || !NavMesh.CalculatePath(area.Ground.Center, nav.position, NavMesh.AllAreas, path)
                             || path.status != NavMeshPathStatus.PathComplete) continue;

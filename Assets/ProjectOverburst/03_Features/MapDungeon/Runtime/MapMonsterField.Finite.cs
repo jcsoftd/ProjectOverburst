@@ -288,7 +288,8 @@ public sealed partial class MapMonsterField
             if (!MapCombatGeometry.TryRuntimePoint(ground, slot.Member.Definition, candidate, approach, spawnOverlaps, spawnPath, out result)) return false;
             // Approach points and restored actors can belong to a different platform than their roster owner.
             foreach (var area in finiteRoster.Areas)
-                if (area.Cleared && MapCombatGeometry.Contains(area.Ground, result)) return false;
+                if ((area.Ground.Index == finiteRoster.EntryAreaIndex || area.Cleared)
+                    && MapCombatGeometry.Contains(area.Ground, result)) return false;
             if (ground != finiteArea.Ground && (!NavMesh.CalculatePath(result, finiteArea.Ground.Center, NavMesh.AllAreas, spawnPath)
                 || spawnPath.status != NavMeshPathStatus.PathComplete)) return false;
             if (!budget.IsSeparated(result, slot.Radius)) return false;

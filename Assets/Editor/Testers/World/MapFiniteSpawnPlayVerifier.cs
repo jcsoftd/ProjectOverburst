@@ -13,7 +13,7 @@ public static class MapFiniteSpawnPlayVerifier
     {
         var roster = gate.Roster; var budget = gate.SpawnBudget; var player = PlayerContext.Instance.CurrentActor;
         string label = "G03 " + roster.Terrain + " " + roster.Areas.Count;
-        check(budget && budget.InitialReady && budget.InitialPreparedCount > 0, label + ": initial actors ready behind loading screen");
+        check(budget && budget.InitialReady && budget.InitialPreparedCount == budget.Fields.Where(f => f.PrepareAtEntry).Sum(f => f.FiniteArea.InitialCount), label + ": required initial population ready behind loading screen, including an empty entry tile");
         check(budget.Fields.Where(f => f.PrepareAtEntry).All(f => f.InitialPlaced), label + ": all entry-area initial members placed");
         check(EnemySpawnService.Current && EnemySpawnService.Current.gameObject.scene == gate.gameObject.scene, label + ": scene-local pool survives hub unload");
         check(budget.AliveCount <= budget.AliveLimit && budget.SpawnedThisFrame <= MapSpawnBudget.MaxPerFrame, label + ": frame and live actor limits respected");

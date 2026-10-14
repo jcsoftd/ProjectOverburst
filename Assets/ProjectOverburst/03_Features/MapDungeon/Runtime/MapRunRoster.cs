@@ -38,6 +38,7 @@ public sealed class MapRunRoster
     public string ThemeId { get; }
     public int Seed { get; }
     public MapTerrainKind Terrain { get; }
+    public int EntryAreaIndex { get; }
     public IReadOnlyList<Member> Members { get; }
     public IReadOnlyList<Area> Areas { get; }
     public int Total => Members.Count;
@@ -50,9 +51,10 @@ public sealed class MapRunRoster
     public float NaturalProgressMultiplier => Terrain == MapTerrainKind.Cave ? 1f + .15f * Mathf.Clamp01(Kills / (float)Target) : 1f;
     public event Action DeathRecorded;
 
-    MapRunRoster(string runId, MapInstanceState map, List<Member> members, List<Area> areas)
+    MapRunRoster(string runId, MapInstanceState map, List<Member> members, List<Area> areas, int entryArea)
     {
         RunId = runId; Seed = map.seed; ThemeId = map.monsterThemeId; Terrain = map.terrain;
+        EntryAreaIndex = entryArea;
         Members = members.AsReadOnly(); Areas = areas.AsReadOnly();
         Target = Terrain == MapTerrainKind.Cave ? CaveTarget(members.Count) : 0;
     }
@@ -73,7 +75,7 @@ public sealed class MapRunRoster
         float count = Mathf.Max(previousMinimum, previousMinimum * Mathf.Pow(squareMetres / anchor, .75f) * density) * .65f;
         return Mathf.Max(minimum, 5 * Mathf.RoundToInt(count / 5f));
     }
-    public static MapRunRoster Build(string runId, MapInstanceState map, IReadOnlyList<MapCombatGeometry.Area> ground, int bossArea = -1)
+    public static MapRunRoster Build(string runId, MapInstanceState map, IReadOnlyList<MapCombatGeometry.Area> ground, int bossArea = -1, int entryArea = -1)
     {
         MapGenerationPolicy.Validate(map, false);
         if (string.IsNullOrWhiteSpace(runId) || ground == null || ground.Count != map.areaCount)
@@ -81,6 +83,8 @@ public sealed class MapRunRoster
         var theme = MapThemeCatalog.Resolve(map.monsterThemeId);
         if (bossArea < -1 || bossArea >= ground.Count || bossArea >= 0 && map.terrain != MapTerrainKind.Desert)
             throw new ArgumentException("Only a desert may reserve a boss area.");
+        if (entryArea < -1 || entryArea >= ground.Count || entryArea >= 0 && entryArea == bossArea)
+            throw new ArgumentException("The entry must be a valid area separate from the boss.");
         if (theme == null) throw new InvalidOperationException("저장된 지도 테마를 찾지 못했습니다.");
         var random = new System.Random(unchecked(map.seed ^ 0x45AD01));
         var areas = new List<Area>(); var counts = new int[ground.Count, 3];
@@ -89,7 +93,7 @@ public sealed class MapRunRoster
             if (ground[i] == null || ground[i].Index != i || ground[i].Points.Count < 6)
                 throw new InvalidOperationException("전투 구역의 안전한 배치 공간이 부족합니다.");
             float density = .9f + (float)random.NextDouble() * .2f;
-            int count = i == bossArea ? 0 : BasePopulation(map.terrain, ground[i].SquareMetres, density);
+            int count = i == bossArea || i == entryArea ? 0 : BasePopulation(map.terrain, ground[i].SquareMetres, density);
             int band = ground[i].Band;
             int[] weights = band == 0 ? new[] { 85, 13, 2 } : band == 1 ? new[] { 80, 16, 4 } : new[] { 75, 19, 6 };
             var portions = Allocate(count, weights);
@@ -111,7 +115,7 @@ public sealed class MapRunRoster
         for (int a = 0; a < areas.Count; a++)
         {
             var area = areas[a];
-            if (a == bossArea) { area.FirstMember = members.Count; continue; }
+            if (a == bossArea || a == entryArea) { area.FirstMember = members.Count; continue; }
             // Retain the existing fixed-count affix until its G05 migration; it does not replace small enemies.
             if (MapOptionPolicy.Value(map, MapOptionPolicy.MoreMediumElite) > 0)
             { counts[a, 1]++; if (area.Ground.Band > 0) counts[a, 2]++; }
@@ -131,7 +135,8 @@ public sealed class MapRunRoster
                 members.Add(new Member { Id = runId + "/" + a + "/" + i, Index = members.Count, AreaIndex = a,
                     Definition = roster[i], Tier = MapSpawnPolicy.Tier(theme, roster[i]), Initial = i < area.InitialCount });
         }
-        return new MapRunRoster(runId, map, members, areas);
+        if (members.Count == 0) throw new InvalidOperationException("지도에 자연 몬스터를 배치할 전투 구역이 없습니다.");
+        return new MapRunRoster(runId, map, members, areas, entryArea);
     }
     static int[] Allocate(int count, int[] weights)
     {

@@ -50,7 +50,7 @@ public static class MapRunEntryPlayVerifier
         if (!value) throw new InvalidOperationException(name);
         checks.Add(name); Write("progress.json", new { checks = checks.Count, last = name, utc = DateTime.UtcNow });
     }
-    public static void Start(string directory, bool desertOnly = false, bool largeOnly = false, int completionCases = 0, int bossCases = 0, bool minimapOnly = false, bool guidanceOnly = false, bool minimapCycles = false, bool includeLargeCave = true, int desertCandidateIndex = 0, bool minimapCompatibility = false, bool minimapResolution = false, bool progressionOnly = false, bool escapeSettlementOnly = false, int escapeCases = 0, int caveCount = 0, bool verifyMapRequired = false, bool speciesGroupsOnly = false, bool caveOnly = false, bool caveBakedSpawnOnly = false, string caveTheme = null, bool desertRoadSpawnOnly = false, string desertPerformanceProfile = null)
+    public static void Start(string directory, bool desertOnly = false, bool largeOnly = false, int completionCases = 0, int bossCases = 0, bool minimapOnly = false, bool guidanceOnly = false, bool minimapCycles = false, bool includeLargeCave = true, int desertCandidateIndex = 0, bool minimapCompatibility = false, bool minimapResolution = false, bool progressionOnly = false, bool escapeSettlementOnly = false, int escapeCases = 0, int caveCount = 0, bool verifyMapRequired = false, bool speciesGroupsOnly = false, bool caveOnly = false, bool caveBakedSpawnOnly = false, string caveTheme = null, bool desertRoadSpawnOnly = false, string desertPerformanceProfile = null, bool desertBoundaryOnly = false)
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
             || IsolatedSavePlayGuard.ActiveDirectory != "" || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable))
@@ -112,6 +112,7 @@ public static class MapRunEntryPlayVerifier
         SessionState.SetString(Key + "pending", output); SessionState.SetString(Key + "return", output);
         SessionState.SetBool(Key + "desertOnly", desertOnly);
         SessionState.SetBool(Key + "desertRoadSpawnOnly", desertRoadSpawnOnly);
+        SessionState.SetBool(Key + "desertBoundaryOnly", desertBoundaryOnly);
         SessionState.SetString(Key + "desertPerformanceProfile", desertPerformanceProfile ?? "");
         SessionState.SetBool(Key + "largeOnly", largeOnly);
         SessionState.SetInt(Key + "completionCases", completionCases);
@@ -309,9 +310,10 @@ public static class MapRunEntryPlayVerifier
             var gate = scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<RunWorldGate>()).Single();
             Check(gate.IsReady && gate.EntryPoint && Vector3.Distance(PlayerContext.Instance.CurrentActor.transform.position, gate.EntryPoint.position) < 2, label + ": player placed at prepared entry");
             var roster = gate.Roster;
-            Check(roster != null && roster.PlacementReady && roster.Total >= (MapGenerationPolicy.EffectiveAreaCount(item.map) - (item.map.terrain == MapTerrainKind.Desert ? 1 : 0)) * (item.map.terrain == MapTerrainKind.Cave ? 30 : 40), label + ": reduced finite population and physical placements prepared before consumption");
+            Check(roster != null && roster.PlacementReady && roster.Total >= (MapGenerationPolicy.EffectiveAreaCount(item.map) - (item.map.terrain == MapTerrainKind.Desert ? 2 : 1)) * (item.map.terrain == MapTerrainKind.Cave ? 30 : 40), label + ": entry-excluded finite population and physical placements prepared before consumption");
+            DesertMovementBoundaryVerifier.VerifyEntry(gate, Check);
             Check(roster.ThemeId == item.map.monsterThemeId && roster.Areas.Count == MapGenerationPolicy.EffectiveAreaCount(item.map)
-                && roster.Kills == 0 && roster.Active > 0 && gate.SpawnBudget.InitialReady
+                && roster.Kills == 0 && roster.Active == gate.SpawnBudget.InitialPreparedCount && gate.SpawnBudget.InitialReady
                 && roster.Active + roster.Pending == roster.Total, label + ": stored single theme and finite initial actors prepared before entry");
             Check(item.map.terrain == MapTerrainKind.Cave ? roster.Target == MapRunRoster.CaveTarget(roster.Total) : roster.Target == 0, label + ": terrain-specific objective denominator");
             Check(roster.Areas.All(a => a.Count == a.Small + a.Medium + a.Elite
@@ -348,7 +350,19 @@ public static class MapRunEntryPlayVerifier
                 Check(!scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<Overburst.Mojave.MojaveExplorer>(true)).Any(c => c.isActiveAndEnabled), label + ": authoring explorer disabled");
                 Check(!scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<Overburst.Mojave.MojaveCamera>(true)).Any(c => c.isActiveAndEnabled), label + ": authoring camera disabled");
             }
+            if (roster.Active == 0)
+            {
+                var combat = roster.Areas.First(a => a.Count > 0);
+                var approach = MapCombatGeometry.Approaches(combat.Ground)
+                    .Where(p => Vector3.Distance(p, combat.Ground.Center) >= 18 && Vector3.Distance(p, combat.Ground.Center) <= 30)
+                    .OrderBy(p => Vector3.Distance(p, gate.EntryPoint.position)).First();
+                var player = PlayerContext.Instance.CurrentActor;
+                ActorTeleportUtility.TeleportSafely(player.transform, approach + Vector3.up * .12f, player.transform.rotation);
+                yield return Wait(() => roster.Active > 0, label + ": approaching a combat tile activates its natural initial population", 30);
+            }
             if (SessionState.GetBool(Key + "desertRoadSpawnOnly", false)) yield return VerifyRoadSpawns(gate);
+            if (SessionState.GetBool(Key + "desertBoundaryOnly", false) && gate.GetComponent<Overburst.Mojave.DesertRunWorld>())
+                yield return DesertMovementBoundaryVerifier.VerifyPlay(gate, output, Check);
             if (SessionState.GetBool(Key + "guidanceOnly", false))
             {
                 yield return MapGuidanceVerifier.VerifyPlay(gate, output, Check);
@@ -407,7 +421,7 @@ public static class MapRunEntryPlayVerifier
         var roster = gate.Roster; var world = gate.GetComponent<Overburst.Mojave.MojaveWorld>();
         var bank = DesertSpawnData.Load(world);
         Check(bank && bank.areas.Length == roster.Areas.Count, "Desert road: all platforms use the saved spawn bank");
-        var baseline = MapRunRoster.Build(roster.RunId, gate.Map, roster.Areas.Select(a => a.Ground).ToArray(), gate.BossArena.Ground.Index);
+        var baseline = MapRunRoster.Build(roster.RunId, gate.Map, roster.Areas.Select(a => a.Ground).ToArray(), gate.BossArena.Ground.Index, roster.EntryAreaIndex);
         Check(baseline.Total == roster.Total && baseline.Target == roster.Target
             && baseline.Members.Select(m => (m.Id, m.Definition, m.Tier)).SequenceEqual(roster.Members.Select(m => (m.Id, m.Definition, m.Tier)))
             && baseline.Areas.Select(a => (a.Count, a.InitialCount, a.Small, a.Medium, a.Elite)).SequenceEqual(roster.Areas.Select(a => (a.Count, a.InitialCount, a.Small, a.Medium, a.Elite))),
@@ -511,6 +525,7 @@ public static class MapRunEntryPlayVerifier
         SessionState.EraseFloat(Key + "deadline"); SessionState.EraseBool(Key + "background"); EditorApplication.update -= Return;
         SessionState.EraseBool(Key + "desertOnly");
         SessionState.EraseBool(Key + "desertRoadSpawnOnly");
+        SessionState.EraseBool(Key + "desertBoundaryOnly");
         SessionState.EraseString(Key + "desertPerformanceProfile");
         SessionState.EraseBool(Key + "largeOnly"); SessionState.EraseInt(Key + "completionCases"); SessionState.EraseInt(Key + "bossCases");
         SessionState.EraseBool(Key + "minimapOnly");
