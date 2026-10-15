@@ -312,7 +312,7 @@ public static class MapRunEntryPlayVerifier
             var gate = scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<RunWorldGate>()).Single();
             Check(gate.IsReady && gate.EntryPoint && Vector3.Distance(PlayerContext.Instance.CurrentActor.transform.position, gate.EntryPoint.position) < 2, label + ": player placed at prepared entry");
             var roster = gate.Roster;
-            Check(roster != null && roster.PlacementReady && roster.Total >= roster.Areas.Count(a => a.Ground.AllowsMonsters && a.Ground.Index != roster.EntryAreaIndex && (gate.BossArena == null || a.Ground.Index != gate.BossArena.Ground.Index)) * (item.map.terrain == MapTerrainKind.Cave ? 30 : 40), label + ": entry-excluded finite population and physical placements prepared before consumption");
+            Check(roster != null && roster.PlacementReady && roster.Total >= roster.Areas.Count(a => a.Ground.AllowsMonsters && a.Ground.Index != roster.EntryAreaIndex && (gate.BossArena == null || a.Ground.Index != gate.BossArena.Ground.Index)) * (item.map.terrain == MapTerrainKind.Cave ? 8 : 40), label + ": entry-excluded finite population and physical placements prepared before consumption");
             DesertMovementBoundaryVerifier.VerifyEntry(gate, Check);
             Check(roster.ThemeId == item.map.monsterThemeId && roster.Areas.Count == MapGenerationPolicy.EffectiveAreaCount(item.map)
                 && roster.Kills == 0 && roster.Active == gate.SpawnBudget.InitialPreparedCount && gate.SpawnBudget.InitialReady
@@ -336,12 +336,21 @@ public static class MapRunEntryPlayVerifier
                 Check(separated, label + ": initial bodies do not overlap in area " + area.Ground.Index);
             }
             Write("roster-" + item.map.terrain + "-" + item.map.areaCount + ".json", new { roster.Total, roster.Target, roster.ThemeId,
-                areas = roster.Areas.Select(a => new { a.Ground.Index, a.Ground.Name, a.Ground.Band, a.Ground.SquareMetres, points = a.Ground.Points.Count, a.BasePopulation, a.Count, a.InitialCount, a.Small, a.Medium, a.Elite }),
+                areas = roster.Areas.Select(a => new { a.Ground.Index, a.Ground.Name, a.Ground.Band, a.Ground.SquareMetres, points = a.Ground.Points.Count, platformSize = MapRunRoster.PlatformSize(roster.Terrain, a.Ground).ToString(), a.ConcurrentLimit, a.BasePopulation, a.Count, a.InitialCount, a.Small, a.Medium, a.Elite }),
                 members = roster.Members.Select(m => new { m.Id, enemy = m.Definition.EnemyId, m.AreaIndex, m.Initial, m.PlannedOnRoad, position = new[] { m.PlannedPosition.x, m.PlannedPosition.y, m.PlannedPosition.z } }) });
             if (item.map.terrain == MapTerrainKind.Cave)
             {
                 var cave = gate.GetComponent<Overburst.Caves.CaveWorld>();
                 Check(cave.courts.Count == MapGenerationPolicy.EffectiveAreaCount(item.map) && cave.seed == item.map.seed, label + ": count and seed match saved map");
+                var sizes = roster.Areas.Select(a => MapRunRoster.PlatformSize(roster.Terrain, a.Ground)).ToArray();
+                Check(sizes.Count(size => size == Overburst.Mojave.MojaveCombatSize.Small) <= roster.Areas.Count / 3
+                    && sizes[roster.EntryAreaIndex] == Overburst.Mojave.MojaveCombatSize.Small,
+                    label + ": small safe entry and at most one third small platforms");
+                Check(roster.Areas.Any(a => a.Count > 0 && MapRunRoster.PlatformSize(roster.Terrain, a.Ground) == Overburst.Mojave.MojaveCombatSize.Large)
+                    && roster.Areas.Any(a => a.Count > 0 && MapRunRoster.PlatformSize(roster.Terrain, a.Ground) == Overburst.Mojave.MojaveCombatSize.Medium),
+                    label + ": a combat large and medium platform are guaranteed");
+                Check(roster.Areas.Where(a => MapRunRoster.InitialOnly(roster.Terrain, a.Ground)).All(a => a.Count <= 8 && a.Count == a.InitialCount && a.Elite == 0),
+                    label + ": small platforms have initial-only population and no elites");
                 Check(!scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<Overburst.Caves.CaveDungeonPortal>()).Any(), label + ": no premature abandon portal");
             }
             else

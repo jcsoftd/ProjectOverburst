@@ -135,6 +135,28 @@ public class CavePlatformLayout
             var order = Enumerable.Range(0, Mathf.Max(count, library.platforms.Length)).Select(i => i % library.platforms.Length).OrderBy(i => random.Next()).ToList();
             if (count == 3) order = new[] { "CAVE_SMALL_01", "CAVE_SMALL_03", "CAVE_MEDIUM_01" }.Select(name => Array.FindIndex(library.platforms, p => p.source.name == name)).ToList();
             int hub = count == 3 ? Array.FindIndex(library.platforms, p => p.source.name == "CAVE_SMALL_01") : Array.FindIndex(library.platforms, p => p.regions.Length > 2); if (hub < 0) hub = order[0];
+            if (count >= 4)
+            {
+                int[] Pool(Overburst.Mojave.MojaveCombatSize size) => Enumerable.Range(0, library.platforms.Length)
+                    .Where(i => CavePlatformLibrary.SizeOf(library.platforms[i].source.name) == size
+                        && library.platforms[i].regions.Length > 0).ToArray();
+                var small = Pool(Overburst.Mojave.MojaveCombatSize.Small);
+                var medium = Pool(Overburst.Mojave.MojaveCombatSize.Medium);
+                var large = Pool(Overburst.Mojave.MojaveCombatSize.Large);
+                if (small.Length == 0 || medium.Length == 0 || large.Length == 0)
+                    throw new InvalidOperationException("Cave library requires small, medium and large platforms.");
+                int Pick(int[] pool) => pool[random.Next(pool.Length)];
+                // A safe small entry leaves at least one large and medium court for combat.
+                order = new List<int> { Pick(small), Pick(large), Pick(medium) };
+                int smallCount = 1, smallLimit = count / 3;
+                while (order.Count < count)
+                {
+                    int kind = random.Next(4);
+                    if (kind == 0 && smallCount < smallLimit) { order.Add(Pick(small)); smallCount++; }
+                    else order.Add(Pick(kind == 1 ? large : medium));
+                }
+                hub = order[0];
+            }
             order.Remove(hub); order.Insert(0, hub);
             layout.rooms.Add(new Room { platform = hub, position = new Vector3(0, 22, 0), yaw = random.Next(360), used = new bool[library.platforms[hub].regions.Length] });
             // Accepted rooms never move during this search; reuse their transformed footprints.

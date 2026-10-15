@@ -43,15 +43,44 @@ public static class MapFiniteSpawnPlayVerifier
 
         // Kill the active entrance packs quickly. Finite reserves must become real walk-in actors.
         var initialActive = roster.Members.Where(m => m.State == MapRunRoster.Life.Active).ToArray();
-        foreach (var member in initialActive)
-            if (budget.Fields[member.AreaIndex].TryGetActor(member.Index, out var enemy))
-                enemy.Health.TakeDamage(new DamageInfo(1000000, enemy.transform.position, player.gameObject, suppressDefaultHitVfx: true));
-        int killed = roster.Kills;
-        double until = EditorApplication.timeSinceStartup + 30;
-        while (!roster.Members.Any(m => !m.Initial && m.State == MapRunRoster.Life.Active) && EditorApplication.timeSinceStartup < until) yield return null;
-        Write(output, label, gate);
-        check(roster.Members.Any(m => !m.Initial && m.State == MapRunRoster.Life.Active), label + ": depleted packs receive finite reinforcement");
-        check(roster.Kills == killed && roster.Total == total, label + ": reinforcement and placement retries do not fabricate kills");
+        var cameraField = typeof(MapSpawnBudget).GetField("runCamera", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        var viewFrame = typeof(MapSpawnBudget).GetField("viewFrame", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        var oldCamera = cameraField.GetValue(budget); var oldPlayer = player.transform.position;
+        var cameraObject = new GameObject("Owned visible-platform spawn probe");
+        int killed = roster.Kills; double until;
+        int visibleBefore = field.VisibleEdgeSpawnCount;
+        try
+        {
+            var camera = cameraObject.AddComponent<Camera>(); camera.enabled = false; camera.orthographic = true;
+            var visibleCandidates = field.FiniteArea.Ground.Points.Concat(field.FiniteApproaches).ToArray();
+            camera.aspect = 1;
+            camera.orthographicSize = visibleCandidates.Max(p => Vector3.Distance(p, field.FiniteArea.Ground.Center)) + 30;
+            camera.nearClipPlane = .1f; camera.farClipPlane = 1000;
+            camera.transform.SetPositionAndRotation(field.FiniteArea.Ground.Center + Vector3.up * 300, Quaternion.LookRotation(Vector3.down, Vector3.forward));
+            cameraField.SetValue(budget, camera); viewFrame.SetValue(budget, -1);
+            check(visibleCandidates.All(p => budget.InView(p)), label + ": visible fallback probe covers every floor and approach candidate");
+            var stand = field.FiniteArea.Ground.Points.OrderBy(p => (p - field.FiniteArea.Ground.Center).sqrMagnitude).First();
+            ActorTeleportUtility.TeleportSafely(player.transform, stand + Vector3.up * .12f, Quaternion.identity);
+            foreach (var member in initialActive)
+                if (budget.Fields[member.AreaIndex].TryGetActor(member.Index, out var enemy))
+                    enemy.Health.TakeDamage(new DamageInfo(1000000, enemy.transform.position, player.gameObject, suppressDefaultHitVfx: true));
+            killed = roster.Kills;
+            until = EditorApplication.timeSinceStartup + 45;
+            while (!roster.Members.Any(m => m.AreaIndex == first.AreaIndex && !m.Initial && m.State == MapRunRoster.Life.Active)
+                && EditorApplication.timeSinceStartup < until) yield return null;
+            Write(output, label, gate);
+            check(roster.Members.Any(m => m.AreaIndex == first.AreaIndex && !m.Initial && m.State == MapRunRoster.Life.Active),
+                label + ": depleted packs receive their own finite reinforcement even with the entire platform visible");
+            check(field.VisibleEdgeSpawnCount > visibleBefore,
+                label + ": camera-visible fallback actually spawns at the owning platform edge");
+            check(roster.Kills == killed && roster.Total == total, label + ": reinforcement and placement retries do not fabricate kills");
+        }
+        finally
+        {
+            cameraField.SetValue(budget, oldCamera); viewFrame.SetValue(budget, -1);
+            ActorTeleportUtility.TeleportSafely(player.transform, oldPlayer, Quaternion.identity);
+            UnityEngine.Object.Destroy(cameraObject);
+        }
 
         var remaining = roster.Members.First(m => m.State == MapRunRoster.Life.Active);
         var owner = budget.Fields[remaining.AreaIndex]; owner.TryGetActor(remaining.Index, out var living);
@@ -296,8 +325,11 @@ public static class MapFiniteSpawnPlayVerifier
                     visiblePending = initialMembers.Count(m => m.State == MapRunRoster.Life.Pending && budget.InView(m.PlannedPosition)) }, Formatting.Indented));
             }
             ActorTeleportUtility.TeleportSafely(player.transform, point + Vector3.up * .12f, Quaternion.identity);
+            bool PopulationSeen() => field.FiniteActiveCount > 0 || deaths.Any(i => roster.Members[i].AreaIndex == area.Ground.Index);
             until = EditorApplication.timeSinceStartup + 20;
-            while ((!field.InitialPlaced || !map.IsRevealed(point)) && EditorApplication.timeSinceStartup < until) { ClearNearbyOthers(area.Ground.Index); Sample(); yield return null; }
+            // A previously placed court may have streamed out while visiting another branch.
+            while ((!field.InitialPlaced || !map.IsRevealed(point) || area.Count > 0 && !PopulationSeen())
+                && EditorApplication.timeSinceStartup < until) { ClearNearbyOthers(area.Ground.Index); Sample(); yield return null; }
             if (area.Count == 0)
             {
                 check((area.Ground.Index == roster.EntryAreaIndex || !area.Ground.AllowsMonsters || gate.BossArena != null && area.Ground.Index == gate.BossArena.Ground.Index)
@@ -307,7 +339,7 @@ public static class MapFiniteSpawnPlayVerifier
                 Sample(); areas.Add(new { area.Ground.Index, area.Count, area.InitialCount, reserved = true });
                 continue;
             }
-            check(field.InitialPlaced && (field.FiniteActiveCount > 0 || deaths.Any(i => roster.Members[i].AreaIndex == area.Ground.Index)), label + ": actual initial actors in area " + area.Ground.Index);
+            check(field.InitialPlaced && PopulationSeen(), label + ": actual initial actors in area " + area.Ground.Index);
             check(map.IsRevealed(point), label + ": visiting reveals area " + area.Ground.Index);
             var initial = roster.Members.Skip(area.FirstMember).Take(area.Count).Where(m => m.Initial && m.State == MapRunRoster.Life.Active).ToArray();
             int before = roster.Kills;
@@ -316,8 +348,16 @@ public static class MapFiniteSpawnPlayVerifier
                 { enemy.Health.TakeDamage(new DamageInfo(1000000, enemy.transform.position, player.gameObject, suppressDefaultHitVfx: true)); deaths.Add(member.Index); }
             check(roster.Kills == before + initial.Length && (initial.Length > 0 || deaths.Any(i => roster.Members[i].AreaIndex == area.Ground.Index && roster.Members[i].Initial)), label + ": initial kills recorded once in area " + area.Ground.Index);
             Write(output, label, gate);
-            // Small terminal courts can be entirely visible, with no populated neighbour.
-            // Keep the no-pop-in contract and let the player retreat along the entry path.
+            if (MapRunRoster.InitialOnly(roster.Terrain, area.Ground))
+            {
+                yield return Frames(8);
+                check(area.Count == 8 && area.InitialCount == 8 && area.Elite == 0 && area.Cleared
+                    && field.FiniteActiveCount == 0 && field.ReinforcementReleased == 0,
+                    label + ": small court exhausts its first eight without elites or reinforcement in area " + area.Ground.Index);
+                areas.Add(new { area.Ground.Index, area.Count, area.InitialCount, initialKilled = initial.Length, initialOnly = true });
+                Sample(); Write(output, label, gate); continue;
+            }
+            // Connected retreat also exercises the preferred offscreen path when it is available.
             double retreatAt = EditorApplication.timeSinceStartup + 3;
             bool retreated = false;
             until = EditorApplication.timeSinceStartup + 60;
@@ -363,7 +403,7 @@ public static class MapFiniteSpawnPlayVerifier
         Sample();
         check(limits && samples.Count > 0 && roster.Active == budget.Fields.Sum(f => f.FiniteActiveCount)
             && roster.Active + roster.Pending + roster.Kills == total, label + ": frame/live limits and finite totals across traversal");
-        if (roster.Areas.Count == 10) check(budget.Fields.Sum(f => f.NeighbourSpawnedCount) > 0, label + ": actual neighbouring-platform reinforcement while remaining in the court");
+        check(budget.Fields.All(f => f.FiniteActiveCount <= f.LocalFightLimit), label + ": owning-platform live caps hold after traversal");
         var sorted = samples.OrderBy(n => n).ToArray();
         File.WriteAllText(Path.Combine(output, "scale.json"), JsonConvert.SerializeObject(new { status = "PASS", roster.Total, roster.Target, roster.Kills,
             roster.Active, roster.Pending, budget.StreamReturns, activeP95 = sorted[Mathf.Min(sorted.Length - 1, Mathf.FloorToInt(sorted.Length * .95f))],
@@ -376,7 +416,7 @@ public static class MapFiniteSpawnPlayVerifier
         {
             label, roster.Total, roster.Target, roster.Kills, roster.Active, roster.Pending,
             budget.AliveLimit, budget.InitialPreparedCount, budget.SpawnRetries, budget.StreamReturns, budget.BoundaryRecoveries,
-            areas = budget.Fields.Select(f => new { index = f.FiniteArea.Ground.Index, f.PrepareAtEntry, f.InitialPlaced, f.HasTriggered, f.LocalFightLimit, f.FiniteActiveCount, f.ReinforcementReleased, f.NeighbourSpawnedCount }),
+            areas = budget.Fields.Select(f => new { index = f.FiniteArea.Ground.Index, f.PrepareAtEntry, f.InitialPlaced, f.HasTriggered, f.LocalFightLimit, f.FiniteActiveCount, f.ReinforcementReleased, f.NeighbourSpawnedCount, f.VisibleEdgeSpawnCount }),
             members = roster.Members.Select(m => new { m.Id, enemy = m.Definition.EnemyId, m.AreaIndex, m.Initial, life = m.State.ToString(), m.Lease })
         }, Formatting.Indented));
     }

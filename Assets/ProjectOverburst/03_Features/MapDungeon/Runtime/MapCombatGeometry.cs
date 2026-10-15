@@ -216,6 +216,20 @@ public static class MapCombatGeometry
     }
 
     // Existing installed connections supply walk-in positions on fully visible small platforms.
+    public static List<Vector3> EdgePoints(Area area)
+    {
+        var cells = new HashSet<Vector2Int>();
+        Vector2Int Cell(Vector3 p) => new Vector2Int(Mathf.FloorToInt(p.x / CellSize), Mathf.FloorToInt(p.z / CellSize));
+        foreach (var p in area.Points) cells.Add(Cell(p));
+        var result = new List<Vector3>();
+        foreach (var p in area.Points)
+        {
+            var cell = Cell(p);
+            if (!cells.Contains(cell + Vector2Int.right) || !cells.Contains(cell + Vector2Int.left)
+                || !cells.Contains(cell + Vector2Int.up) || !cells.Contains(cell + Vector2Int.down)) result.Add(p);
+        }
+        return result;
+    }
     public static List<Vector3> Approaches(Area area)
     {
         var result = new List<Vector3>(); var source = area.Source;

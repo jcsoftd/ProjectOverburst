@@ -34,8 +34,8 @@ public static class MapRunRosterVerifier
             int[] metres = { 55, 85, 300, 1950 };
             for (int i = 0; i < 4; i++) areas.Add(new MapCombatGeometry.Area(i, "Synthetic " + i, Vector3.right * i * 100, Math.Min(2, i),
                 Enumerable.Range(0, metres[i]).Select(n => new Vector3(n % 40, 0, n / 40)).ToList()));
-            Check(areas.Select(x => MapRunRoster.ConcurrentLimit(MapTerrainKind.Cave, x)).SequenceEqual(new[] { 10, 16, 24, 24 }),
-                "Cave platform area selects the fixed 10/16/24 live cap");
+            Check(areas.Select(x => MapRunRoster.ConcurrentLimit(MapTerrainKind.Cave, x)).SequenceEqual(new[] { 8, 25, 40, 40 }),
+                "Cave synthetic sizes select the fixed 8/25/40 live cap");
             Check(areas.Select(x => MapRunRoster.ConcurrentLimit(MapTerrainKind.Desert, x)).SequenceEqual(new[] { 16, 16, 26, 40 }),
                 "Desert fixtures select the separate 16/26/40 live cap");
             MapRunRoster last = null; MapInstanceState lastMap = null;
@@ -54,9 +54,11 @@ public static class MapRunRosterVerifier
                 Check(a.Members.Select(m => m.Id).Distinct().Count() == a.Total && a.Members.All(m => m.Id.StartsWith("run-a/")), theme.ThemeId + ": stable unique logical IDs independent of pooled actors");
                 Check(a.Areas.All(x => x.ConcurrentLimit == MapRunRoster.ConcurrentLimit(map.terrain, x.Ground)
                     && x.InitialCount >= Math.Min(x.ConcurrentLimit, Math.Ceiling(x.Count * .3))
-                    && x.InitialCount <= Math.Min(x.ConcurrentLimit, Math.Floor(x.Count * .5)))
+                    && (MapRunRoster.InitialOnly(map.terrain, x.Ground) ? x.InitialCount == x.Count && x.Count <= 8 && x.Elite == 0
+                        : x.InitialCount <= Math.Min(x.ConcurrentLimit, Math.Floor(x.Count * .5))))
                     && a.Members.Count(m => m.Initial) == a.Areas.Sum(x => x.InitialCount), theme.ThemeId + ": Initial population respects the platform cap with finite reserves");
-                Check(a.Areas[0].Count >= 30 && a.Areas[3].Count > a.Areas[2].Count && a.Areas[2].Count > a.Areas[1].Count, theme.ThemeId + ": measured area changes reduced population");
+                Check(a.Areas[0].Count == 8 && a.Areas[0].InitialCount == 8 && a.Areas[0].Elite == 0
+                    && Math.Abs(a.Areas[3].Count - a.Areas[2].Count) <= 1 && a.Areas[2].Count > a.Areas[1].Count, theme.ThemeId + ": authored size budget and small first-only policy determine population");
                 map.options.Add(new MapOptionRoll { optionId = MapOptionPolicy.MoreSmall, value = .9f });
                 map.options.Add(new MapOptionRoll { optionId = MapOptionPolicy.MoreMedium, value = .6f });
                 map.options.Add(new MapOptionRoll { optionId = MapOptionPolicy.MoreElite, value = .4f });
@@ -77,10 +79,34 @@ public static class MapRunRosterVerifier
                 int[] after = { boosted.Areas.Sum(x => x.Small), boosted.Areas.Sum(x => x.Medium), boosted.Areas.Sum(x => x.Elite) };
                 float[] bonuses = { .9f, .6f, .4f };
                 Check(Enumerable.Range(0, 3).All(t => after[t] == before[t] + (int)Math.Round(before[t] * (double)bonuses[t], MidpointRounding.AwayFromZero)), theme.ThemeId + ": independent tier additions preserve exact map totals");
-                Check(boosted.Total > a.Total && boosted.Target > a.Target && boosted.Areas[3].Count > 500, theme.ThemeId + ": options extend the roster beyond a 500-enemy request without truncation");
+                Check(boosted.Total > a.Total && boosted.Target > a.Target && boosted.Areas[0].Count == 8 && boosted.Areas[0].Elite == 0, theme.ThemeId + ": options increase the shared roster without adding reserves or elites to small cave courts");
                 rows.Add(new { theme = theme.ThemeId, a.Total, a.Target, areas = a.Areas.Select(x => new { x.Ground.SquareMetres, x.BasePopulation, x.Count, x.InitialCount, x.Small, x.Medium, x.Elite }), boostedTotal = boosted.Total });
                 last = a; lastMap = high;
             }
+            foreach (var terrain in new[] { MapTerrainKind.Cave, MapTerrainKind.Desert })
+                for (int seed = 1; seed <= 32; seed++)
+                {
+                    var sample = ItemSnapshotCodec.CopyValues(lastMap); sample.options.Clear(); sample.terrain = terrain; sample.seed = seed;
+                    if (terrain == MapTerrainKind.Desert)
+                    {
+                        var candidate = MapTerrainCatalog.DesertCandidates.First(c => c.areaCount == 4);
+                        sample.desertCandidateId = candidate.id; sample.areaCount = 4; sample.width = candidate.width; sample.depth = candidate.depth;
+                    }
+                    var budgeted = MapRunRoster.Build("budget-" + seed, sample, areas);
+                    int expected = terrain == MapTerrainKind.Cave ? 300 : 340;
+                    int fixedSmall = terrain == MapTerrainKind.Cave ? 8 : 0;
+                    double variation = terrain == MapTerrainKind.Cave ? .10 : .05;
+                    Check(budgeted.Total >= Math.Round(expected * (1 - variation), MidpointRounding.AwayFromZero) + fixedSmall
+                        && budgeted.Total <= Math.Round(expected * (1 + variation), MidpointRounding.AwayFromZero) + fixedSmall,
+                        terrain + " seed " + seed + ": composition-derived total stays in the approved global jitter range");
+                    Check(Signature(budgeted) == Signature(MapRunRoster.Build("repeat-" + seed, sample, areas)),
+                        terrain + " seed " + seed + ": global budget, type allocation and initial roles reproduce");
+                }
+            var stress = ItemSnapshotCodec.CopyValues(lastMap); stress.options.Clear();
+            stress.options.Add(new MapOptionRoll { optionId = MapOptionPolicy.MoreSmall, value = 20 });
+            var stressRoster = MapRunRoster.Build("request-batches", stress, areas);
+            Check(stressRoster.Areas[3].Count > 500 && stressRoster.Areas[0].Count == 8 && stressRoster.Areas[0].Elite == 0,
+                "Large option counts cross request batches while small cave initial-only caps hold");
             Check(last.NaturalProgressMultiplier == 1f, "Cave progression starts at the original health and damage");
             Check(!last.TryActivate(0, out _) && !last.TryRecordDeath(0, 1), "No activation or kill before placement preparation");
             // Pure lifecycle exercise; physical placements are covered by the isolated entry Play verifier.
@@ -101,21 +127,21 @@ public static class MapRunRosterVerifier
             Check(!last.TryRecordDeath(-1, 1) && !last.TryRecordDeath(total, 1), "Unknown IDs never count");
             var clearing = MapRunRoster.Build("clear-area", lastMap, areas);
             typeof(MapRunRoster).GetProperty(nameof(MapRunRoster.PlacementReady)).SetValue(clearing, true);
-            var court = clearing.Areas[0];
-            foreach (var member in clearing.Members.Take(court.InitialCount))
+            var court = clearing.Areas[1];
+            foreach (var member in clearing.Members.Skip(court.FirstMember).Take(court.InitialCount))
             { clearing.TryActivate(member.Index, out int lease); clearing.TryRecordDeath(member.Index, lease); }
             Check(!court.Cleared && court.Kills == court.InitialCount, "Empty initial packs do not clear a platform with reserves");
-            for (int i = court.InitialCount; i < court.ClearTarget - 1; i++)
+            for (int i = court.FirstMember + court.InitialCount; i < court.FirstMember + court.ClearTarget - 1; i++)
             { clearing.TryActivate(i, out int lease); clearing.TryRecordDeath(i, lease); }
-            int final = court.ClearTarget - 1;
+            int final = court.FirstMember + court.ClearTarget - 1;
             clearing.TryActivate(final, out int finalLease); clearing.TryReturn(final, finalLease);
             Check(!court.Cleared && court.Kills == court.ClearTarget - 1, "Streaming out the last required living ID does not clear its platform");
             clearing.TryActivate(final, out int newLease);
             Check(!clearing.TryRecordDeath(final, finalLease) && !court.Cleared, "Stale pooled lease cannot clear a platform");
             clearing.TryRecordDeath(final, newLease);
             Check(court.Cleared && court.Kills == court.ClearTarget && !clearing.TryRecordDeath(final, newLease)
-                && clearing.Areas.Skip(1).All(a => !a.Cleared && a.Kills == 0), "Only the entire assigned population clears its own platform once");
-            Check(court.Count - court.Kills == clearing.Members.Take(court.Count).Count(m => m.State == MapRunRoster.Life.Pending)
+                && clearing.Areas.Where(a => a != court).All(a => !a.Cleared && a.Kills == 0), "Only the entire assigned population clears its own platform once");
+            Check(court.Count - court.Kills == clearing.Members.Skip(court.FirstMember).Take(court.Count).Count(m => m.State == MapRunRoster.Life.Pending)
                 && clearing.Kills + clearing.Active + clearing.Pending == clearing.Total, "Clearing exhausts the platform and preserves the fixed denominator without fabricated deaths");
             var newRun = MapRunRoster.Build("new-run", lastMap, areas);
             Check(newRun.Areas.All(a => !a.Cleared && a.Kills == 0), "New map run resets platform clearing independently of seed");
@@ -128,7 +154,7 @@ public static class MapRunRosterVerifier
             var fresh = MapRunRoster.Build("run-a", lastMap, areas);
             typeof(MapRunRoster).GetProperty(nameof(MapRunRoster.PlacementReady)).SetValue(fresh, true);
             Check(gate.SetRoster(fresh) && !gate.SetRoster(fresh) && gate.CompletePreparation("run-a", go.transform), "Prepared roster attaches once before world readiness");
-            var largeGround = Enumerable.Range(0, 17).Select(i => new MapCombatGeometry.Area(i, "Cap floor " + i, Vector3.right * i * 100,
+            var largeGround = Enumerable.Range(0, MapGenerationPolicy.CavePlatformLimit).Select(i => new MapCombatGeometry.Area(i, "Cap floor " + i, Vector3.right * i * 100,
                 Math.Min(2, i), areas[0].Points.ToList())).ToList();
             foreach (int requested in new[] { 17, 18, 19, 20 })
             {
@@ -137,9 +163,9 @@ public static class MapRunRosterVerifier
                 gate.BeginPreparation(new RunSnapshot { runId = "cap-" + requested, phase = RunPhase.EntryPending, map = saved });
                 var capped = MapRunRoster.Build("cap-" + requested, gate.Map, largeGround);
                 typeof(MapRunRoster).GetProperty(nameof(MapRunRoster.PlacementReady)).SetValue(capped, true);
-                Check(gate.Map.areaCount == 17 && capped.Areas.Count == 17 && gate.SetRoster(capped)
+                Check(gate.Map.areaCount == MapGenerationPolicy.CavePlatformLimit && capped.Areas.Count == MapGenerationPolicy.CavePlatformLimit && gate.SetRoster(capped)
                     && gate.CompletePreparation("cap-" + requested, go.transform) && JsonConvert.SerializeObject(saved) == original,
-                    "Stored " + requested + "-platform map prepares a 17-area roster without changing reserved map identity");
+                    "Stored " + requested + "-platform map prepares the current capped roster without changing reserved map identity");
             }
             var invalid = ItemSnapshotCodec.CopyValues(lastMap); invalid.monsterThemeId = "missing-theme"; invalid.monsterThemes[0].themeId = invalid.monsterThemeId;
             bool rejected = false; try { MapRunRoster.Build("bad", invalid, areas); } catch (InvalidOperationException) { rejected = true; }

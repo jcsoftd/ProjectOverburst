@@ -1,12 +1,21 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Overburst.Mojave;
 
 namespace Overburst.Caves
 {
     [CreateAssetMenu(menuName = "Overburst/Caves/Authored platform library")]
     public sealed class CavePlatformLibrary : ScriptableObject
     {
+        public static MojaveCombatSize SizeOf(string name)
+        {
+            if (name.Contains("CAVE_SMALL_")) return MojaveCombatSize.Small;
+            if (name.Contains("CAVE_MEDIUM_")) return MojaveCombatSize.Medium;
+            if (name.Contains("CAVE_LARGE_")) return MojaveCombatSize.Large;
+            throw new ArgumentException("Unknown authored cave platform size: " + name);
+        }
+
         [Serializable] public sealed class SpawnBody
         {
             public float radius, height;

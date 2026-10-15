@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Overburst.Persistence;
 using Overburst.Mojave;
+using Overburst.Caves;
 using UnityEngine;
 
 // The finite natural population belongs to this run, never to pooled Actor instance IDs.
@@ -65,21 +66,33 @@ public sealed class MapRunRoster
         if (count <= 0) throw new ArgumentOutOfRangeException(nameof(count));
         return (int)((95L * count + 99) / 100);
     }
-    public static int ConcurrentLimit(MapTerrainKind terrain, MapCombatGeometry.Area area)
+    public static MojaveCombatSize PlatformSize(MapTerrainKind terrain, MapCombatGeometry.Area area)
     {
         if (area == null) throw new ArgumentNullException(nameof(area));
-        if (terrain == MapTerrainKind.Cave)
-            return area.SquareMetres <= 60 ? 10 : area.SquareMetres <= 180 ? 16 : 24;
-        if (terrain != MapTerrainKind.Desert) throw new ArgumentException("Product terrain required.");
         var source = area.Source;
-        if (source != null && source.desert && source.desert.catalog && source.place != null)
+        if (terrain == MapTerrainKind.Cave)
         {
-            var size = source.desert.catalog.patches[source.place.patch].combatSize;
-            return size == MojaveCombatSize.Small ? 16 : size == MojaveCombatSize.Medium ? 26 : 40;
+            string name = source?.spawnPlatform?.source ? source.spawnPlatform.source.name
+                : source?.boundary ? source.boundary.Data.name : area.Name;
+            if (name.Contains("CAVE_")) return CavePlatformLibrary.SizeOf(name);
+            // Synthetic geometry fixtures have no authored prefab.
+            return area.SquareMetres <= 60 ? MojaveCombatSize.Small : area.SquareMetres <= 180 ? MojaveCombatSize.Medium : MojaveCombatSize.Large;
         }
+        if (terrain != MapTerrainKind.Desert) throw new ArgumentException("Product terrain required.");
+        if (source != null && source.desert && source.desert.catalog && source.place != null)
+            return source.desert.catalog.patches[source.place.patch].combatSize;
         int population = BasePopulation(terrain, area.SquareMetres, 1);
-        return population <= 60 ? 16 : population <= 110 ? 26 : 40;
+        return population <= 60 ? MojaveCombatSize.Small : population <= 110 ? MojaveCombatSize.Medium : MojaveCombatSize.Large;
     }
+    public static int ConcurrentLimit(MapTerrainKind terrain, MapCombatGeometry.Area area)
+    {
+        var size = PlatformSize(terrain, area);
+        return terrain == MapTerrainKind.Cave
+            ? (size == MojaveCombatSize.Small ? 8 : size == MojaveCombatSize.Medium ? 25 : 40)
+            : (size == MojaveCombatSize.Small ? 16 : size == MojaveCombatSize.Medium ? 26 : 40);
+    }
+    public static bool InitialOnly(MapTerrainKind terrain, MapCombatGeometry.Area area)
+        => terrain == MapTerrainKind.Cave && PlatformSize(terrain, area) == MojaveCombatSize.Small;
     // Continuous initial tuning; anchors are measured connected square metres, not tile width.
     public static int BasePopulation(MapTerrainKind terrain, float squareMetres, float density)
     {
@@ -105,27 +118,45 @@ public sealed class MapRunRoster
         if (theme == null) throw new InvalidOperationException("저장된 지도 테마를 찾지 못했습니다.");
         var random = new System.Random(unchecked(map.seed ^ 0x45AD01));
         var areas = new List<Area>(); var counts = new int[ground.Count, 3];
+        var allocationWeights = new int[ground.Count];
+        int weightTotal = 0;
         for (int i = 0; i < ground.Count; i++)
         {
             if (ground[i] == null || ground[i].Index != i || ground[i].AllowsMonsters && ground[i].Points.Count < 6)
                 throw new InvalidOperationException("전투 구역의 안전한 배치 공간이 부족합니다.");
-            float density = .9f + (float)random.NextDouble() * .2f;
-            int count = i == bossArea || i == entryArea || !ground[i].AllowsMonsters ? 0 : BasePopulation(map.terrain, ground[i].SquareMetres, density);
+            bool allowed = i != bossArea && i != entryArea && ground[i].AllowsMonsters;
+            var size = PlatformSize(map.terrain, ground[i]);
+            int weight = !allowed || InitialOnly(map.terrain, ground[i]) ? 0
+                : map.terrain == MapTerrainKind.Cave ? (size == MojaveCombatSize.Medium ? 1 : 2)
+                : size == MojaveCombatSize.Small ? 5 : size == MojaveCombatSize.Medium ? 10 : 14;
+            allocationWeights[i] = weight; weightTotal += weight;
+            areas.Add(new Area { Ground = ground[i], ConcurrentLimit = allowed ? ConcurrentLimit(map.terrain, ground[i]) : 0 });
+        }
+        double variation = map.terrain == MapTerrainKind.Cave ? .10 : .05;
+        int budget = checked((int)Math.Round(weightTotal * (map.terrain == MapTerrainKind.Cave ? 60d : 10d)
+            * (1 - variation + random.NextDouble() * variation * 2), MidpointRounding.AwayFromZero));
+        var populations = Allocate(budget, allocationWeights);
+        for (int i = 0; i < areas.Count; i++)
+        {
+            int count = areas[i].ConcurrentLimit == 0 ? 0 : InitialOnly(map.terrain, ground[i]) ? 8 : populations[i];
+            areas[i].BasePopulation = count;
             int band = ground[i].Band;
             int[] weights = band == 0 ? new[] { 85, 13, 2 } : band == 1 ? new[] { 80, 16, 4 } : new[] { 75, 19, 6 };
+            if (InitialOnly(map.terrain, ground[i])) weights[2] = 0;
             var portions = Allocate(count, weights);
             for (int tier = 0; tier < 3; tier++) counts[i, tier] = portions[tier];
-            areas.Add(new Area { Ground = ground[i], BasePopulation = count,
-                ConcurrentLimit = count > 0 ? ConcurrentLimit(map.terrain, ground[i]) : 0 });
         }
         string[] optionIds = { MapOptionPolicy.MoreSmall, MapOptionPolicy.MoreMedium, MapOptionPolicy.MoreElite };
         for (int tier = 0; tier < 3; tier++)
         {
             var weights = new int[areas.Count]; int total = 0;
-            for (int a = 0; a < areas.Count; a++) { weights[a] = counts[a, tier]; total += weights[a]; }
+            for (int a = 0; a < areas.Count; a++)
+            { weights[a] = InitialOnly(map.terrain, ground[a]) ? 0 : counts[a, tier]; total += counts[a, tier]; }
             double extra = total * (double)MapOptionPolicy.Value(map, optionIds[tier]);
             if (extra > int.MaxValue - total) throw new InvalidOperationException("지도 스폰 수량이 유효 범위를 초과했습니다.");
             int additions = (int)Math.Round(extra, MidpointRounding.AwayFromZero);
+            // Small cave courts keep their first eight; option additions belong to other combat courts.
+            if (additions > 0 && !Array.Exists(weights, value => value > 0)) continue;
             var allocated = Allocate(additions, weights);
             for (int a = 0; a < areas.Count; a++) counts[a, tier] += allocated[a];
         }
@@ -135,7 +166,7 @@ public sealed class MapRunRoster
             var area = areas[a];
             if (a == bossArea || a == entryArea || !area.Ground.AllowsMonsters) { area.FirstMember = members.Count; continue; }
             // Retain the existing fixed-count affix until its G05 migration; it does not replace small enemies.
-            if (MapOptionPolicy.Value(map, MapOptionPolicy.MoreMediumElite) > 0)
+            if (!InitialOnly(map.terrain, area.Ground) && MapOptionPolicy.Value(map, MapOptionPolicy.MoreMediumElite) > 0)
             { counts[a, 1]++; if (area.Ground.Band > 0) counts[a, 2]++; }
             var roster = new List<EnemyDefinition>();
             for (int tier = 0; tier < 3; tier++)
@@ -147,7 +178,7 @@ public sealed class MapRunRoster
             for (int i = roster.Count - 1; i > 0; i--) { int j = random.Next(i + 1); (roster[i], roster[j]) = (roster[j], roster[i]); }
             area.Small = counts[a, 0]; area.Medium = counts[a, 1]; area.Elite = counts[a, 2];
             area.Count = roster.Count; area.FirstMember = members.Count;
-            area.InitialCount = Mathf.Min(area.ConcurrentLimit, Mathf.Clamp(Mathf.RoundToInt(area.Count * (.3f + (float)random.NextDouble() * .2f)),
+            area.InitialCount = InitialOnly(map.terrain, area.Ground) ? area.Count : Mathf.Min(area.ConcurrentLimit, Mathf.Clamp(Mathf.RoundToInt(area.Count * (.3f + (float)random.NextDouble() * .2f)),
                 Mathf.CeilToInt(area.Count * .3f), Mathf.FloorToInt(area.Count * .5f)));
             for (int i = 0; i < roster.Count; i++)
                 members.Add(new Member { Id = runId + "/" + a + "/" + i, Index = members.Count, AreaIndex = a,

@@ -102,6 +102,52 @@ public static class MapFiniteSpawnIndexVerifier
             Check(!(bool)Call(field, "TryFinitePositionWithinBudget", args) && (bool)Get(first, "PositionDeferred")
                 && (int)Get(first, "Cursor") == cursor, "Expired budget defers without consuming a placement candidate");
             Check(roster.Kills == 0 && List(field, "spawnSlots").Count == pending, "Budget deferral preserves logical state and retry queue");
+            // Compile invocations once; reflection/boxing stays outside the measured hot path.
+            var expressionField = System.Linq.Expressions.Expression.Constant(field);
+            var expressionSlot = System.Linq.Expressions.Expression.Constant(first, first.GetType());
+            var position = System.Linq.Expressions.Expression.Variable(typeof(Vector3));
+            Action Probe(bool preparing, long started, bool forceEdgeSort)
+            {
+                var call = System.Linq.Expressions.Expression.Call(expressionField,
+                    typeof(MapMonsterField).GetMethod("TryFinitePositionWithinBudget", Fields), expressionSlot,
+                    System.Linq.Expressions.Expression.Constant(Vector3.zero), System.Linq.Expressions.Expression.Constant(preparing),
+                    System.Linq.Expressions.Expression.Constant(started), position);
+                var work = new List<System.Linq.Expressions.Expression>();
+                if (forceEdgeSort)
+                {
+                    work.Add(System.Linq.Expressions.Expression.Assign(System.Linq.Expressions.Expression.Field(expressionField, "edgeSortPlayer"),
+                        System.Linq.Expressions.Expression.Constant(new Vector3(float.PositiveInfinity, 0, 0))));
+                    work.Add(System.Linq.Expressions.Expression.Assign(System.Linq.Expressions.Expression.Field(expressionSlot, "SearchRemaining"), System.Linq.Expressions.Expression.Constant(1)));
+                }
+                work.Add(call); work.Add(System.Linq.Expressions.Expression.Empty());
+                return System.Linq.Expressions.Expression.Lambda<Action>(System.Linq.Expressions.Expression.Block(new[] { position }, work)).Compile();
+            }
+            long Allocations(Action action, int iterations)
+            {
+                using (var recorder = Unity.Profiling.ProfilerRecorder.StartNew(Unity.Profiling.ProfilerCategory.Memory, "GC.Alloc", 8192,
+                    Unity.Profiling.ProfilerRecorderOptions.StartImmediately | Unity.Profiling.ProfilerRecorderOptions.CollectOnlyOnCurrentThread))
+                {
+                    if (!recorder.Valid) throw new InvalidOperationException("GC.Alloc recorder is unavailable.");
+                    for (int i = 0; i < iterations; i++) action();
+                    recorder.Stop(); return recorder.ToArray().Sum(sample => sample.Count);
+                }
+            }
+            var expiredProbe = Probe(true, (long)args[3], false);
+            for (int i = 0; i < 32; i++) expiredProbe();
+            long positiveControlEvents = Allocations(() => { var allocation = new byte[1024]; GC.KeepAlive(allocation); }, 1);
+            long expiredProbeAllocationEvents = Allocations(expiredProbe, 1000);
+            // Synthetic edges stay inside player safety, avoiding physics against the unbound fixture source.
+            Set(field, "edgePoints", Enumerable.Range(0, 8).Select(i => Vector3.right * (i * .1f)).ToList());
+            Set(first, "EverSpawned", true);
+            var edgeProbe = Probe(false, 0, true);
+            for (int i = 0; i < 32; i++) edgeProbe();
+            long edgeProbeAllocationEvents = Allocations(edgeProbe, 1000);
+            File.WriteAllText(Path.Combine(output, "hot-path-allocation.json"), JsonConvert.SerializeObject(new
+                { iterations = 1000, positiveControlEvents, expiredProbeAllocationEvents, edgeProbeAllocationEvents,
+                    scope = "GC.Alloc events on the current thread after warmup: budget deferral and forced 8-point edge sort/safety rejection. Excludes physical search and whole-frame allocations." }, Formatting.Indented));
+            Check(positiveControlEvents > 0, "GC.Alloc recorder detects a deliberate positive-control allocation");
+            Check(expiredProbeAllocationEvents == 0, "Expired-budget placement adds no managed allocation after warmup");
+            Check(edgeProbeAllocationEvents == 0, "Repeated edge sorting and safety rejection add no managed allocation after warmup");
             Call(field, "RefreshFinite", Vector3.zero, false, System.Diagnostics.Stopwatch.GetTimestamp());
             Check(!field.HasTriggered, "Entering an untouched platform does not start reinforcement");
             Call(field, "PrepareReinforcement", Vector3.zero, 0, false);
