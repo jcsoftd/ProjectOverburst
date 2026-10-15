@@ -124,9 +124,12 @@ public static class OverburstSkillTreeZoomVerifier
     {
         while(PersistentSceneFlow.Instance==null||PersistentSceneFlow.Instance.IsSwitching||!WorldSessionState.IsHideout||PlayerContext.Instance?.CurrentActor==null)yield return null;
         Check(AccountBootstrap.Ready&&AccountBootstrap.SaveDirectory.StartsWith(Output+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase),"Owned isolated account");
+        for(int i=0;i<8;i++)yield return null;
+        var tutorial=OptionalTutorialController.Instance;
+        if(tutorial&&tutorial.view.modal.activeSelf&&!tutorial.IsTraining){Check(tutorial.LastError==null&&tutorial.view.modalTitle.text=="튜토리얼을 체험하시겠습니까?","First-entry tutorial invitation is valid");Click(tutorial.view.secondary);for(int i=0;i<4;i++)yield return null;}
         var ui=OverburstSkillTreeUI.Instance;var session=AccountGameplaySession.Current;var input=PlayerInputFacade.Current;bool gameplay=input.IsGameplayEnabled;
         var baseline=JsonConvert.SerializeObject(session.ReadSkillTree());
-        Check(ui!=null&&ui.nodes.Length==53,"Current product 53-node prefab");
+        Check(ui!=null&&ui.nodes.Length==101,"Current product 101-node prefab");
         foreach(var step in Steps(OpenFromMenu()))yield return step;
         Check(Mathf.Approximately(ui.Zoom,1.2f)&&ui.zoomLabel.text=="120%"&&ui.Zoom>ui.FitZoom,"Actual HUD opens readable 120% default");
         Check(!input.IsGameplayEnabled&&GameplayInputBlocker.IsGameplayInputBlocked,"Tree owns gameplay input");
@@ -148,6 +151,22 @@ public static class OverburstSkillTreeZoomVerifier
             Check(ui.tooltip.gameObject.activeSelf&&ui.tipName.text==ui.Catalog.nodes.First(n=>n.id==id).name,"Outer key hover at max zoom "+id);
             Check(!ui.action.interactable&&ui.actionLabel.text.Contains("확장 예정"),"Reserved key remains read only "+id);
         }
+        foreach(var id in new[]{"S_W15","S_W16","S_H15","S_H16","S_D15","S_D16","S_Q15","S_Q16"}){
+            ui.SelectNode(id,true);yield return null;Canvas.ForceUpdateCanvases();ui.HideTooltip();var node=ui.nodes.First(n=>n.nodeId==id);
+            Check(Hit((RectTransform)node.transform)==node.gameObject&&node.captionRect.gameObject.activeInHierarchy,"New outer twig remains clickable and labelled at max zoom "+id);
+            ExecuteEvents.Execute(node.gameObject,Pointer((RectTransform)node.transform),ExecuteEvents.pointerEnterHandler);
+            Check(ui.tooltip.gameObject.activeSelf&&ui.tipName.text==ui.Catalog.nodes.First(n=>n.id==id).name,"New twig hover contents "+id);
+        }
+        foreach(var id in new[]{"M_W","M_H","M_D","M_Q","B_WH","B_HQ","B_QD","B_DW"}){
+            ui.SelectNode(id,true);yield return null;Canvas.ForceUpdateCanvases();ui.HideTooltip();var node=ui.nodes.First(n=>n.nodeId==id);
+            Check(Hit((RectTransform)node.transform)==node.gameObject&&node.captionRect.gameObject.activeInHierarchy,"New reserved large node is reachable and labelled "+id);
+            ExecuteEvents.Execute(node.gameObject,Pointer((RectTransform)node.transform),ExecuteEvents.pointerEnterHandler);
+            Check(ui.tooltip.gameObject.activeSelf&&ui.tipName.text==ui.Catalog.nodes.First(n=>n.id==id).name&&!ui.action.interactable&&!ui.Plan.Has(id),"New large node exposes details without purchase or activation "+id);
+            Check(ui.kindLabel.text.Contains(id.StartsWith("M_")?"외곽 전문화":"공격 간 연계")&&ui.effectBodies.All(t=>!string.IsNullOrWhiteSpace(t.text)),"New large node kind and all six planned element descriptions "+id);
+        }
+        ui.SelectNode("M_W",true);ui.HideTooltip();yield return null;ScreenCapture.CaptureScreenshot(Path.Combine(Output,"ingame-large-ready.png"));yield return null;
+        ui.HideTooltip();Click(ui.center);ui.SelectNode("S_W15",false);yield return null;Canvas.ForceUpdateCanvases();
+        Check(ui.nodes.First(n=>n.nodeId=="S_W15").captionRect.gameObject.activeInHierarchy&&!ui.nodes.First(n=>n.nodeId=="S_W16").captionRect.gameObject.activeInHierarchy,"Overview retains selected twig caption and suppresses unselected small captions");
         ui.HideTooltip();Click(ui.center);yield return null;Click(ui.close);yield return null;
         Check(!ui.IsOpen&&!GameplayInputBlocker.IsGameplayInputBlocked&&input.IsGameplayEnabled==gameplay,"Close restores own input");
         foreach(var step in Steps(OpenFromMenu()))yield return step;

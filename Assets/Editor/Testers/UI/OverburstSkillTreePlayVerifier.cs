@@ -132,8 +132,11 @@ public static class OverburstSkillTreePlayVerifier
     {
         while (PersistentSceneFlow.Instance == null || PersistentSceneFlow.Instance.IsSwitching || !WorldSessionState.IsHideout || PlayerContext.Instance?.CurrentActor == null) yield return null;
         Check(AccountBootstrap.Ready && AccountBootstrap.SaveDirectory.StartsWith(Output + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase), "Owned isolated account boot");
+        for(int i=0;i<8;i++)yield return null;
+        var tutorial=OptionalTutorialController.Instance;
+        if(tutorial&&tutorial.view.modal.activeSelf&&!tutorial.IsTraining){Check(tutorial.LastError==null&&tutorial.view.modalTitle.text=="튜토리얼을 체험하시겠습니까?","First-entry tutorial invitation is valid");Click(tutorial.view.secondary);for(int i=0;i<4;i++)yield return null;}
         var ui = OverburstSkillTreeUI.Instance; var p = PlayerContext.Instance.CurrentActor; var session = AccountGameplaySession.Current;
-        Check(ui != null && ui.nodes.Length == 53 && session.Read().skillTree.earnedPoints == 0, "Product installs expanded 53-node tree with zero new-account points");
+        Check(ui != null && ui.nodes.Length == 101 && session.Read().skillTree.earnedPoints == 0, "Product installs expanded 101-node tree with zero new-account points");
         var input = PlayerInputFacade.Current; bool gameplay = input.IsGameplayEnabled;
         foreach (var step in Steps(OpenFromMenu())) yield return step;
         Check(GameplayInputBlocker.IsGameplayInputBlocked && !input.IsGameplayEnabled && ui.Plan.Remaining == 0, "Tree owns input and real account budget");
@@ -233,6 +236,22 @@ public static class OverburstSkillTreePlayVerifier
         Click(ui.action); Click(ui.apply);
         Check(ui.Plan.Has("S_W1") && !ui.Plan.Has("S_W5") && !ui.Plan.Has("S_W6") && SkillTreeBonuses.AttackPercent == 3 && SkillTreeBonuses.HealthPercent == 0 && SkillTreeBonuses.ArmorFlat == 0, "Expanded branch refund removes bonuses and preserves root-side node");
         Click(ui.resetAllocation); Click(ui.apply);
+        PlayerProgression.Current.AddExperience(Enumerable.Range(5,5).Sum(OverburstGrowthRules.ExperienceToNext));
+        Check(PlayerProgression.Current.FlushPendingExperience()&&PlayerProgression.CurrentLevel==10,"Isolated new-twig fixture reaches level10");
+        ui.SyncAccount(true);Check(ui.Plan.Remaining==9,"Nine points available for new rail and both twigs");
+        var newPath=new[]{"S_W1","S_W3","S_W5","S_W6","S_W9","S_W10","S_W11","S_W15","S_W16"};
+        foreach(var id in newPath){ui.SelectNode(id,true);Click(ui.action);}
+        Click(ui.apply);yield return null;
+        Check(!ui.Plan.Changed&&ui.Plan.Remaining==0&&newPath.All(ui.Plan.Has)&&SkillTreeBonuses.AttackPercent==12&&SkillTreeBonuses.ArmorFlat==1&&SkillTreeBonuses.HealthPercent==10,"New rail and both twigs durably project correct bonuses");
+        var twigSave=new EasySaveAccountStore(AccountBootstrap.SaveDirectory).Load();
+        Check(newPath.All(twigSave.skillTree.learnedNodeIds.Contains)&&twigSave.skillTree.learnedNodeIds.Count==9,"Fresh store reopens both new twig IDs");
+        ui.ResetMap();ui.SelectNode("S_W15",true);ui.HideTooltip();yield return null;
+        ScreenCapture.CaptureScreenshot(Path.Combine(Output,"ingame-new-twigs.png"));yield return null;
+        ui.SelectNode("S_W10",true);Check(ui.Plan.Refunds("S_W10").SequenceEqual(new[]{"S_W10","S_W11","S_W15","S_W16"}),"New rail previews four dependent refunds");
+        Click(ui.action);Click(ui.cancel);Check(newPath.All(ui.Plan.Has)&&ui.Plan.Remaining==0,"Cancel retains committed new rail and twigs");
+        ui.SelectNode("S_W10",true);Click(ui.action);Click(ui.apply);yield return null;
+        Check(ui.Plan.Remaining==4&&ui.Plan.Planned.Length==5&&SkillTreeBonuses.AttackPercent==8&&SkillTreeBonuses.HealthPercent==4&&SkillTreeBonuses.ArmorFlat==1,"Committed new-rail refund restores four points and removes dependent bonuses");
+        Click(ui.resetAllocation);Click(ui.apply);
         for (int i = 0; i < 3; i++) { Click(ui.close); yield return null; Check(!GameplayInputBlocker.IsGameplayInputBlocked && input.IsGameplayEnabled == gameplay, "Repeated close returns input " + i); foreach (var step in Steps(OpenFromMenu())) yield return step; }
         var previous = Keyboard.current; var keyboard = InputSystem.AddDevice<Keyboard>("OwnedSkillTreeFoundationKeyboard");
         try

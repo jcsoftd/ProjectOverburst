@@ -19,7 +19,7 @@ public sealed class OverburstSkillTreeCatalog
     [Serializable] public sealed class Node
     {
         public string id, name, shortName, area, kind, trigger, stat, description;
-        public bool IsReserved => kind == "effect" || kind == "active" || kind == "keystone";
+        public bool IsReserved => kind == "effect" || kind == "active" || kind == "keystone" || kind == "mastery" || kind == "link";
         public float x, y, cooldown, value;
         public int cost, icon;
         public string[] requires, effects;
@@ -42,7 +42,7 @@ public sealed class OverburstSkillTreeCatalog
     {
         switch (area) { case "W": return "약공 콤보"; case "H": return "강공"; case "D": return "대시 약공"; case "Q": return "대시 강공"; default: return "공통"; }
     }
-    public static string KindName(string kind) => kind == "stat" ? "능력치" : kind == "effect" ? "추가 효과" : kind == "active" ? "액티브" : kind == "keystone" ? "최종 핵심" : "기본 경로";
+    public static string KindName(string kind) => kind == "stat" ? "능력치" : kind == "effect" ? "추가 효과" : kind == "active" ? "액티브" : kind == "keystone" ? "최종 핵심" : kind == "mastery" ? "외곽 전문화" : kind == "link" ? "공격 간 연계" : "기본 경로";
     public void Validate()
     {
         if (string.IsNullOrWhiteSpace(version) || nodes == null || connections == null || segments == null || rewards == null) throw new InvalidOperationException("Incomplete skill-tree catalog.");

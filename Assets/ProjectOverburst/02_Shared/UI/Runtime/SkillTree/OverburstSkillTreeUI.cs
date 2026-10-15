@@ -94,7 +94,7 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
         mapExtent = new Vector2(Mathf.Max(1, Catalog.nodes.Max(n => Mathf.Abs(n.x))), Mathf.Max(1, Catalog.nodes.Max(n => Mathf.Abs(n.y))));
         // Direction names belong to their guide nodes, so pan, zoom and selection keep them together.
         string[] guideIds = { "G_W", "G_H", "G_D", "G_Q" };
-        Vector2[] guideOffsets = { new Vector2(80, 0), new Vector2(-32, 45), new Vector2(32, 45), new Vector2(80, 0) };
+        Vector2[] guideOffsets = { new Vector2(80, 0), new Vector2(-32, 45), new Vector2(16, 45), new Vector2(80, 0) };
         for (int i = 0; i < guideIds.Length; i++)
         {
             var guide = views[guideIds[i]];
@@ -192,10 +192,11 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
         {
             var view = views[id]; var rect = (RectTransform)view.transform;
             var p = index[id].Position * MapScale + Pan; var half = viewport.rect.size / 2;
-            float left = Mathf.Max(rect.sizeDelta.x * Zoom / 2, view.captionRect ? view.captionRect.rect.width / 2 - view.captionOffset.x * Zoom : 0) + 18;
-            float right = Mathf.Max(rect.sizeDelta.x * Zoom / 2, view.captionRect ? view.captionRect.rect.width / 2 + view.captionOffset.x * Zoom : 0) + 18;
-            float top = Mathf.Max(rect.sizeDelta.y * Zoom / 2, view.captionRect ? view.captionOffset.y * Zoom + view.captionRect.rect.height / 2 : 0) + 18;
-            float bottom = Mathf.Max(rect.sizeDelta.y * Zoom / 2, view.captionRect ? -view.captionOffset.y * Zoom + view.captionRect.rect.height / 2 : 0) + 18;
+            Vector2 captionOffset = CaptionOffset(view);
+            float left = Mathf.Max(rect.sizeDelta.x * Zoom / 2, view.captionRect ? view.captionRect.rect.width / 2 - captionOffset.x : 0) + 18;
+            float right = Mathf.Max(rect.sizeDelta.x * Zoom / 2, view.captionRect ? view.captionRect.rect.width / 2 + captionOffset.x : 0) + 18;
+            float top = Mathf.Max(rect.sizeDelta.y * Zoom / 2, view.captionRect ? captionOffset.y + view.captionRect.rect.height / 2 : 0) + 18;
+            float bottom = Mathf.Max(rect.sizeDelta.y * Zoom / 2, view.captionRect ? -captionOffset.y + view.captionRect.rect.height / 2 : 0) + 18;
             Pan += new Vector2(Mathf.Clamp(p.x, -half.x + left, half.x - right) - p.x, Mathf.Clamp(p.y, -half.y + bottom, half.y - top) - p.y);
         }
         Refresh(); effectScroll.StopMovement(); effectScroll.verticalNormalizedPosition = 1;
@@ -224,18 +225,41 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
             ((RectTransform)view.transform).anchoredPosition = pos;
             view.transform.localScale = Vector3.one * Zoom;
             bool visible = Mathf.Abs(pos.x) < viewport.rect.width / 2 + 110 * Zoom && Mathf.Abs(pos.y) < viewport.rect.height / 2 + 70 * Zoom;
-            view.gameObject.SetActive(visible); if (view.captionRect) view.captionRect.gameObject.SetActive(visible && (Zoom >= Mathf.Min(.65f, FitZoom) || node.id == SelectedId));
+            view.gameObject.SetActive(visible);
+            // Keep the expanded overview readable; the selected stat always retains its label.
+            bool showCaption = node.kind != "stat" || Zoom >= .85f || node.id == SelectedId;
+            if (view.captionRect) view.captionRect.gameObject.SetActive(visible && showCaption);
             if (view.captionRect)
             {
                 // Text grows more slowly than the map, preserving room around enlarged nodes.
                 view.caption.fontSize = Mathf.Max(10, Mathf.RoundToInt(captionSizes[node.id] * Mathf.Pow(Zoom, .75f)));
                 view.captionRect.sizeDelta = new Vector2(Mathf.Ceil(view.caption.preferredWidth) + 6 * Zoom, Mathf.Ceil(view.caption.preferredHeight) + 4);
-                view.captionRect.anchoredPosition = pos + view.captionOffset * Zoom;
+                // Keep the minimum-size text clear of its node when the expanded map fits below 65%.
+                view.captionRect.anchoredPosition = pos + CaptionOffset(view);
             }
         }
         routes.Configure(Catalog, Plan, MapScale, Pan, rootCanvas.rootCanvas.scaleFactor * window.localScale.x); lastViewport = viewport.rect.size;
         zoomLabel.text = Mathf.RoundToInt(Zoom * 100) + "%"; zoomOut.interactable = Zoom > MinimumZoom + .001f; zoomIn.interactable = Zoom < 2.499f;
         ButtonOpacity(zoomOut);ButtonOpacity(zoomIn);
+    }
+    Vector2 CaptionOffset(OverburstSkillTreeNodeView view)
+    {
+        Vector2 offset = view.captionOffset * Zoom;
+        if (!view.captionRect) return offset;
+        var nodeSize = ((RectTransform)view.transform).sizeDelta * Zoom;
+        var captionSize = view.captionRect.sizeDelta;
+        if (Mathf.Approximately(offset.x, 0) && !Mathf.Approximately(offset.y, 0))
+            offset.y = Mathf.Sign(offset.y) * Mathf.Max(Mathf.Abs(offset.y), (nodeSize.y + captionSize.y) / 2 + 2);
+        else if (Mathf.Approximately(offset.y, 0) && !Mathf.Approximately(offset.x, 0))
+            offset.x = Mathf.Sign(offset.x) * Mathf.Max(Mathf.Abs(offset.x), (nodeSize.x + captionSize.x) / 2 + 2);
+        var node = index[view.nodeId];
+        // The long dash-light direction name fits between its two rails in the 101-node overview.
+        if (node.kind == "guide" && node.area == "D" && Zoom < .5f)
+            offset = new Vector2(-(nodeSize.x + captionSize.x) / 2 - 6, 0);
+        // Side-branch labels clear the adjacent inner rail in the compact overview.
+        if (node.IsReserved && Zoom < .65f)
+            offset.x += (node.area == "H" ? 1 : node.area == "D" ? -1 : 0) * (.65f - Zoom) * 40;
+        return offset;
     }
     public void SyncAccount(bool discardDraft)
     {
@@ -310,7 +334,7 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
         kindLabel.text = OverburstSkillTreeCatalog.AreaName(n.area) + " · " + OverburstSkillTreeCatalog.KindName(n.kind);
         nodeName.text = n.name; meta.text = n.cost > 0 ? OverburstSkillTreeNodeView.StatusName(state) + " · " + Meta(n) : Meta(n); trigger.text = n.kind == "stat" ? "모든 공격과 원소에 같은 능력치 보정" : string.IsNullOrEmpty(n.trigger) ? "중앙에서 연결된 능력치 노드를 선택해 강화합니다." : n.trigger;
         prerequisites.text = n.requires.Length > 0 ? "필수 선행  " + string.Join(" + ", n.requires.Select(id => index[id].name)) : n.cost == 0 ? "무료 안내 노드 · 포인트를 소비하지 않습니다" : "중앙과 연결된 습득 노드에 인접해야 합니다";
-        effectHeading.GetComponent<Text>().text = n.IsReserved ? "예정 효과 · 원소별 방향" : "강화 효과";
+        effectHeading.GetComponent<Text>().text = n.IsReserved ? "준비 중 · 원소별 예정 효과" : "강화 효과";
         prerequisites.rectTransform.sizeDelta = new Vector2(396, 42);
         float effectsY=Mathf.Clamp(181+trigger.preferredHeight+24,220,260);effectHeading.anchoredPosition=new Vector2(22,-effectsY);effectRule.anchoredPosition=new Vector2(22,-effectsY-35);var effectViewport=effectScroll.viewport;effectViewport.anchoredPosition=new Vector2(22,-effectsY-48);effectViewport.sizeDelta=new Vector2(effectViewport.sizeDelta.x,610-effectsY-48);
         string[] elements = { "불", "얼음", "번개", "어둠", "빛", "미장착" }; float y = 0;
@@ -336,7 +360,7 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
         ButtonOpacity(action);
     }
     static void ButtonOpacity(Button button){var group=button.GetComponent<CanvasGroup>();if(group)group.alpha=button.interactable?1:.45f;}
-    static string Meta(OverburstSkillTreeCatalog.Node n) => n.IsReserved ? "확장 예정 · " + OverburstSkillTreeCatalog.KindName(n.kind) : n.cost == 0 ? "무료 · 공통 경로" : n.cost + "포인트 · " + (n.kind == "stat" ? "항상 적용" : n.cooldown > 0 ? "쿨타임 " + n.cooldown.ToString("0.#") + "초" : "조건마다 발동");
+    static string Meta(OverburstSkillTreeCatalog.Node n) => n.IsReserved ? "준비 중 · 확장 예정 · " + OverburstSkillTreeCatalog.KindName(n.kind) : n.cost == 0 ? "무료 · 공통 경로" : n.cost + "포인트 · " + (n.kind == "stat" ? "항상 적용" : n.cooldown > 0 ? "쿨타임 " + n.cooldown.ToString("0.#") + "초" : "조건마다 발동");
     public void HideTooltip() { if (tooltip) tooltip.gameObject.SetActive(false); hoverId = null; }
     public void ShowTooltip(string id)
     {

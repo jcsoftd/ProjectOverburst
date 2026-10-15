@@ -136,27 +136,28 @@ public static class OverburstSkillTreeBuilder
     }
     static OverburstSkillTreeNodeView Node(OverburstSkillTreeUI owner,Transform parent,Transform captions,OverburstSkillTreeCatalog.Node n,Sprite[] atlas)
     {
-        float size=n.kind=="root"?64:n.kind=="stat"?44:n.kind=="keystone"?64:n.kind=="guide"?36:n.kind=="active"?46:42;
+        bool large=n.kind=="keystone"||n.kind=="mastery"||n.kind=="link";
+        float size=n.kind=="root"?64:n.kind=="stat"?44:large?64:n.kind=="guide"?36:n.kind=="active"?46:42;
         var r=Rect(parent,"Node " + n.id,0,0,size,size);r.anchorMin=r.anchorMax=r.pivot=new Vector2(.5f,.5f);
-        var frame=r.gameObject.AddComponent<Image>();frame.sprite=new[]{"keystone","active","bridge"}.Contains(n.kind)?square:round;frame.raycastTarget=true;if(new[]{"keystone","active","bridge"}.Contains(n.kind)){frame.type=UnityEngine.UI.Image.Type.Sliced;frame.pixelsPerUnitMultiplier=3;}
+        var frame=r.gameObject.AddComponent<Image>();frame.sprite=(large||n.kind=="active"||n.kind=="bridge")?square:round;frame.raycastTarget=true;if((large||n.kind=="active"||n.kind=="bridge")){frame.type=UnityEngine.UI.Image.Type.Sliced;frame.pixelsPerUnitMultiplier=3;}
         var view=r.gameObject.AddComponent<OverburstSkillTreeNodeView>();view.nodeId=n.id;view.frame=frame;view.button=r.gameObject.AddComponent<Button>();view.button.targetGraphic=frame;
         var navigation=view.button.navigation;navigation.mode=Navigation.Mode.None;view.button.navigation=navigation;
-        var selected=Picture(r,"Selected Frame",new[]{"keystone","active","bridge"}.Contains(n.kind)?glow:round,Gold,0,0,size+8,size+8);selected.rectTransform.anchorMin=selected.rectTransform.anchorMax=selected.rectTransform.pivot=new Vector2(.5f,.5f);selected.rectTransform.anchoredPosition=Vector2.zero;selected.transform.SetAsFirstSibling();if(new[]{"keystone","active","bridge"}.Contains(n.kind)){selected.type=UnityEngine.UI.Image.Type.Sliced;selected.pixelsPerUnitMultiplier=3;}view.selection=selected;
+        var selected=Picture(r,"Selected Frame",(large||n.kind=="active"||n.kind=="bridge")?glow:round,Gold,0,0,size+8,size+8);selected.rectTransform.anchorMin=selected.rectTransform.anchorMax=selected.rectTransform.pivot=new Vector2(.5f,.5f);selected.rectTransform.anchoredPosition=Vector2.zero;selected.transform.SetAsFirstSibling();if((large||n.kind=="active"||n.kind=="bridge")){selected.type=UnityEngine.UI.Image.Type.Sliced;selected.pixelsPerUnitMultiplier=3;}view.selection=selected;
         Sprite glyph=n.stat=="move"?moveGlyph:n.kind=="stat"?SpriteAt(new[]{"attack","defense","hp","move"}.Contains(n.stat)?new[]{"HUD/Unit Frames/Unit Frame/Roles/Icon_Melee.png","HUD/Unit Frames/Unit Frame/Roles/Icon_Defense.png","Mobile/Action Buttons/Icons/Heart.png","Windows/Character/Equip Slot/Icons/Boots.png"}[Array.IndexOf(new[]{"attack","defense","hp","move"},n.stat)]:"HUD/Unit Frames/Unit Frame/Roles/Icon_Melee.png"):atlas[Mathf.Clamp(n.icon,0,15)];
-        float iconSize=n.kind=="stat"?24:n.kind=="keystone"?34:n.kind=="active"?28:23;
+        float iconSize=n.kind=="stat"?24:large?34:n.kind=="active"?28:23;
         view.icon=Picture(r,"Glyph",glyph,Gold,0,0,iconSize,iconSize);view.icon.preserveAspect=true;view.icon.rectTransform.anchorMin=view.icon.rectTransform.anchorMax=view.icon.rectTransform.pivot=new Vector2(.5f,.5f);view.icon.rectTransform.anchoredPosition=Vector2.zero;
-        if(n.kind=="keystone") { var inner=Picture(r,"Keystone Inner Border",square,new Color(.63f,.52f,.34f),0,0,size-10,size-10);inner.rectTransform.anchorMin=inner.rectTransform.anchorMax=inner.rectTransform.pivot=new Vector2(.5f,.5f);inner.rectTransform.anchoredPosition=Vector2.zero;inner.type=UnityEngine.UI.Image.Type.Sliced;inner.pixelsPerUnitMultiplier=3; }
+        if(large) { var inner=Picture(r,"Keystone Inner Border",square,new Color(.63f,.52f,.34f),0,0,size-10,size-10);inner.rectTransform.anchorMin=inner.rectTransform.anchorMax=inner.rectTransform.pivot=new Vector2(.5f,.5f);inner.rectTransform.anchoredPosition=Vector2.zero;inner.type=UnityEngine.UI.Image.Type.Sliced;inner.pixelsPerUnitMultiplier=3; }
         if(!new[]{"root","guide"}.Contains(n.kind)) {
             view.statePlate=Picture(r,"State Badge",round,new Color(.08f,.07f,.06f),0,0,18,18);view.statePlate.rectTransform.anchorMin=view.statePlate.rectTransform.anchorMax=new Vector2(1,1);view.statePlate.rectTransform.pivot=new Vector2(.5f,.5f);view.statePlate.rectTransform.anchoredPosition=new Vector2(-2,-2);
             view.stateMark=Label(view.statePlate.transform,"State Mark","",0,0,18,18,14,Gold,TextAnchor.MiddleCenter);Stretch(view.stateMark.rectTransform);
         }
         if(n.kind=="advanced"){var pip=Picture(r,"Upgrade Mark",round,Gold,0,0,8,8);pip.rectTransform.anchorMin=pip.rectTransform.anchorMax=new Vector2(1,0);pip.rectTransform.pivot=new Vector2(.5f,.5f);pip.rectTransform.anchoredPosition=new Vector2(-1,1);}
         if(!new[]{"root","guide"}.Contains(n.kind)){
-            int fontSize=n.kind=="stat"?14:n.kind=="keystone"?15:13;var plate=Rect(captions,"Caption " + n.id,0,0,100,19);var im=plate.gameObject.AddComponent<Image>();im.color=new Color(.060f,.056f,.050f);im.raycastTarget=false;
+            int fontSize=n.kind=="stat"?14:large?15:13;var plate=Rect(captions,"Caption " + n.id,0,0,100,19);var im=plate.gameObject.AddComponent<Image>();im.color=new Color(.060f,.056f,.050f);im.raycastTarget=false;
             view.caption=Label(plate,"Text",n.shortName,0,0,100,19,fontSize,Muted,TextAnchor.MiddleCenter);Stretch(view.caption.rectTransform);
             view.captionRect=plate;plate.anchorMin=plate.anchorMax=plate.pivot=new Vector2(.5f,.5f);plate.sizeDelta=new Vector2(Mathf.Ceil(view.caption.preferredWidth)+6,fontSize*1.25f+2);
-            view.captionOffset=new Vector2(0,-(n.kind=="keystone"?48:n.kind=="stat"?36:36));
-            if(n.area=="W")view.captionOffset=new Vector2(0,n.kind=="keystone"?48:36);
+            view.captionOffset=new Vector2(0,-(large?48:n.kind=="stat"?36:36));
+            if(n.area=="W")view.captionOffset=new Vector2(0,large?48:36);
         }
         return view;
     }
