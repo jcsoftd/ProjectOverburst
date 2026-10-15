@@ -50,6 +50,12 @@ namespace Overburst.Caves
                 var capsule = probe.AddComponent<CapsuleCollider>(); capsule.height=1.8f; capsule.radius=.32f; capsule.center=Vector3.up*.95f;
                 foreach(var platform in library.platforms)
                 {
+                    if (TryCreateObstacleProbe(platform.prefab, probes, out var obstacles))
+                    {
+                        colliders[platform] = obstacles;
+                        yield return null;
+                        continue;
+                    }
                     var clone=Instantiate(platform.prefab); SceneManager.MoveGameObjectToScene(clone,probes);
                     foreach(var renderer in clone.GetComponentsInChildren<Renderer>()) renderer.enabled=false;
                     foreach(var light in clone.GetComponentsInChildren<Light>()) light.enabled=false;
@@ -146,6 +152,97 @@ namespace Overburst.Caves
             CaveFallProtection.Register(world);
             world.generationMilliseconds=timer.ElapsedMilliseconds;
             IsReady=true; Stage="준비 완료";
+        }
+
+        static bool TryCreateObstacleProbe(GameObject prefab, Scene scene, out Collider[] obstacles)
+        {
+            obstacles = null;
+            if (!prefab || prefab.transform.parent || prefab.scene.IsValid()) return false;
+            var floor = prefab.transform.Find("Platform");
+            if (!floor) return false;
+            // These components cannot change the static shapes during the layout probe's lifetime.
+            foreach (var component in prefab.GetComponentsInChildren<Component>(true))
+            {
+                if (!component) return false;
+                if (component is ParticleSystem particles
+                    && (particles.main.stopAction != ParticleSystemStopAction.None || particles.subEmitters.enabled)) return false;
+                var type = component.GetType();
+                if (type != typeof(Transform) && type != typeof(MeshFilter) && type != typeof(MeshRenderer)
+                    && type != typeof(ParticleSystem) && type != typeof(ParticleSystemRenderer) && type != typeof(Light)
+                    && type != typeof(UnityEngine.Rendering.Universal.UniversalAdditionalLightData)
+                    && type != typeof(CaveTile) && type != typeof(CaveWalkSurface)
+                    && type != typeof(CavePlatformBoundary) && type != typeof(CaveConnectionGuide)
+                    && type != typeof(BoxCollider) && type != typeof(SphereCollider)
+                    && type != typeof(CapsuleCollider) && type != typeof(MeshCollider)) return false;
+            }
+            var source = prefab.GetComponentsInChildren<Collider>(true)
+                .Where(c => c.enabled && !c.isTrigger && !c.transform.IsChildOf(floor)).ToArray();
+            var required = new HashSet<Transform> { prefab.transform };
+            foreach (var collider in source)
+            {
+                // ponytail: unreadable meshes keep the original clone path; no new cooking assumptions.
+                if (collider is MeshCollider mesh && (!mesh.sharedMesh || !mesh.sharedMesh.isReadable)) return false;
+                for (var node = collider.transform; node; node = node.parent)
+                {
+                    var scale = node.localScale;
+                    if (!float.IsFinite(scale.x) || !float.IsFinite(scale.y) || !float.IsFinite(scale.z)
+                        || scale.x == 0 || scale.y == 0 || scale.z == 0) return false;
+                    required.Add(node);
+                }
+            }
+            GameObject root = null;
+            bool complete = false;
+            try
+            {
+                root = new GameObject(prefab.name + " · collision probe"); root.SetActive(false);
+                SceneManager.MoveGameObjectToScene(root, scene);
+                var copies = new Dictionary<Transform, Transform>();
+                void CopyTree(Transform original, Transform copy)
+                {
+                    copies.Add(original, copy);
+                    copy.localPosition = original.localPosition; copy.localRotation = original.localRotation;
+                    copy.localScale = original.localScale; copy.gameObject.layer = original.gameObject.layer;
+                    foreach (Transform child in original)
+                    {
+                        if (!required.Contains(child)) continue;
+                        var next = new GameObject(child.name).transform; next.SetParent(copy, false);
+                        next.gameObject.SetActive(child.gameObject.activeSelf); CopyTree(child, next);
+                    }
+                }
+                CopyTree(prefab.transform, root.transform);
+                var result = new Collider[source.Length];
+                for (int i = 0; i < source.Length; i++)
+                {
+                    var original = source[i]; var target = copies[original.transform].gameObject;
+                    Collider copy;
+                    if (original is BoxCollider box)
+                    { var shape = target.AddComponent<BoxCollider>(); shape.center = box.center; shape.size = box.size; copy = shape; }
+                    else if (original is SphereCollider sphere)
+                    { var shape = target.AddComponent<SphereCollider>(); shape.center = sphere.center; shape.radius = sphere.radius; copy = shape; }
+                    else if (original is CapsuleCollider capsule)
+                    {
+                        var shape = target.AddComponent<CapsuleCollider>(); shape.direction = capsule.direction;
+                        shape.center = capsule.center; shape.height = capsule.height; shape.radius = capsule.radius; copy = shape;
+                    }
+                    else
+                    {
+                        var mesh = (MeshCollider)original; var shape = target.AddComponent<MeshCollider>();
+                        shape.cookingOptions = mesh.cookingOptions; shape.convex = mesh.convex;
+                        shape.sharedMesh = mesh.sharedMesh; copy = shape;
+                    }
+                    copy.sharedMaterial = original.sharedMaterial; copy.contactOffset = original.contactOffset;
+                    copy.isTrigger = original.isTrigger; copy.enabled = original.enabled;
+                    result[i] = copy;
+                }
+                root.SetActive(prefab.activeSelf);
+                obstacles = result; complete = true; return true;
+            }
+            catch (UnityException) { return false; }
+            catch (ArgumentException) { return false; }
+            finally
+            {
+                if (!complete && root) { root.SetActive(false); Destroy(root); }
+            }
         }
 
         static bool FloorHit(MeshCollider[] floors, Vector3 near, out Vector3 point)

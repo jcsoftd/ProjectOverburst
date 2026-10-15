@@ -266,6 +266,15 @@ public static class MapFiniteSpawnPlayVerifier
             ActorTeleportUtility.TeleportSafely(player.transform, point + Vector3.up * .12f, Quaternion.identity);
             until = EditorApplication.timeSinceStartup + 20;
             while ((!field.InitialPlaced || !map.IsRevealed(point)) && EditorApplication.timeSinceStartup < until) { ClearNearbyOthers(area.Ground.Index); Sample(); yield return null; }
+            if (area.Count == 0)
+            {
+                check((area.Ground.Index == roster.EntryAreaIndex || gate.BossArena != null && area.Ground.Index == gate.BossArena.Ground.Index)
+                    && area.InitialCount == 0 && field.InitialPlaced && field.FiniteActiveCount == 0,
+                    label + ": reserved entry or boss area has no natural population " + area.Ground.Index);
+                check(map.IsRevealed(point), label + ": visiting reveals reserved area " + area.Ground.Index);
+                Sample(); areas.Add(new { area.Ground.Index, area.Count, area.InitialCount, reserved = true });
+                continue;
+            }
             check(field.InitialPlaced && (field.FiniteActiveCount > 0 || deaths.Any(i => roster.Members[i].AreaIndex == area.Ground.Index)), label + ": actual initial actors in area " + area.Ground.Index);
             check(map.IsRevealed(point), label + ": visiting reveals area " + area.Ground.Index);
             var initial = roster.Members.Skip(area.FirstMember).Take(area.Count).Where(m => m.Initial && m.State == MapRunRoster.Life.Active).ToArray();
