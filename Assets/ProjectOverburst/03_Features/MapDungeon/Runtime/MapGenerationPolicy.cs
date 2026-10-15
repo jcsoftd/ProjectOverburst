@@ -43,7 +43,9 @@ public static class MapGenerationPolicy
             int group = Pick(rng, DesertWeights);
             var choices = new List<MapTerrainCatalog.DesertCandidate>();
             foreach (var row in MapTerrainCatalog.DesertCandidates)
-                if (DesertGroup(row.areaCount) == group) choices.Add(row);
+                if (DesertGroup(row.areaCount) == group
+                    && (UnityEngine.Application.isEditor || UnityEngine.Application.CanStreamedLevelBeLoaded(row.scene)))
+                    choices.Add(row);
             if (choices.Count == 0) throw new InvalidDataException("선택한 규모의 사막 후보가 없습니다.");
             var chosen = choices[rng.Next(choices.Count)];
             candidate = chosen.id; count = chosen.areaCount; width = chosen.width; depth = chosen.depth;

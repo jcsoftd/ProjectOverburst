@@ -95,7 +95,9 @@ namespace Overburst.DebugTools.Performance
                     throw new InvalidOperationException("CSP fixture must be prepared before account boot in a fresh directory");
                 // Same fixture as the existing Editor CSP session; no real-account copy.
                 var registry = Resources.Load<AccountContentRegistry>(AccountContentRegistry.ResourcePath);
-                var seed = NewAccountFactory.Create(registry); seed.level = 10;
+                var seed = NewAccountFactory.Create(registry);
+                CheckCspPlayerContent(seed);
+                seed.level = 10;
                 AccountCharacterCommands.EnsureLegacy(seed);
                 new EasySaveAccountStore(account).Save(seed, "CSP-G00-fixture");
                 CspPlayerAccountReady = true;
@@ -103,6 +105,38 @@ namespace Overburst.DebugTools.Performance
                 WriteCspPlayerSession();
             }
             catch (Exception error) { FailCspPlayer(error); }
+        }
+
+        // Runs before the measured recipe, only for explicitly requested CSP Players.
+        static void CheckCspPlayerContent(AccountSnapshot seed)
+        {
+            int gemCount = 0;
+            foreach (var item in seed.items)
+                if (item.instanceId == seed.elementalGemInstanceId && item.contentId == NewAccountFactory.StarterElementGemId
+                    && item.level == 1 && item.grade == ItemGrade.Common && item.count == 1) gemCount++;
+            if (gemCount != 1) throw new InvalidOperationException("Starter fire gem is not equipped at level 1");
+            var available = new System.Collections.Generic.List<string>();
+            var sizes = new System.Collections.Generic.HashSet<int>();
+            foreach (var row in MapTerrainCatalog.DesertCandidates)
+                if (Application.CanStreamedLevelBeLoaded(row.scene)) { available.Add(row.id); sizes.Add(row.areaCount); }
+            if (!sizes.SetEquals(new[] { 4, 6, 9, 12, 15 }))
+                throw new InvalidOperationException("Player is missing a desert size group");
+            var generated = new System.Collections.Generic.HashSet<string>();
+            int deserts = 0;
+            for (int i = 0; i < 2048; i++)
+            {
+                var map = new MapInstanceState();
+                MapGenerationPolicy.Initialize(map, "CSP-Player-content-" + i);
+                if (!Application.CanStreamedLevelBeLoaded(MapTerrainCatalog.SceneFor(map)))
+                    throw new InvalidOperationException("New map selected a scene absent from this Player");
+                if (map.terrain == MapTerrainKind.Desert) { deserts++; generated.Add(map.desertCandidateId); }
+            }
+            if (!generated.SetEquals(available)) throw new InvalidOperationException("Map samples did not cover the available desert candidates");
+            System.IO.File.WriteAllText(Path.Combine(cspPlayerOutput, "player-content-checks.json"),
+                Newtonsoft.Json.JsonConvert.SerializeObject(new { status = "PASS", starterFireGemLevel = 1,
+                    sceneCount = UnityEngine.SceneManagement.SceneManager.sceneCountInBuildSettings,
+                    catalogCandidates = MapTerrainCatalog.DesertCandidates.Count, availableDeserts = available,
+                    generatedDeserts = generated, samples = 2048, desertSamples = deserts }, Newtonsoft.Json.Formatting.Indented));
         }
 
         static void StartCspPlayer()
