@@ -870,14 +870,15 @@ public partial class EnemyAnimationBridge : MonoBehaviour
         moveAnimSpeedHash = Animator.StringToHash(moveAnimSpeedParameter);
         attackAnimSpeedHash = Animator.StringToHash(attackAnimSpeedParameter);
 
-        hasMoveParameter = HasParameter(moveParameter, AnimatorControllerParameterType.Float);
-        hasAttackTrigger = HasParameter(attackTrigger, AnimatorControllerParameterType.Trigger);
-        hasHitTrigger = HasParameter(hitTrigger, AnimatorControllerParameterType.Trigger);
-        hasDeathTrigger = HasParameter(deathTrigger, AnimatorControllerParameterType.Trigger);
-        hasMoveAnimSpeedParameter = HasParameter(moveAnimSpeedParameter, AnimatorControllerParameterType.Float);
-        hasAttackAnimSpeedParameter = HasParameter(attackAnimSpeedParameter, AnimatorControllerParameterType.Float);
-        hasDirectionalHit = HasParameter("HitX", AnimatorControllerParameterType.Float)
-            && HasParameter("HitZ", AnimatorControllerParameterType.Float);
+        AnimatorControllerParameter[] parameters = animator != null ? animator.parameters : null;
+        hasMoveParameter = HasParameter(parameters, moveParameter, AnimatorControllerParameterType.Float);
+        hasAttackTrigger = HasParameter(parameters, attackTrigger, AnimatorControllerParameterType.Trigger);
+        hasHitTrigger = HasParameter(parameters, hitTrigger, AnimatorControllerParameterType.Trigger);
+        hasDeathTrigger = HasParameter(parameters, deathTrigger, AnimatorControllerParameterType.Trigger);
+        hasMoveAnimSpeedParameter = HasParameter(parameters, moveAnimSpeedParameter, AnimatorControllerParameterType.Float);
+        hasAttackAnimSpeedParameter = HasParameter(parameters, attackAnimSpeedParameter, AnimatorControllerParameterType.Float);
+        hasDirectionalHit = HasParameter(parameters, "HitX", AnimatorControllerParameterType.Float)
+            && HasParameter(parameters, "HitZ", AnimatorControllerParameterType.Float);
     }
 
     private bool HasParameter(string parameterName, AnimatorControllerParameterType parameterType)
@@ -885,7 +886,17 @@ public partial class EnemyAnimationBridge : MonoBehaviour
         if (animator == null || string.IsNullOrEmpty(parameterName))
             return false;
 
-        AnimatorControllerParameter[] parameters = animator.parameters;
+        return HasParameter(animator.parameters, parameterName, parameterType);
+    }
+
+    private static bool HasParameter(
+        AnimatorControllerParameter[] parameters,
+        string parameterName,
+        AnimatorControllerParameterType parameterType)
+    {
+        if (parameters == null || string.IsNullOrEmpty(parameterName))
+            return false;
+
         for (int i = 0; i < parameters.Length; i++)
         {
             AnimatorControllerParameter parameter = parameters[i];
