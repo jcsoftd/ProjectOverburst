@@ -57,6 +57,8 @@ namespace Overburst.Mojave
         public static Vector3 EntryFor(MojaveWorld world)
         {
             world.EnsureLayout();
+            foreach(var place in world.layout.places)
+                if(place.role==MojaveTileRole.Entrance)return world.Ground(place.World(new Vector2(-2,-2)));
             var entrance = world.layout.places[0];
             // Keep the sole large/medium tile available for the boss instead of spawning the player there.
             foreach (var place in world.layout.places)

@@ -4,7 +4,7 @@ using UnityEngine;
 using Overburst.Mojave;
 using UnityEngine.AI;
 
-// Reserve the largest authored combat-tile tier, then the farthest reachable room in that tier.
+// Dedicated boss tiles take precedence; older maps retain their authored size selection.
 public sealed class MapBossArena
 {
     public MapCombatGeometry.Area Ground { get; private set; }
@@ -25,12 +25,20 @@ public sealed class MapBossArena
         for (int i = 1; i < areas.Count; i++)
             if ((areas[i].Center - entry).sqrMagnitude < (areas[entrance].Center - entry).sqrMagnitude) entrance = i;
         var preferred = MojaveCombatSize.Small;
+        int designated=-1;
         for (int i = 0; i < areas.Count; i++)
+        {
+            if(areas[i].Source.place.role==MojaveTileRole.Boss) {
+                if(designated>=0)throw new InvalidOperationException("사막 보스 전용 타일이 중복되었습니다.");
+                designated=i;
+            }
             if (i != entrance && TileSize(areas[i]) < preferred) preferred = TileSize(areas[i]);
+        }
+        if(designated>=0)preferred=TileSize(areas[designated]);
         var path = new NavMeshPath(); int farthest = -1; float longest = -1;
         for (int i = 0; i < areas.Count; i++)
         {
-            if (i == entrance || TileSize(areas[i]) != preferred) continue;
+            if (i == entrance || (designated>=0 ? i!=designated : TileSize(areas[i]) != preferred)) continue;
             if (!NavMesh.CalculatePath(entry, areas[i].Center, NavMesh.AllAreas, path) || path.status != NavMeshPathStatus.PathComplete)
                 throw new InvalidOperationException("사막 보스 후보까지 걸어갈 수 없습니다: " + areas[i].Name);
             float length = 0; var corners = path.corners;
