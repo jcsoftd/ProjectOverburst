@@ -11,13 +11,24 @@ public static class MapFarmingLoot
 {
     private static readonly float[][] Chances =
     {
-        new[] { .0045f, .009f, .00225f, .0015f, .00075f },
-        new[] { .075f, .135f, .0375f, .0375f, .015f },
-        new[] { .525f, 1f, .375f, .15f, .075f }
+        new[] { .009f, .018f, .0045f, .003f, .0015f },
+        new[] { .15f, .27f, .075f, .075f, .03f },
+        new[] { 1f, 1f, .75f, .30f, .15f }
     };
     private static readonly float[] DesertWeights = { 1.4f, 1.15f, .65f, .8f, .8f };
     private static readonly float[] CaveWeights = { .75f, .8f, 1.65f, 1.25f, 1.25f };
     private static readonly float[][] GradeWeights =
+    {
+        new[] { 25f, 35f, 28f, 10f, 2f, 0f, 0f },
+        new[] { 18f, 32f, 32f, 15f, 3f, 0f, 0f },
+        new[] { 12f, 28f, 36f, 18f, 5.5f, 0.5f, 0f },
+        new[] { 7f, 21f, 38f, 25f, 8f, 1f, 0f },
+        new[] { 3f, 12f, 38f, 32f, 13f, 1.8f, 0.2f },
+        new[] { 1f, 7f, 32f, 38f, 18f, 3.5f, 0.5f },
+        new[] { 0f, 2f, 20f, 42f, 28f, 7f, 1f }
+    };
+    // Next-map rarity keeps its existing progression independently of farming-item rarity.
+    private static readonly float[][] MapGradeWeights =
     {
         new[] { 50f, 30f, 15f, 4.5f, .5f, 0f, 0f },
         new[] { 40f, 32f, 20f, 7f, 1f, 0f, 0f },
@@ -55,6 +66,14 @@ public static class MapFarmingLoot
     public static ItemGrade MaximumGrade(ItemGrade mapGrade)
         => mapGrade < ItemGrade.Rare ? ItemGrade.Legendary
             : mapGrade < ItemGrade.Legendary ? ItemGrade.Artifact : ItemGrade.Mythic;
+
+    public static ItemGrade SelectMapGrade(float roll, ItemGrade mapGrade)
+    {
+        if (float.IsNaN(roll) || float.IsInfinity(roll) || roll < 0 || roll > 1)
+            throw new ArgumentOutOfRangeException(nameof(roll));
+        return BagFarmingLoot.SelectGrade(roll, MapGradeWeights[Mathf.Clamp((int)mapGrade, 0, 6)],
+            (int)MaximumGrade(mapGrade), 0);
+    }
 
     public static ItemGrade SelectGrade(float roll, ItemGrade mapGrade,
         EnemyGradeType rank = EnemyGradeType.Normal, float rarePercent = 0)

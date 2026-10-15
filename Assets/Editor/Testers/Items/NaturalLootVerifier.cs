@@ -78,7 +78,7 @@ public static class NaturalLootVerifier
                 && WeaponLootPolicy.DefinitionsForLevel(101).SequenceEqual(WeaponLootPolicy.DefinitionsForLevel(100)), "weapon level clamps at 1 and 100");
             var rankFixture = fixture.AddComponent<EnemyRank>();
             const int trials = 10000;
-            double[][] expectedRates = { new[] { .015, .03, .01, .01, .005 }, new[] { .08, .15, .05, .05, .02 }, new[] { .35, 1.0, .25, .10, .05 } };
+            double[][] expectedRates = { new[] { .03, .06, .02, .02, .01 }, new[] { .16, .30, .10, .10, .04 }, new[] { .70, 1.0, .50, .20, .10 } };
             var names = new[] { "weapon", "gear", "gem", "flask", "bag" };
             var ranks = new[] { EnemyGradeType.Normal, EnemyGradeType.Elite, EnemyGradeType.Boss };
             CombatDebugSettings.SetRunLootOverride(RunLootDebugOverride.Default);

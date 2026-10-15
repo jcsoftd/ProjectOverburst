@@ -29,7 +29,7 @@ public static class MapDropPolicy
             || chance <= 0 || (chance < 1 && Random.value >= chance)) return null;
         int level = Random.Range(MinimumLevel(map.level, tier), MaximumLevel(map.level, tier) + 1);
         return MapGenerationPolicy.CreateItem(definition, registry, level,
-            MapFarmingLoot.SelectGrade(Random.value, map.grade), runId);
+            MapFarmingLoot.SelectMapGrade(Random.value, map.grade), runId);
     }
 
     public static ItemData Roll(MapItemData definition, AccountContentRegistry registry,

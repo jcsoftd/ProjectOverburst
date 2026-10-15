@@ -40,7 +40,7 @@ public static class WeaponLootPolicy
         if (items.Length == 0) return null;
         bool boss = gradeType == EnemyGradeType.Boss;
         bool elite = gradeType == EnemyGradeType.Elite || gradeType == EnemyGradeType.GreaterElite;
-        float chance = CombatDebugSettings.ApplyRunLootChance(boss ? .35f : elite ? .08f : .015f);
+        float chance = CombatDebugSettings.ApplyRunLootChance(boss ? .70f : elite ? .16f : .03f);
         float effectiveChance = Mathf.Min(1f, chance * (1f + MapRunBuffs.Bonus(MapBuffKind.ItemDrop)));
         float chanceRoll = Random.value;
         if (effectiveChance <= 0f || (effectiveChance < 1f && chanceRoll >= effectiveChance)) return null;

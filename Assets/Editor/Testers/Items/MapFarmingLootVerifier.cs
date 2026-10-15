@@ -31,8 +31,8 @@ public static class MapFarmingLootVerifier
             map.options.Clear();
             Check(MapFarmingLoot.Applies(map) && !MapFarmingLoot.Applies(null)
                 && !MapFarmingLoot.Applies(new MapInstanceState()), "new map branch does not replace legacy or outdoor policies");
-            double[][] baseline = { new[] { .0045, .009, .00225, .0015, .00075 },
-                new[] { .075, .135, .0375, .0375, .015 }, new[] { .525, 1.0, .375, .15, .075 } };
+            double[][] baseline = { new[] { .009, .018, .0045, .003, .0015 },
+                new[] { .15, .27, .075, .075, .03 }, new[] { 1.0, 1.0, .75, .30, .15 } };
             var ranks = new[] { EnemyGradeType.Normal, EnemyGradeType.Elite, EnemyGradeType.Boss };
             var terrains = new[] { MapTerrainKind.Desert, MapTerrainKind.Cave };
             double[][] weights = { new[] { 1.4, 1.15, .65, .8, .8 }, new[] { .75, .8, 1.65, 1.25, 1.25 } };
@@ -56,8 +56,8 @@ public static class MapFarmingLootVerifier
                 }
                 Near(total, sum, "terrain preserves expected total " + terrains[t] + "/" + ranks[r]);
             }
-            Near(1190 * .018 + 50 * .30, 36.42, "1240-member reference farming expectation");
-            Near((1190 * .018 + 50 * .30) * .95, 34.599, "95 percent proportional reference farming expectation");
+            Near(1190 * .036 + 50 * .60, 72.84, "1240-member reference farming expectation");
+            Near((1190 * .036 + 50 * .60) * .95, 69.198, "95 percent proportional reference farming expectation");
             Near(992 * .00075 + 198 * .00175 + 50 * .0075 + 1, 2.4655, "1240-member reference map expectation");
             Near((992 * .00075 + 198 * .00175 + 50 * .0075) * .95 + 1, 2.392225, "95 percent proportional reference map expectation");
             Near(MapFarmingLoot.Chance(MapFarmingKind.Gear, EnemyGradeType.GreaterElite, map),
@@ -71,6 +71,14 @@ public static class MapFarmingLootVerifier
             Near(MapDropPolicy.ChanceForMap(EnemyThemeTier.Elite, map), 1, "natural map probability clamps at 100 percent");
             map.options.Clear();
             double[][] grades = {
+                new[] { 25d, 35d, 28d, 10d, 2d, 0d, 0d },
+                new[] { 18d, 32d, 32d, 15d, 3d, 0d, 0d },
+                new[] { 12d, 28d, 36d, 18d, 5.5d, 0.5d, 0d },
+                new[] { 7d, 21d, 38d, 25d, 8d, 1d, 0d },
+                new[] { 3d, 12d, 38d, 32d, 13d, 1.8d, 0.2d },
+                new[] { 1d, 7d, 32d, 38d, 18d, 3.5d, 0.5d },
+                new[] { 0d, 2d, 20d, 42d, 28d, 7d, 1d } };
+            double[][] mapGrades = {
                 new[] {50d,30,15,4.5,.5,0,0}, new[] {40d,32,20,7,1,0,0}, new[] {30d,32,25,10,2.9,.1,0},
                 new[] {20d,28,32,15,4.7,.3,0}, new[] {10d,20,37,24,8,.95,.05},
                 new[] {5d,12,33,32,15,2.8,.2}, new[] {0d,5,25,40,24,5.5,.5} };
@@ -82,9 +90,17 @@ public static class MapFarmingLootVerifier
                     if (grades[g][itemGrade] == 0) continue;
                     float middle = (float)((lower + grades[g][itemGrade] * .5) / 100);
                     Check(MapFarmingLoot.SelectGrade(middle, map.grade) == (ItemGrade)itemGrade, "grade distribution interval " + g + "/" + itemGrade);
-                    var reward = MapRewardPolicy.CreateBossMap(mapDefinition, registry, 1, 0, middle, "native", sourceMap: map);
-                    Check(reward.grade == (ItemGrade)itemGrade && reward.level == 2, "completion uses source base grade distribution, independently of level " + g + "/" + itemGrade);
                     lower += grades[g][itemGrade];
+                }
+                double mapLower = 0;
+                for (int itemGrade = 0; itemGrade < 7; itemGrade++)
+                {
+                    if (mapGrades[g][itemGrade] == 0) continue;
+                    float middle = (float)((mapLower + mapGrades[g][itemGrade] * .5) / 100);
+                    Check(MapFarmingLoot.SelectMapGrade(middle, map.grade) == (ItemGrade)itemGrade, "next-map distribution interval " + g + "/" + itemGrade);
+                    var reward = MapRewardPolicy.CreateBossMap(mapDefinition, registry, 1, 0, middle, "native", sourceMap: map);
+                    Check(reward.grade == (ItemGrade)itemGrade && reward.level == 2, "completion keeps next-map distribution, independently of farming-item grades " + g + "/" + itemGrade);
+                    mapLower += mapGrades[g][itemGrade];
                 }
                 Check(MapFarmingLoot.SelectGrade(1, map.grade) == MapFarmingLoot.MaximumGrade(map.grade), "inclusive roll 1 never selects zero-probability grade " + g);
                 foreach (int level in new[] { 1, 10, 50, 100 }) foreach (var rank in ranks)

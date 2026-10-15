@@ -83,7 +83,7 @@ public static class BagFarmingLoot
         if (definitions == null || definitions.Length == 0) return null;
         bool boss = rank != null && rank.GradeType == EnemyGradeType.Boss;
         bool elite = rank != null && rank.GradeType != EnemyGradeType.Normal;
-        float chance = CombatDebugSettings.ApplyRunLootChance(boss ? .05f : elite ? .02f : .005f);
+        float chance = CombatDebugSettings.ApplyRunLootChance(boss ? .10f : elite ? .04f : .01f);
         float effectiveChance = Mathf.Min(1, chance * (1 + MapRunBuffs.Bonus(MapBuffKind.ItemDrop)));
         float chanceRoll = UnityEngine.Random.value;
         if (effectiveChance <= 0f || (effectiveChance < 1f && chanceRoll >= effectiveChance)) return null;

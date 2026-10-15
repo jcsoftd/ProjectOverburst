@@ -41,7 +41,7 @@ namespace Overburst.Persistence
                 throw new ArgumentOutOfRangeException(nameof(gradeRoll));
             int level = BossMapLevel(dungeonLevel, levelRoll);
             ItemGrade grade = MapFarmingLoot.Applies(sourceMap)
-                ? MapFarmingLoot.SelectGrade(gradeRoll, sourceMap.grade)
+                ? MapFarmingLoot.SelectMapGrade(gradeRoll, sourceMap.grade)
                 : ItemGradeAvailabilityPolicy.ResolveWeightedGrade(gradeRoll,
                     ItemGradeAvailabilityPolicy.IsEnabled(ItemGrade.Cursed));
             return MapGenerationPolicy.CreateItem(definition, registry, level, grade, runId, rolledOptions);
