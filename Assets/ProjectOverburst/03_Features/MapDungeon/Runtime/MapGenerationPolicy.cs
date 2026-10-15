@@ -6,11 +6,11 @@ using Overburst.Persistence;
 public static class MapGenerationPolicy
 {
     public const int Version = 1;
-    // Temporary content limit: restore after the platform roster is expanded.
-    public const int CavePlatformLimit = 17;
-    // Initial tuning from 80A. All sizes remain available at every level/grade.
-    private static readonly int[] CaveWeights = { 4, 5, 6, 7, 8, 9, 10, 9, 8, 7, 6, 5, 4, 4, 3, 3, 2 };
-    private static readonly int[] DesertWeights = { 20, 25, 25, 20, 10 };
+    // Current cave range is 4..15; older saved sizes are capped when displayed or entered.
+    public const int CavePlatformLimit = 15;
+    // 80A size weights; selection remains independent of level and grade.
+    private static readonly int[] CaveWeights = { 2, 3, 13, 15, 16, 18, 9, 8, 6, 5, 3, 2 };
+    private static readonly int[] DesertWeights = { 10, 30, 40, 15, 5 };
 
     public static ItemData CreateItem(MapItemData definition, AccountContentRegistry registry,
         int level, ItemGrade grade, string runId = null, IReadOnlyList<MapOptionRoll> options = null)
@@ -37,7 +37,7 @@ public static class MapGenerationPolicy
         int seed = rng.Next(1, int.MaxValue);
         int count, width = 0, depth = 0;
         string candidate = null;
-        if (terrain == MapTerrainKind.Cave) count = Math.Min(CavePlatformLimit, 4 + Pick(rng, CaveWeights));
+        if (terrain == MapTerrainKind.Cave) count = 4 + Pick(rng, CaveWeights);
         else
         {
             int group = Pick(rng, DesertWeights);
