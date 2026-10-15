@@ -93,7 +93,7 @@ public sealed class PlayerFlaskController : MonoBehaviour
         }
         reason = string.Empty;
         ResolveInventory();
-        if (!CanChangeLoadout) { reason = "물약은 은신처에서 교체할 수 있습니다."; return false; }
+        if (!CanChangeLoadout) { reason = "지금은 물약 장착을 변경할 수 없습니다."; return false; }
         if (index < 0 || index >= SlotCount || item == null || !(item.baseData is FlaskItemData data)
             || inventory == null || !inventory.ContainsItem(item) || FlaskRuntime.State(item) == null)
         { reason = "장착할 물약을 찾을 수 없습니다."; return false; }
@@ -109,7 +109,7 @@ public sealed class PlayerFlaskController : MonoBehaviour
         equippedItems[index] = item;
         FlaskInstanceState equippedState = FlaskRuntime.State(item);
         equippedState.equippedSlot = index;
-        equippedState.cooldownRemaining = 0f;
+        if (WorldSessionState.IsHideout) equippedState.cooldownRemaining = 0f;
         Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged); return true;
     }
 
@@ -123,7 +123,7 @@ public sealed class PlayerFlaskController : MonoBehaviour
             return committed;
         }
         reason = string.Empty;
-        if (!CanChangeLoadout) { reason = "물약은 은신처에서 해제할 수 있습니다."; return false; }
+        if (!CanChangeLoadout) { reason = "지금은 물약 장착을 해제할 수 없습니다."; return false; }
         if (index < 0 || index >= SlotCount) return false;
         ItemData item = GetItem(index);
         if (item != null && FlaskRuntime.State(item) != null) FlaskRuntime.State(item).equippedSlot = -1;
@@ -188,7 +188,7 @@ public sealed class PlayerFlaskController : MonoBehaviour
     }
     public void ClearEffects() { effects.Clear(); GetComponent<FlaskGhostCollision>()?.Restore(); Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged); }
 
-    public static bool CanChangeLoadout => WorldSessionState.IsHideout;
+    public static bool CanChangeLoadout => WorldSessionState.IsHideout || WorldSessionState.Phase == WorldPhase.Run;
     private void ResolveInventory()
     {
         PlayerInventory next = PlayerContext.Instance != null ? PlayerContext.Instance.CurrentActorInventory : null;
@@ -234,7 +234,7 @@ public sealed class PlayerFlaskController : MonoBehaviour
         Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
     }
     private void Died(CombatHealth _, DamageInfo info) { ClearEffects(); ResetCooldowns(); }
-    private void ResetHealth(CombatHealth _) { ClearEffects(); if (CanChangeLoadout) ResetCooldowns(); previousTime = Time.time; }
+    private void ResetHealth(CombatHealth _) { ClearEffects(); if (WorldSessionState.IsHideout) ResetCooldowns(); previousTime = Time.time; }
     private void WorldChanged(WorldPhase phase)
     {
         if (phase != WorldPhase.Run && phase != WorldPhase.Hideout) return;

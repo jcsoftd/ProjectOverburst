@@ -281,7 +281,7 @@ public class InventoryItemActionService : MonoBehaviour
             if (flasks == null || FlaskRuntime.State(item)?.equippedSlot < 0)
             { SpawnPlayerStatusText("먼저 물약 장비칸에 장착해 주세요."); return false; }
             if (!PlayerFlaskController.CanChangeLoadout)
-            { SpawnPlayerStatusText("물약 등록은 은신처에서 변경할 수 있습니다."); return false; }
+            { SpawnPlayerStatusText("지금은 물약 등록을 변경할 수 없습니다."); return false; }
             return quickSlots.Bind(key, item);
         }
 
@@ -294,9 +294,14 @@ public class InventoryItemActionService : MonoBehaviour
     {
         ResolveReferences();
         PlayerFlaskController flasks = PlayerFlaskController.Current;
-        if (flasks == null) return false;
+        if (flasks == null || !(item?.baseData is FlaskItemData data)) return false;
         for (int i = 0; i < PlayerFlaskController.SlotCount; i++)
-            if (flasks.GetItem(i) == item) return true;
+        {
+            ItemData current = flasks.GetItem(i);
+            if (current == item) return true;
+            if (current?.baseData is FlaskItemData equipped && equipped.kind == data.kind)
+                return EquipFlaskToSlot(item, i);
+        }
         for (int i = 0; i < PlayerFlaskController.SlotCount; i++)
             if (flasks.GetItem(i) == null) return EquipFlaskToSlot(item, i);
         SpawnPlayerStatusText("물약 장비칸이 가득 찼습니다. 교체할 칸을 선택해 주세요.");
@@ -312,7 +317,7 @@ public class InventoryItemActionService : MonoBehaviour
         if (item == null || !(item.baseData is FlaskItemData) || flasks == null || quickSlots == null
             || slotIndex < 0 || slotIndex >= PlayerFlaskController.SlotCount) return false;
         if (!PlayerFlaskController.CanChangeLoadout)
-        { SpawnPlayerStatusText("물약은 은신처에서 교체할 수 있습니다."); return false; }
+        { SpawnPlayerStatusText("지금은 물약 장착을 변경할 수 없습니다."); return false; }
         quickSlots.ImportLegacyFlasks();
         ItemData previous = flasks.GetItem(slotIndex);
         if (previous == item) return true;

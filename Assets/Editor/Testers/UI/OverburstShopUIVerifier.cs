@@ -197,7 +197,7 @@ public static class OverburstShopUIPlayVerifier
     }
     public static void Run(bool restore) => Run(restore,OverburstShopUIVerifier.Output);
 
-    public static void Run(bool restore,string outputDirectory,bool verifyFlaskBindings=false)
+    public static void Run(bool restore,string outputDirectory,bool verifyFlaskBindings=false,bool verifyDungeonFlasks=false)
     {
         ItemTypeIconBuilder.RequireIdle();
         if(SessionState.GetBool(Key+"pending",false) || SessionState.GetBool(Key+"return",false))
@@ -207,6 +207,7 @@ public static class OverburstShopUIPlayVerifier
         if(!output.StartsWith(allowed,StringComparison.OrdinalIgnoreCase)) throw new ArgumentException("Verification output must stay under Codex artifacts");
         SessionState.SetString(Key+"output",output);
         SessionState.SetBool(Key+"flaskBindings",verifyFlaskBindings);
+        SessionState.SetBool(Key+"dungeonFlasks",verifyDungeonFlasks);
         if(SceneManager.GetActiveScene().name!="PersistentScene") throw new InvalidOperationException("PersistentScene required");
         if(!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable)) || !string.IsNullOrEmpty(IsolatedSavePlayGuard.ActiveDirectory)
             || !string.IsNullOrEmpty(SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared",""))) throw new InvalidOperationException("Another account is selected");
@@ -270,7 +271,7 @@ public static class OverburstShopUIPlayVerifier
             && SessionState.GetString(Key+"scenes","")==OverburstShopUIVerifier.Scenes();
         SessionState.SetBool(Key+"pending",false); SessionState.SetBool(Key+"return",false);
         EditorApplication.update-=ReturnAccount; EditorApplication.update-=BootWatch;
-        foreach(string key in new[]{"startScene","scenes","deadline","returnDeadline"})SessionState.EraseString(Key+key); SessionState.EraseInt(Key+"pid"); SessionState.EraseBool(Key+"flaskBindings");
+        foreach(string key in new[]{"startScene","scenes","deadline","returnDeadline"})SessionState.EraseString(Key+key); SessionState.EraseInt(Key+"pid"); SessionState.EraseBool(Key+"flaskBindings"); SessionState.EraseBool(Key+"dungeonFlasks");
         Write(Report.Replace("results","return"),new{status=ready?"PASS":"FAIL",ready,guard=IsolatedSavePlayGuard.RequiresAccountChoice,environment=Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable),pending=false,callback=false,playing=EditorApplication.isPlayingOrWillChangePlaymode});
         if(!ready)SessionState.SetString(Key+"status","RETURN_FAILED");
     }
@@ -290,6 +291,7 @@ public static class OverburstShopUIPlayVerifier
     {
         while(!PlayerContext.Instance || !PlayerContext.Instance.CurrentActorInventory || !WorldSessionState.IsHideout)yield return null;
         for(int i=0;i<20;i++)yield return null;
+        if(SessionState.GetBool(Key+"dungeonFlasks",false)) { VerifyDungeonFlaskLoadout(); yield break; }
         if(SessionState.GetBool(Key+"flaskBindings",false)) VerifyFlaskBindings();
         var game=Object.FindFirstObjectByType<OverburstGameUI>(); var shop=Object.FindFirstObjectByType<ShopUI>(FindObjectsInactive.Include);
         Check(game && shop,"Persistent product UI loaded");
@@ -407,6 +409,70 @@ public static class OverburstShopUIPlayVerifier
         // Persisted account restores the same surviving stack on the second Play.
         SessionState.SetInt(Key+"expectedStack",inventory.Items.Where(i=>i?.baseData==stackData).Sum(i=>i.stackCount));
         for(int i=0;i<15;i++)yield return null;
+    }
+    static void VerifyDungeonFlaskLoadout()
+    {
+        var account=Overburst.Persistence.AccountGameplaySession.Current;
+        var inventory=PlayerContext.Instance.CurrentActorInventory;
+        var flasks=PlayerFlaskController.Current;
+        var game=Object.FindFirstObjectByType<OverburstGameUI>();
+        var actions=game.GetComponent<InventoryItemActionService>();
+        var bindings=game.GetComponent<InventoryQuickSlotBindingController>();
+        var menu=game.GetComponent<InventoryContextMenuController>();
+        var registry=Resources.Load<Overburst.Persistence.AccountContentRegistry>(Overburst.Persistence.AccountContentRegistry.ResourcePath);
+        Check(account!=null && flasks && game && actions && bindings && menu,"Actual isolated account, actor and inventory UI ready");
+        string savedIds=Path.Combine(VerificationOutput,"flask-reentry-ids.json");
+        if(SessionState.GetBool(Key+"restore",false))
+        {
+            var expected=JsonConvert.DeserializeObject<string[]>(File.ReadAllText(savedIds));
+            Check(Enumerable.Range(0,3).All(i=>flasks.GetItem(i)?.runtimeInstanceId==expected[i]),"Three equipped flasks survive fresh Play and ES3 restore");
+            Check(bindings.GetBoundFlask(10)?.runtimeInstanceId==expected[0] && bindings.GetBoundFlask(5)?.runtimeInstanceId==expected[1]
+                && bindings.GetBoundFlask(6)?.runtimeInstanceId==expected[2],"Reassigned quick slots survive fresh Play");
+        }
+        for(int i=0;i<3;i++) if(flasks.GetItem(i)!=null) Check(actions.UnequipFlask(flasks.GetItem(i)),"Clear isolated starting flask "+i);
+        ItemData Flask(FlaskKind kind) => new ItemData(registry.Entries.Select(e=>e.asset).OfType<FlaskItemData>().First(d=>d.kind==kind),1,ItemGrade.Common);
+        void EquipFromMenu(ItemData item)
+        {
+            game.inventory.SetVisible(true);
+            var slot=game.inventoryWindow.GetComponentsInChildren<SlotUI>(true).First(s=>s.DisplayItem==item);
+            menu.OpenForSlot(slot,new PointerEventData(EventSystem.current){position=new Vector2(800,500),button=PointerEventData.InputButton.Right});
+            var button=FieldArray<Button>(menu,"menuButtons").First(b=>b.gameObject.activeSelf && b.GetComponentInChildren<TMP_Text>(true)?.text=="장착");
+            Check(button.interactable,"Equip menu enabled during Run for "+item.itemName);
+            button.onClick.Invoke();
+            Check(!menu.IsOpen,"Equip menu completes during Run for "+item.itemName);
+        }
+        var first=Flask(FlaskKind.Berserker); var second=Flask(FlaskKind.Giant); var third=Flask(FlaskKind.Ironclad); var replacement=Flask(FlaskKind.Berserker);
+        Check(inventory.AddItem(first) && inventory.AddItem(second) && inventory.AddItem(third) && inventory.AddItem(replacement),"Four owned flask instances committed");
+        var prior=WorldSessionState.Phase;
+        var phase=typeof(WorldSessionState).GetMethod("SetPhase",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic);
+        try
+        {
+            phase.Invoke(null,new object[]{WorldPhase.Run});
+            Check(PlayerFlaskController.CanChangeLoadout,"Loadout changes allowed during Run");
+            EquipFromMenu(first); EquipFromMenu(replacement);
+            Check(flasks.GetItem(0)==replacement && flasks.GetItem(1)==null && first.flaskState.equippedSlot==-1,"Same kind replaces original slot before using empty slots");
+            Check(bindings.GetBoundFlask(4)==replacement && bindings.GetFlaskKey(first)==0,"Replacement retains original quick key");
+            EquipFromMenu(second); EquipFromMenu(third);
+            Check(flasks.GetItem(0)==replacement && flasks.GetItem(1)==second && flasks.GetItem(2)==third,"Three different flasks equip during Run");
+            EquipFromMenu(first);
+            Check(flasks.GetItem(0)==first && flasks.GetItem(1)==second && flasks.GetItem(2)==third,"Same kind replaces while all three slots are full");
+            Check(actions.BindQuickSlot(10,first) && bindings.GetBoundFlask(10)==first && bindings.GetFlaskKey(first)==10,"Quick slot reassignment allowed during Run");
+            menu.Close(); game.CloseEquipment(); game.inventory.SetVisible(false);
+            Check(flasks.TryUse(0,out string useReason),"Equipped flask usable during Run: "+useReason);
+            float cooldown=first.flaskState.cooldownRemaining;
+            Check(cooldown>0 && flasks.Effects.Contains(first.runtimeInstanceId),"Use starts actual cooldown and effect");
+            Check(actions.UnequipFlask(first) && !flasks.Effects.Contains(first.runtimeInstanceId),"Unequip during Run clears its effect");
+            Check(actions.EquipFlask(first) && Mathf.Approximately(first.flaskState.cooldownRemaining,cooldown),"Re-equipping during Run preserves cooldown");
+            Check(!flasks.TryUse(0,out _) && first.flaskState.cooldownRemaining>0,"Re-equipping cannot bypass cooldown");
+            Check(actions.BindQuickSlot(10,first),"Restore selected quick key after re-equipping");
+            phase.Invoke(null,new object[]{WorldPhase.Loading});
+            Check(!PlayerFlaskController.CanChangeLoadout && !actions.EquipFlaskToSlot(replacement,0),"Loading still blocks loadout changes");
+            phase.Invoke(null,new object[]{WorldPhase.Run});
+            Check(account.FlushPendingSave(),"Actual isolated ES3 save flushed");
+            File.WriteAllText(savedIds,JsonConvert.SerializeObject(Enumerable.Range(0,3).Select(i=>flasks.GetItem(i).runtimeInstanceId).ToArray()));
+            Check(account.Read().flasks.Count(id=>!string.IsNullOrEmpty(id))==3,"Committed account contains all three flask bindings");
+        }
+        finally { menu.Close(); game.CloseEquipment(); game.inventory.SetVisible(false); phase.Invoke(null,new object[]{prior}); }
     }
     static void VerifyFlaskBindings()
     {
