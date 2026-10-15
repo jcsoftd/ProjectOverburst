@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 
 [Serializable]
@@ -7,6 +8,7 @@ public sealed class TutorialProgress
     public int version = 1;
     public bool offered;
     public string firstCharacterId;
+    public List<string> offeredCharacterIds = new List<string>();
     public int completed;
     public int skipped;
     public int lastLesson;
@@ -20,8 +22,14 @@ public sealed class TutorialProgress
         if (value == null || value.version != 1 || (value.completed & ~mask) != 0 || (value.skipped & ~mask) != 0
             || value.lastLesson < 0 || value.lastLesson >= TutorialLessons.Count)
             throw new InvalidDataException("튜토리얼 기록을 읽지 못했습니다. 기존 파일은 유지됩니다.");
+        if (value.offeredCharacterIds == null) value.offeredCharacterIds = new List<string>();
+        // Retain a known legacy invitation without applying it to later characters.
+        if (value.offered && !string.IsNullOrEmpty(value.firstCharacterId)
+            && !value.offeredCharacterIds.Contains(value.firstCharacterId))
+            value.offeredCharacterIds.Add(value.firstCharacterId);
         return value;
     }
+    public bool WasOfferedTo(string characterId) => offeredCharacterIds.Contains(characterId);
     public static void RecordFirstCharacter(string directory, string characterId)
     {
         var progress = Load(directory);

@@ -6,6 +6,7 @@ namespace Overburst.Persistence
     public static class NewAccountFactory
     {
         public const string StarterWeaponId = "item.weapon.greatsword.catalog.024";
+        public const string StarterElementGemId = "item.elementgem.fire.common";
         // Explicit new-account policy; no Inspector inventory or legacy PlayerPrefs capture.
         public static AccountSnapshot Create(AccountContentRegistry registry)
         {
@@ -28,7 +29,12 @@ namespace Overburst.Persistence
             weapon.EnsureAcquisitionOrder();
             var snapshot = ItemSnapshotCodec.Capture(weapon, registry);
             state.items.Add(snapshot); state.weapons[0] = snapshot.instanceId;
-            state.nextAcquisitionOrder = checked(snapshot.acquisitionOrder + 1);
+            var gem = new ItemData(registry.Resolve<ElementGemItemData>(StarterElementGemId), 1, ItemGrade.Common);
+            gem.EnsureRuntimeState();
+            gem.EnsureAcquisitionOrder();
+            var gemSnapshot = ItemSnapshotCodec.Capture(gem, registry);
+            state.items.Add(gemSnapshot); state.elementalGemInstanceId = gemSnapshot.instanceId;
+            state.nextAcquisitionOrder = checked(Math.Max(snapshot.acquisitionOrder, gemSnapshot.acquisitionOrder) + 1);
             AccountInvariants.Validate(state, registry);
             return state;
         }

@@ -94,6 +94,9 @@ public static class TutorialVerifier
         Check(((RectTransform)guide.transform).anchoredPosition==new Vector2(20,-134)&&((RectTransform)guide.transform).sizeDelta==new Vector2(680,36)&&guide.GetComponent<UnityEngine.UI.RectMask2D>(),"Guide stays in the approved 36px objective key line");
         Check(PlayerParryController.ResolveGrade(.299f)==ParryGrade.Incomplete && PlayerParryController.ResolveGrade(.3f)==ParryGrade.Normal && PlayerParryController.ResolveGrade(.799f)==ParryGrade.Normal && PlayerParryController.ResolveGrade(.8f)==ParryGrade.Perfect,"Actual parry thresholds retained");
         var registry=Resources.Load<AccountContentRegistry>(AccountContentRegistry.ResourcePath);
+        var starter=NewAccountFactory.Create(registry);
+        var starterGem=starter.items.Single(i=>i.instanceId==starter.elementalGemInstanceId);
+        Check(starterGem.contentId==NewAccountFactory.StarterElementGemId&&starterGem.level==1&&starterGem.grade==ItemGrade.Common&&starterGem.count==1,"New character starts with one equipped level 1 common fire gem");
         var state=OptionalTutorialController.CreateLoadout(registry,NewAccountFactory.Create(registry));
         Check(state.elementalGemInstanceId!=null && state.items.Any(i=>i.contentId==OptionalTutorialController.PotionId),"Training loadout validates with fire gem and healing consumables");
         var files=Directory.GetFiles(output,"*",SearchOption.AllDirectories).OrderBy(x=>x).ToArray();
@@ -113,6 +116,15 @@ public static class TutorialVerifier
         var consumed=TutorialProgress.Load(firstDirectory);consumed.offered=true;consumed.Save(firstDirectory);
         TutorialProgress.RecordFirstCharacter(firstDirectory,Guid.NewGuid().ToString("N"));
         Check(TutorialProgress.Load(firstDirectory).offered&&TutorialProgress.Load(firstDirectory).firstCharacterId==firstId,"Consumed account offer cannot reset on character creation");
+        var perCharacter=TutorialProgress.Load(firstDirectory);string additionalId=Guid.NewGuid().ToString("N");
+        Check(perCharacter.WasOfferedTo(firstId)&&!perCharacter.WasOfferedTo(additionalId),"Legacy offer migrates only its known character");
+        perCharacter.offeredCharacterIds.Add(additionalId);perCharacter.Save(firstDirectory);
+        var characterReload=TutorialProgress.Load(firstDirectory);
+        Check(characterReload.WasOfferedTo(firstId)&&characterReload.WasOfferedTo(additionalId),"Character invitation history survives ES3 reload independently");
+        string legacyDirectory=Path.Combine(directory,"LegacyCompleted");
+        new TutorialProgress{offered=true,completed=1}.Save(legacyDirectory);
+        var legacyCompleted=TutorialProgress.Load(legacyDirectory);
+        Check(!legacyCompleted.WasOfferedTo(additionalId)&&legacyCompleted.completed==1,"Old completion without a character id does not suppress new-character invitations");
         var result=new {status="PASS",scope="Native",count=checks.Count,checks=checks.ToArray()};Write("native-results.json",result);return result;
     }
     public static void Start(string directory, bool firstEntryOnly = false)
@@ -195,19 +207,23 @@ public static class TutorialVerifier
         TitleCharacterPanel.Instance.Open(directory);TitleCharacterPanel.Instance.start.onClick.Invoke();yield return Frames(3);
         yield return EnterTown();
         Check(AccountGameplaySession.Current.Read().level==1&&tutorial.view.modal.activeSelf,"Level 1 first created character receives invitation after title reload");
+        var equippedGem=PlayerContext.Instance.CurrentActorEquipment.EquippedElementGem;
+        Check(equippedGem!=null&&equippedGem.level==1&&equippedGem.baseData is ElementGemItemData starterGem&&starterGem.element==WeaponElement.Fire,"Created character projects its level 1 fire gem into live equipment");
         yield return Capture("first-created-level1-invitation");
         tutorial.view.secondary.onClick.Invoke();
         Check(TutorialProgress.Load(directory).offered&&!tutorial.view.modal.activeSelf&&!GameplayInputBlocker.IsGameplayInputBlocked,"Decline is persisted and resumes normal gameplay");
         tutorial.OfferIfNeeded();Check(!tutorial.view.modal.activeSelf,"Duplicate offer callback does not prompt again");
         yield return ReturnToTitle();yield return EnterTown();
         Check(!tutorial.view.modal.activeSelf,"Level 1 relogin after decline does not prompt again");
-        yield return ReturnToTitle();new TutorialProgress().Save(directory);
+        yield return ReturnToTitle();
         yield return CreateCharacter("추가캐릭터검증");yield return EnterTown();
-        Check(AccountGameplaySession.Current.Read().level==1&&!tutorial.view.modal.activeSelf,"Additional level 1 character never arms invitation even without prior offer record");
-        Check(TutorialProgress.Load(directory).firstCharacterId==null,"Additional creation leaves legacy tutorial record ineligible");
+        string additionalId=AccountGameplaySession.Current.Read().activeCharacterId;
+        Check(AccountGameplaySession.Current.Read().level==1&&tutorial.view.modal.activeSelf,"Additional level 1 character receives its own first invitation");
+        Check(TutorialProgress.Load(directory).WasOfferedTo(additionalId),"Additional character invitation is persisted independently");
+        tutorial.view.secondary.onClick.Invoke();
         yield return ReturnToTitle();
         TitleCharacterPanel.Instance.rosterContent.Find("Character "+firstId).GetComponent<UnityEngine.UI.Button>().onClick.Invoke();yield return Frames(3);
-        yield return EnterTown();Check(!tutorial.view.modal.activeSelf,"Existing original level 1 character without eligibility is not prompted");
+        yield return EnterTown();Check(!tutorial.view.modal.activeSelf,"Returning to an already offered character does not prompt again");
         yield return ReturnToTitle();
         var store=new EasySaveAccountStore(directory);var state=store.Load();state.level=2;state.skillTree=AccountSkillTree.GrantEligible(state.skillTree,2);store.Save(state,"gate-level2-fixture");
         new TutorialProgress{firstCharacterId=firstId}.Save(directory);

@@ -67,14 +67,18 @@ public sealed class OptionalTutorialController : MonoBehaviour
     {
         if (!WorldSessionState.IsHideout || !AccountBootstrap.Ready || IsTraining) return;
         if (!LoadProgress()) { ShowModal(); view.ShowError(LastError); return; }
-        if (progress.offered) return;
         var state = AccountGameplaySession.Current?.Read();
-        if (state == null) return;
-        if (string.IsNullOrEmpty(progress.firstCharacterId))
-            progress.firstCharacterId = state.tutorialFirstCharacterId;
-        if (string.IsNullOrEmpty(progress.firstCharacterId) || progress.firstCharacterId != state.activeCharacterId) return;
+        if (state == null || string.IsNullOrEmpty(state.activeCharacterId)
+            || progress.WasOfferedTo(state.activeCharacterId)) return;
+        bool previouslyOffered = progress.offered;
+        progress.offeredCharacterIds.Add(state.activeCharacterId);
         progress.offered = true;
-        if (!SaveProgress()) { progress.offered = false; ShowModal(); view.ShowError(LastError); return; }
+        if (!SaveProgress())
+        {
+            progress.offeredCharacterIds.Remove(state.activeCharacterId);
+            progress.offered = previouslyOffered;
+            ShowModal(); view.ShowError(LastError); return;
+        }
         if (state.level != 1) return;
         ShowModal(); view.ShowInvitation();
     }
@@ -202,9 +206,6 @@ public sealed class OptionalTutorialController : MonoBehaviour
     {
         var state = NewAccountFactory.Create(registry);
         state.appearance = ItemSnapshotCodec.CopyValues(original.appearance);
-        var gem = NewItem(registry, TutorialAccountScope.FireGemId);
-        var gemSnapshot = ItemSnapshotCodec.Capture(gem, registry);
-        state.items.Add(gemSnapshot); state.elementalGemInstanceId = gemSnapshot.instanceId;
         var potion = NewItem(registry, PotionId); potion.stackCount = 5;
         var potionSnapshot = ItemSnapshotCodec.Capture(potion, registry);
         state.items.Add(potionSnapshot); state.inventory[0] = potionSnapshot.instanceId;
