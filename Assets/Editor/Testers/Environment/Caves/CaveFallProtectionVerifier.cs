@@ -34,6 +34,72 @@ public static class CaveFallProtectionVerifier
     static float XZ(Vector3 a, Vector3 b) => new Vector2(a.x - b.x, a.z - b.z).magnitude;
     static void Write(string name, object value) => File.WriteAllText(Path.Combine(output, name), JsonConvert.SerializeObject(value, Formatting.Indented));
 
+    delegate void FootprintReader(out float radius, out float rootAboveFoot);
+    public static object VerifyEnemyBodies(string directory)
+    {
+        CavePlatformMapBuilder.Guard();
+        string destination = Path.GetFullPath(directory); Directory.CreateDirectory(destination);
+        string Scenes() => JsonConvert.SerializeObject(Enumerable.Range(0, SceneManager.sceneCount).Select(i =>
+        { var s = SceneManager.GetSceneAt(i); return new { s.path, s.isDirty, s.rootCount }; }));
+        string before = Scenes(); int previews = EditorSceneManager.previewSceneCount;
+        var preview = EditorSceneManager.NewPreviewScene(); var rows = new List<object>(); int count = 0;
+        var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        var field = typeof(EnemyMotor).GetField("capsule", flags);
+        var method = typeof(EnemyMotor).GetMethod("ReadCaveFootprint", flags);
+        void Check(bool valid, string label) { count++; if (!valid) throw new InvalidOperationException(label); }
+        try
+        {
+            var tables = Resources.LoadAll<EnemyThemeTable>("Enemies/Themes/Tables");
+            var definitions = tables.SelectMany(t => t.Entries).Select(e => e.definition).Distinct().ToArray();
+            Check(tables.Length == 7 && definitions.Length == 62, "Current seven themes and 62 definitions.");
+            foreach (var definition in definitions)
+            {
+                var node = (GameObject)PrefabUtility.InstantiatePrefab(definition.ActorPrefab.gameObject, preview);
+                try
+                {
+                    node.SetActive(false); node.transform.position = Origin;
+                    var actor = node.GetComponent<EnemyActor>(); var motor = node.GetComponent<EnemyMotor>();
+                    var capsules = actor.CollisionRoot.GetComponentsInChildren<CapsuleCollider>(true);
+                    motor.ResolveReferences(); var capsule = (CapsuleCollider)field.GetValue(motor);
+                    Check(capsules.Length == 1 && capsule == capsules[0] && !capsule.isTrigger,
+                        definition.EnemyId + ": inactive body reference.");
+                    var read = (FootprintReader)method.CreateDelegate(typeof(FootprintReader), motor);
+                    read(out float radius, out float foot);
+                    Check(radius == .4f && foot == 0f, definition.EnemyId + ": inactive bounds fallback.");
+                    node.SetActive(true);
+                    Check(capsule.attachedRigidbody == node.GetComponent<Rigidbody>(), definition.EnemyId + ": active body attachment.");
+                    foreach (float scale in new[] { 1f, .75f, 1.25f })
+                    {
+                        actor.CollisionRoot.localScale = Vector3.one * scale; Physics.SyncTransforms();
+                        read(out radius, out foot); var bounds = capsule.bounds;
+                        Check(radius > 0 && Mathf.Abs(radius - Mathf.Max(bounds.extents.x, bounds.extents.z)) < .00001f
+                            && Mathf.Abs(foot - (node.transform.position.y - bounds.min.y)) < .00001f,
+                            definition.EnemyId + ": live scaled radius and signed foot " + scale);
+                    }
+                    capsule.enabled = false; read(out radius, out foot);
+                    Check(radius == .4f && foot == 0f, definition.EnemyId + ": disabled collider fallback.");
+                    capsule.enabled = true; Physics.SyncTransforms(); read(out radius, out foot);
+                    Check(radius > 0 && (CapsuleCollider)field.GetValue(motor) == capsule, definition.EnemyId + ": reactivation retains body.");
+                    read(out _, out _); long allocated = GC.GetAllocatedBytesForCurrentThread();
+                    for (int i = 0; i < 1000; i++) read(out _, out _);
+                    long bytes = GC.GetAllocatedBytesForCurrentThread() - allocated;
+                    Check(bytes < 256, definition.EnemyId + ": cached footprint has no steady allocations.");
+                    rows.Add(new { definition.EnemyId, radius, foot, bytes });
+                }
+                finally { Object.DestroyImmediate(node); }
+            }
+            var legacy = new GameObject("Owned legacy body fixture"); SceneManager.MoveGameObjectToScene(legacy, preview);
+            var rootCapsule = legacy.AddComponent<CapsuleCollider>(); var legacyMotor = legacy.AddComponent<EnemyMotor>();
+            legacyMotor.ResolveReferences();
+            Check((CapsuleCollider)field.GetValue(legacyMotor) == rootCapsule, "Legacy root CapsuleCollider retained.");
+        }
+        finally { EditorSceneManager.ClosePreviewScene(preview); }
+        Check(Scenes() == before && EditorSceneManager.previewSceneCount == previews, "User scenes and previews preserved.");
+        var result = new { status = "PASS", checks = count, definitions = rows.Count, rows };
+        File.WriteAllText(Path.Combine(destination, "native-bodies.json"), JsonConvert.SerializeObject(result, Formatting.Indented));
+        return result;
+    }
+
     public static object VerifyNative(string directory)
     {
         CavePlatformMapBuilder.Guard(); output = Path.GetFullPath(directory); Directory.CreateDirectory(output);
@@ -240,7 +306,7 @@ public static class CaveFallProtectionVerifier
             Require(currency.transform.position.z < Origin.z + 4 && currency.transform.position.y >= Origin.y, "Pooled currency lands on the deck");
             if (!CurrencyPickupPool.TryReturn(currency)) Object.DestroyImmediate(currency.gameObject);
         }
-        var invRequest = new InventoryWorldDropRequest { FallbackTransform = player.transform, ForwardDistance = 20, SpawnHeight = .2f };
+        var invRequest = new InventoryWorldDropRequest { PlayerEquipment = player.AddComponent<PlayerEquipment>(), FallbackTransform = player.transform, ForwardDistance = 20, SpawnHeight = .2f };
         var dropPoint = (Vector3)typeof(InventoryWorldDrop).GetMethod("GetWorldDropPosition", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, new object[] { invRequest });
         Require(dropPoint.z < Origin.z + 4 && dropPoint.z > Origin.z + 3.4f && Mathf.Abs(dropPoint.x - Origin.x) < .1f, "Inventory forward drop cannot spawn beyond rim");
         var lootOwner = new GameObject("Tall loot source"); lootOwner.transform.SetParent(fixture.transform); lootOwner.transform.position = Origin;

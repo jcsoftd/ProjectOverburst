@@ -199,18 +199,37 @@ public sealed class EnemyMotor : MonoBehaviour // Rigidbody 이동과 회전만 
     {
         if (body == null)
             body = GetComponent<Rigidbody>();
-        if (capsule == null) capsule = GetComponent<CapsuleCollider>();
+        if (capsule == null)
+        {
+            EnemyActor actor = GetComponent<EnemyActor>();
+            capsule = actor != null && actor.CollisionRoot != null
+                ? actor.CollisionRoot.GetComponentInChildren<CapsuleCollider>(true)
+                : GetComponent<CapsuleCollider>();
+        }
 
         CacheMovementConstraints();
     }
 
     private Vector3 ConstrainCavePosition(Vector3 from, Vector3 to)
     {
-        float radius = capsule != null ? capsule.radius * Mathf.Max(transform.lossyScale.x, transform.lossyScale.z) : .4f;
-        float footOffset = capsule != null ? transform.position.y - capsule.bounds.min.y : 0;
+        ReadCaveFootprint(out float radius, out float footOffset);
         caveBoundary.Resolve(from, from, radius, footOffset);
         var preview = caveBoundary;
         return preview.Resolve(from, to, radius, footOffset);
+    }
+
+    private void ReadCaveFootprint(out float radius, out float rootAboveFoot)
+    {
+        if (capsule == null || !capsule.enabled || !capsule.gameObject.activeInHierarchy)
+        {
+            radius = .4f;
+            rootAboveFoot = 0f;
+            return;
+        }
+
+        Bounds bounds = capsule.bounds;
+        radius = Mathf.Max(bounds.extents.x, bounds.extents.z);
+        rootAboveFoot = transform.position.y - bounds.min.y;
     }
 
     private void FixedUpdate()
@@ -220,8 +239,7 @@ public sealed class EnemyMotor : MonoBehaviour // Rigidbody 이동과 회전만 
         if (!caveBoundary.Active || body == null || body.isKinematic) return;
         Vector3 predicted = body.position + body.linearVelocity * Time.fixedDeltaTime;
         var preview = caveBoundary;
-        float radius = capsule != null ? capsule.radius * Mathf.Max(transform.lossyScale.x, transform.lossyScale.z) : .4f;
-        float offset = capsule != null ? transform.position.y - capsule.bounds.min.y : 0;
+        ReadCaveFootprint(out float radius, out float offset);
         Vector3 safe = preview.Resolve(body.position, predicted, radius, offset);
         if ((safe - predicted).sqrMagnitude > .000001f)
             body.linearVelocity = (safe - body.position) / Time.fixedDeltaTime;
