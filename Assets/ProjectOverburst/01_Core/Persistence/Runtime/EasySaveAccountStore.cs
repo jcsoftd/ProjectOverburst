@@ -223,7 +223,7 @@ namespace Overburst.Persistence
                 writer.Write(e.writtenAtUtcTicks); writer.Write(e.payload?.Length ?? 0);
                 if (e.payload != null) writer.Write(e.payload);
                 writer.Flush();
-                return BitConverter.ToString(sha.ComputeHash(bytes.ToArray())).Replace("-", "").ToLowerInvariant();
+                return BitConverter.ToString(sha.ComputeHash(bytes.GetBuffer(), 0, checked((int)bytes.Length))).Replace("-", "").ToLowerInvariant();
             }
         }
     }
