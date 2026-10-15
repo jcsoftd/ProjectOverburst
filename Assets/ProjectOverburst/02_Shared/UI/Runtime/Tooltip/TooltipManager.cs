@@ -187,7 +187,7 @@ public partial class TooltipManager : MonoBehaviour // 툴팁 표시
         if(rpgTooltip){
             if(currentItem?.baseData is FlaskItemData && rpgTooltip.view.gameObject.activeSelf && Time.unscaledTime >= nextFlaskRefresh){
                 nextFlaskRefresh=Time.unscaledTime+.2f;
-                rpgTooltip.view.Present(currentItem,currentShopPriceContextActive?GetCurrentShopPrice(currentItem).ToString("N0")+"G":null);
+                rpgTooltip.Show(currentItem,currentShopPriceContextActive?GetCurrentShopPrice(currentItem).ToString("N0")+"G":null);
             }
             rpgTooltip.Place();return;
         }
