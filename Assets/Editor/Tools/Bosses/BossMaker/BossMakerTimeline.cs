@@ -46,6 +46,12 @@ namespace Overburst.EditorTools.BossMaker
         public void Set(BossMakerDraft value, float at, float speed)
         {
             bool changed = draft != value; draft = value; progress = at; baseSpeed = speed;
+            if (draft == null)
+            {
+                dragPhase = -1;
+                if (this.HasPointerCapture(dragPointer)) this.ReleasePointer(dragPointer);
+                Clear(); style.height = 48f; MarkDirtyRepaint(); return;
+            }
             if (changed)
             {
                 Clear(); style.height = Mathf.Max(48f, draft.Material.strikes.Length * 34f + 8f);

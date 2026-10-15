@@ -127,7 +127,7 @@ public sealed class MojaveMapGeneratorWindow : EditorWindow
     {
         Guard();
         if(themeIndex!=2)throw new InvalidOperationException("맵 크기 직접 입력은 다듬은 Mojave에서 선택해.");
-        if(metres<MojaveLayout.MinimumMapSize||metres>MojaveLayout.MaximumMapSize) {RefreshControls();throw new ArgumentOutOfRangeException(nameof(metres),"맵 한 변은 256~768m로 입력해.");}
+        if(metres<MojaveLayout.MinimumMapSize||metres>MojaveLayout.MaximumMapSize) {RefreshControls();throw new ArgumentOutOfRangeException(nameof(metres),$"맵 한 변은 {MojaveLayout.MinimumMapSize}~{MojaveLayout.MaximumMapSize}m로 입력해.");}
         if(customMapSize!=metres) {ReleaseDraft();ReleaseFrame();restoreDraft=false;customMapSize=metres;history.Clear();historyIndex=-1;previewPlaceIndex=0;hasFreePose=false;}
         RefreshControls();SetStatus($"맵 한 변 {metres}m · 생성 버튼으로 적용");if(generate)Generate(requestedSeed);
     }
@@ -200,7 +200,7 @@ public sealed class MojaveMapGeneratorWindow : EditorWindow
         controls.Add(new Label("지역: Mojave Desert · 확정 방식"));
         sizeField=new DropdownField("배치 프리셋",new List<string>{"기본 · 256m","확장 · 384m","밀집 확장 · 320m"},compactMap?2:expandedMap?1:0) {name="map-size"};
         sizeField.RegisterValueChangedCallback(_=>Execute(()=>SetMapPreset(sizeField.index,false)));controls.Add(sizeField);
-        mapMetresField=new IntegerField("맵 한 변(m)") {name="map-metres",isDelayed=true,tooltip="256~768m. 타일과 바위 크기는 유지하고 구역 간격과 배경 범위를 바꿉니다. 입력 후 생성 버튼을 누르세요."};
+        mapMetresField=new IntegerField("맵 한 변(m)") {name="map-metres",isDelayed=true,tooltip=$"{MojaveLayout.MinimumMapSize}~{MojaveLayout.MaximumMapSize}m. 타일과 바위 크기는 유지하고 구역 간격과 배경 범위를 바꿉니다. 입력 후 생성 버튼을 누르세요."};
         mapMetresField.RegisterValueChangedCallback(e=>Execute(()=>SetMapSize(e.newValue,false)));controls.Add(mapMetresField);
         combatCountField=new DropdownField("전투 구역 수",new List<string>{"맵 크기 기본값","4개","6개","9개","12개","15개"},combatAreaCount==4?1:combatAreaCount==6?2:combatAreaCount==9?3:combatAreaCount==12?4:combatAreaCount==15?5:0) {name="combat-count"};
         combatCountField.RegisterValueChangedCallback(_=>Execute(()=>SetCombatCount(new[]{0,4,6,9,12,15}[combatCountField.index],false)));controls.Add(combatCountField);

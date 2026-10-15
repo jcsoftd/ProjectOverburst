@@ -72,7 +72,14 @@ namespace Overburst.EditorTools.BossMaker
             left.Add(Heading("공격 재료")); var search = new ToolbarSearchField { name = "boss-search" }; search.RegisterValueChangedCallback(e => { query = e.newValue; BuildLibrary(); }); left.Add(search);
             attackList = new ListView { name = "boss-attacks", fixedItemHeight = 58, selectionType = SelectionType.Single, virtualizationMethod = CollectionVirtualizationMethod.FixedHeight };
             attackList.makeItem = () => { var card = new VisualElement(); card.AddToClassList("bm-attack"); card.Add(new Label { name = "name" }); var sub = new Label { name = "sub" }; sub.AddToClassList("bm-muted"); card.Add(sub); return card; };
-            attackList.bindItem = (element, i) => { var d = filtered[i]; element.Q<Label>("name").text = (d.Dirty ? "● " : "") + d.Material.displayName; element.Q<Label>("sub").text = $"{d.Material.strikes.Length}타 · {DeliveryLabel(d.Material.delivery)} · {ShapeLabel(d.Material.strikes[0].shape)}"; element.tooltip = d.Material.runtimeClip.name; };
+            attackList.bindItem = (element, i) =>
+            {
+                var d = filtered[i]; var strikes = d.Material.strikes;
+                element.Q<Label>("name").text = (d.Dirty ? "● " : "") + d.Material.displayName;
+                string shape = strikes != null && strikes.Length > 0 && strikes[0] != null ? ShapeLabel(strikes[0].shape) : "타격 미설정";
+                element.Q<Label>("sub").text = $"{strikes?.Length ?? 0}타 · {DeliveryLabel(d.Material.delivery)} · {shape}";
+                element.tooltip = d.Material.runtimeClip != null ? d.Material.runtimeClip.name : "공격 클립 미설정";
+            };
             attackList.selectionChanged += items => { if (!rebuilding && items.FirstOrDefault() is BossMakerDraft d) SelectAttack(session.Drafts.IndexOf(d)); }; left.Add(attackList);
             var hint = new Label("공격별 사본 편집\n변경 검토 → 선택한 보스에 저장\nRM 제외 · 게임 카메라와 분리"); hint.AddToClassList("bm-note"); left.Add(hint);
             var center = new VisualElement(); center.AddToClassList("bm-center"); body.Add(center); BuildPreviewUI(center);
@@ -130,7 +137,7 @@ namespace Overburst.EditorTools.BossMaker
         }
         void EnsurePreview()
         {
-            if (preview != null || Draft == null || previewHost == null || previewHost.contentRect.width < 2 || EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating) return;
+            if (preview != null || Draft == null || !Draft.HasEditableData || previewHost == null || previewHost.contentRect.width < 2 || EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating) return;
             preview = new BossMakerPreview(selectedCollection); OpenPreviews++; preview.Load(Draft); renderDirty = true;
         }
         void DisposePreview()
@@ -199,6 +206,7 @@ namespace Overburst.EditorTools.BossMaker
             status.text = errors.Count > 0 ? "저장 전 수정: " + errors[0] : $"{(session?.Drafts.Count(d => d.Dirty) ?? 0)}개 공격 변경 · " + message;
             status.EnableInClassList("bm-error", errors.Count > 0); hasUnsavedChanges = sessions.Values.Any(s => s.Dirty);
             saveButton?.SetEnabled(session != null && session.Dirty && !EditorApplication.isPlayingOrWillChangePlaymode);
+            UpdateTransport();
         }
         internal void OpenReview()
         {

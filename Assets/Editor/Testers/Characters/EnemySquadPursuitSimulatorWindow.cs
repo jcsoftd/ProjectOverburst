@@ -1114,9 +1114,7 @@ public sealed class EnemySquadPursuitSimulatorWindow : EditorWindow
         aggroDetectionRange = settings.aggroDetectionRange > 0.01f
             ? settings.aggroDetectionRange
             : DefaultAggroDetectionRange;
-        supportCallRange = settings.supportCallRange > 0.01f
-            ? settings.supportCallRange
-            : DefaultSupportCallRange;
+        supportCallRange = settings.supportCallRange;
         mapHalfExtent = settings.mapHalfExtent > 0.01f
             ? settings.mapHalfExtent
             : DefaultMapHalfExtent;

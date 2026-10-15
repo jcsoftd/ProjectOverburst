@@ -22,17 +22,24 @@ namespace Overburst.EditorTools.BossMaker
             Add("발사 소켓", a.muzzleBone, b.muzzleBone); Add("발사 오프셋", a.muzzleOffset.ToString("F3"), b.muzzleOffset.ToString("F3"));
             Add("비행체 반경", Number(a.projectileRadius), Number(b.projectileRadius)); Add("비행 속도", Number(a.projectileSpeed), Number(b.projectileSpeed));
             Add("비행 시간", Number(a.flightSeconds), Number(b.flightSeconds)); Add("포물선 높이", Number(a.arcHeight), Number(b.arcHeight));
-            for (int i = 0; i < b.strikes.Length; i++)
+            int beforeCount = a.strikes?.Length ?? 0, afterCount = b.strikes?.Length ?? 0;
+            Add("타격 수", beforeCount.ToString(), afterCount.ToString());
+            for (int i = 0; i < Math.Max(beforeCount, afterCount); i++)
             {
-                var x = a.strikes[i]; var y = b.strikes[i];
+                var x = i < beforeCount ? a.strikes[i] : null; var y = i < afterCount ? b.strikes[i] : null;
+                if (x == null || y == null)
+                {
+                    Add((i + 1) + "타", x == null ? "없음" : Geometry(x), y == null ? "없음" : Geometry(y));
+                    continue;
+                }
                 Add((i + 1) + "타 범위", Geometry(x), Geometry(y));
                 Add((i + 1) + "타 중심", x.localOrigin.ToString("F3"), y.localOrigin.ToString("F3"));
                 Add((i + 1) + "타 방향", Number(x.yaw) + "°", Number(y.yaw) + "°");
                 Add((i + 1) + "타 높이", Number(x.minimumHeight) + "~" + Number(x.maximumHeight), Number(y.minimumHeight) + "~" + Number(y.maximumHeight));
                 Add((i + 1) + "타 시점", Number(x.impact * draft.FrameCount) + "F", Number(y.impact * draft.FrameCount) + "F");
                 Add((i + 1) + "타 판정 끝", Number(x.contactEnd * draft.FrameCount) + "F", Number(y.contactEnd * draft.FrameCount) + "F");
-                var xp = a.tuning?.parries != null && i < a.tuning.parries.Length ? a.tuning.parries[i] : null; var yp = b.tuning.parries[i];
-                Add((i + 1) + "타 패링", xp == null || xp.canParry ? "허용" : "회피", yp.canParry ? "허용" : "회피");
+                var xp = a.tuning?.parries != null && i < a.tuning.parries.Length ? a.tuning.parries[i] : null; var yp = b.tuning?.parries != null && i < b.tuning.parries.Length ? b.tuning.parries[i] : null;
+                Add((i + 1) + "타 패링", xp == null || xp.canParry ? "허용" : "회피", yp == null || yp.canParry ? "허용" : "회피");
                 string Window(EnemyBossStrikeParryTuning p) => p != null && p.overrideWindow ? Number(p.startNormalized * draft.FrameCount) + "~" + Number(p.endNormalized * draft.FrameCount) + "F" : "실시간 기본 구간";
                 Add((i + 1) + "타 패링 구간", Window(xp), Window(yp));
             }

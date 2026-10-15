@@ -36,7 +36,7 @@ namespace Overburst.EditorTools.MonsterTuner
                 string name = edit.property.ToLowerInvariant();
                 if (value.type == SerializedPropertyType.Float && (name.Contains("radius") || name.Contains("height") || name.Contains("scale") || name == "attackanimationduration") && value.number <= 0f) errors.Add(edit.label + ": 0보다 커야 합니다.");
                 if (edit.target == "variant" && value.type == SerializedPropertyType.Vector3 && (value.vector.x <= 0f || value.vector.y <= 0f || value.vector.z <= 0f)) errors.Add(edit.label + ": 크기 XYZ는 모두 양수여야 합니다.");
-                if (edit.target == "variant" && (name == "attackspeedmultiplier" || name == "movespeedmultiplier" || name == "healthmultiplier") && value.number <= 0f) errors.Add(edit.label + ": 0보다 커야 합니다.");
+                if (edit.target == "variant" && (name == "attackspeedmultiplier" || name == "movespeedmultiplier" || name == "healthmultiplier") && value.number < 0.01f) errors.Add(edit.label + ": 0.01 이상이어야 합니다.");
                 if (name == "attackinterval" && value.number < 0f) errors.Add("공격간격은 0초 이상입니다.");
                 if (name == "damagemultiplier" && value.number < 0f) errors.Add("피해 배율은 0 이상입니다.");
                 if (name == "parrycuescale" && value.number <= 0f) errors.Add("패링 예고 크기는 0보다 커야 합니다.");

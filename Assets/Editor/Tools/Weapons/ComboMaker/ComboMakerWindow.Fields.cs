@@ -199,6 +199,9 @@ namespace Overburst.EditorTools.ComboMaker
         {Edit(path,p=>{if(add)p.InsertArrayElementAtIndex(p.arraySize);else if(index>=0&&index<p.arraySize)p.DeleteArrayElementAtIndex(index);});BuildEditor();}
         private void EditTiming(int step,int phase,bool end,float time)
         {
+            if (!TimelineMatchesWorking || step != preview.StepIndex || phase < 0
+                || session.Working.steps[step].attackPhases == null || phase >= session.Working.steps[step].attackPhases.Length
+                || previewData.steps[step].attackPhases == null || phase >= previewData.steps[step].attackPhases.Length) return;
             string path=$"steps.Array.data[{step}].attackPhases.Array.data[{phase}]";
             var data=session.Working.steps[step].attackPhases[phase];
             float value=end?Mathf.Clamp(time,data.startNormalizedTime+.001f,1):Mathf.Clamp(time,0,data.endNormalizedTime-.001f);

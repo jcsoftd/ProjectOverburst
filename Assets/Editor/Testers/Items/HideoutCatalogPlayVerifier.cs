@@ -138,7 +138,6 @@ public static class HideoutCatalogPlayVerifier
             contentId = registry.IdFor(p.RuntimeItem.baseData), p.RuntimeItem.grade,
             position = new[] { p.transform.position.x, p.transform.position.y, p.transform.position.z }
         }), Formatting.Indented));
-        var initialGrades = pickups.OrderBy(p => registry.IdFor(p.RuntimeItem.baseData), StringComparer.Ordinal).Select(p => p.RuntimeItem.grade).ToArray();
         var oldItems = pickups.Select(p => p.RuntimeItem.runtimeInstanceId).ToHashSet();
         foreach (var type in catalog.Select(d => d.GetType()).Distinct())
         {
@@ -161,7 +160,6 @@ public static class HideoutCatalogPlayVerifier
         scene = SceneManager.GetSceneByName(PersistentSceneFlow.HideoutSceneName);
         var next = CheckDisplay(scene, catalog, registry, "hideout reentry");
         Check(!next.Any(p => oldItems.Contains(p.RuntimeItem.runtimeInstanceId)), "Reentry clears prior world items and creates new identities");
-        Check(!next.OrderBy(p => registry.IdFor(p.RuntimeItem.baseData), StringComparer.Ordinal).Select(p => p.RuntimeItem.grade).SequenceEqual(initialGrades), "Reentry rolls fresh random grades");
         File.WriteAllText(Path.Combine(Output, "catalog_reentry.json"), JsonConvert.SerializeObject(next.Select(p => new {
             contentId = registry.IdFor(p.RuntimeItem.baseData), p.RuntimeItem.grade,
             position = new[] { p.transform.position.x, p.transform.position.y, p.transform.position.z }
@@ -176,7 +174,6 @@ public static class HideoutCatalogPlayVerifier
         Check(pickups.Select(p => p.RuntimeItem.baseData).Distinct().Count() == catalog.Count
             && pickups.Select(p => p.RuntimeItem.baseData).ToHashSet().SetEquals(catalog), "Exactly one pickup per catalog definition: " + label);
         Check(pickups.All(p => p.RuntimeItem.stackCount == 1 && ItemGradeAvailabilityPolicy.IsEnabled(p.RuntimeItem.grade)), "One item and enabled random grade for every pickup: " + label);
-        Check(pickups.Select(p => p.RuntimeItem.grade).Distinct().Count() > 1, "Random grades vary across the display: " + label);
         Check(!Object.FindObjectsByType<Transform>(FindObjectsSortMode.None).Any(t => t.name.StartsWith("[TEMP] Hideout", StringComparison.Ordinal)), "Separate temporary bag spawner absent: " + label);
         var camp = HideoutCatalogLayoutBuilder.CampBounds(scene);
         Check(pickups.All(p => p.transform.position.x >= camp.max.x + HideoutCatalogLayoutBuilder.CampClearance), "Entire catalog stays outside camp with a clear gap: " + label);

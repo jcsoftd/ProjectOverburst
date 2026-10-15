@@ -14,8 +14,15 @@ namespace Overburst.EditorTools.BossMaker
         void BuildFields()
         {
             if (fields == null) return; fields.Clear(); fieldHost = fields; if (Draft == null) return;
-            var d = Draft; var m = d.Material; strikeIndex = Mathf.Clamp(strikeIndex, 0, m.strikes.Length - 1);
+            var d = Draft; var m = d.Material;
             attackTitle.text = m.displayName;
+            if (!d.HasEditableData)
+            {
+                fields.Add(new HelpBox(string.Join("\n", d.Validate()), HelpBoxMessageType.Error));
+                fields.Add(Button("원본 소재 선택", () => Selection.activeObject = d.Source));
+                return;
+            }
+            strikeIndex = Mathf.Clamp(strikeIndex, 0, m.strikes.Length - 1);
             for (int i = 0; i < 4; i++) rootVisualElement.Q<Button>("boss-tab-" + i)?.EnableInClassList("bm-selected", i == tab);
             var choices = new List<string>(); for (int i = 0; i < m.strikes.Length; i++) choices.Add((i + 1) + (m.delivery == EnemyBossMaterialDelivery.Melee ? "타" : "번째 발사"));
             var strikePicker = new DropdownField("타격 선택", choices, strikeIndex) { name = "boss-strike" };

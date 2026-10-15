@@ -246,7 +246,7 @@ namespace Overburst.EditorTools.ComboMaker
                 try
                 {
                     preview.Dispose();if(previewData!=null)DestroyImmediate(previewData);
-                    previewData=Instantiate(session.Working);previewData.hideFlags=HideFlags.HideAndDontSave;
+                    previewData=Instantiate(session.Working);previewData.hideFlags=HideFlags.HideAndDontSave;previewSource=session.Working;
                     preview.HeavyDefinition=IsHeavyMode?session.HeavyWorking:null;
                     if(validation.Count==0)MeleeAttackVfxSlopeBakeUtility.BakeWorkingCopy(session.Source,previewData);
                     preview.Load(selectedWeapon,previewData);preview.Begin(selectedStep,false,true);
@@ -271,6 +271,13 @@ namespace Overburst.EditorTools.ComboMaker
             }
         }
 
+        private MeleeComboDefinition previewSource;
+        private bool TimelineMatchesWorking => preview.Ready && previewData != null && session?.Working != null
+            && ReferenceEquals(previewSource, session.Working) && previewData.StepCount == session.Working.StepCount
+            && preview.StepIndex >= 0 && preview.StepIndex < session.Working.StepCount
+            && previewData.steps[preview.StepIndex].attackId == session.Working.steps[preview.StepIndex].attackId
+            && (previewData.steps[preview.StepIndex].attackPhases?.Length ?? 0) == (session.Working.steps[preview.StepIndex].attackPhases?.Length ?? 0);
+
         private void UpdateTransport()
         {
             if(playButton==null)return;
@@ -284,11 +291,12 @@ namespace Overburst.EditorTools.ComboMaker
             {
                 var step=previewData.steps[preview.StepIndex];
                 timeLabel.text=$"{preview.Progress*100:0.0}%  ·  클립 {preview.Progress*(step.animationClip!=null?step.animationClip.length:0):0.000}s  ·  경과 {preview.Elapsed:0.000}s";
-                timeline.SetData(previewData,preview.StepIndex,preview.Progress,(p,t)=>preview.CueTime(p,t),IsHeavyMode,IsHeavyMode?session.HeavyWorking.SafeDischargePhaseIndex:0);
+                timeline.SetEnabled(TimelineMatchesWorking);
+                timeline.SetData(TimelineMatchesWorking ? previewData : null,preview.StepIndex,preview.Progress,(p,t)=>preview.CueTime(p,t),IsHeavyMode,IsHeavyMode?session.HeavyWorking.SafeDischargePhaseIndex:0);
             }
             else
             {
-                timeline.SetData(null,0,0,null);
+                timeline.SetEnabled(false); timeline.SetData(null,0,0,null);
                 timeLabel.text="";
                 previewImage.image=null;
             }

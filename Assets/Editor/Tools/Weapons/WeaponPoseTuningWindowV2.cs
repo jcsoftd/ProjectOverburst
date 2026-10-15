@@ -1048,17 +1048,24 @@ public sealed class WeaponPoseTuningWindowV2 : EditorWindow
 
         try
         {
+            if (!sourceAnimationModeActive && AnimationMode.InAnimationMode())
+            {
+                previewMessage = "다른 창의 애니메이션 프리뷰가 끝나면 샘플링합니다.";
+                return;
+            }
             if (!AnimationMode.InAnimationMode())
+            {
                 AnimationMode.StartAnimationMode();
+                sourceAnimationModeActive = true;
+            }
 
-            sourceAnimationModeActive = true;
             AnimationMode.BeginSampling();
-            AnimationMode.SampleAnimationClip(sourceModel, activeClip, Mathf.Clamp(playbackTime, 0f, GetActiveClipLength()));
-            AnimationMode.EndSampling();
+            try { AnimationMode.SampleAnimationClip(sourceModel, activeClip, Mathf.Clamp(playbackTime, 0f, GetActiveClipLength())); }
+            finally { AnimationMode.EndSampling(); }
         }
         catch (Exception exception)
         {
-            sourceAnimationModeActive = false;
+            StopSourceAnimationSampling();
             previewMessage = "Scene 애니메이션 샘플링 오류: " + exception.GetType().Name;
         }
     }

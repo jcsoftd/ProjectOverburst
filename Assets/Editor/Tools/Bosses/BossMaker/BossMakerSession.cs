@@ -26,6 +26,8 @@ namespace Overburst.EditorTools.BossMaker
             || EditorJsonUtility.ToJson(Ability) != abilityBaseline);
         public bool Conflict => EditorJsonUtility.ToJson(Source) != SourceMaterialJson
             || EditorJsonUtility.ToJson(AbilitySource) != SourceAbilityJson;
+        public bool HasEditableData => Material.runtimeClip != null && Material.runtimeClip.length > 0f && Material.runtimeClip.frameRate > 0f
+            && Material.strikes != null && Material.strikes.Length > 0 && Material.strikes.All(s => s != null);
         public float FrameCount => Material.runtimeClip != null ? Material.runtimeClip.length * Material.runtimeClip.frameRate : 1f;
 
         public BossMakerDraft(EnemyBossAttackMaterial source, BossMakerRecovery recovery = null)
@@ -94,6 +96,7 @@ namespace Overburst.EditorTools.BossMaker
         public List<string> Validate()
         {
             var errors = new List<string>();
+            if (!HasEditableData) { errors.Add("유효한 공격 클립과 한 개 이상의 타격을 원본 소재에 설정하세요."); return errors; }
             if (Material.runtimeClip == null || Material.runtimeClip.isLooping || Material.runtimeClip.name.EndsWith("_RM", StringComparison.Ordinal)) errors.Add("루프가 없는 RM 제외 게임용 공격 클립이 필요합니다.");
             if (!Material.IsValid) errors.Add("타격 순서·접촉 창·형태·클립 길이와 능력 연결을 확인하세요.");
             if (!Material.tuning.Validate(Material.strikes)) errors.Add("피해/속도 배율과 패링 구간을 확인하세요. 패링 끝은 타격보다 늦을 수 없습니다.");

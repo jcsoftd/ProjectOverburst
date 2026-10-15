@@ -58,7 +58,17 @@ namespace Overburst.EditorBalance.Analysis
         public bool lightTriple;
         public float maxSimulationSeconds = 60f;
 
-        public AnalysisConditions Clone() => (AnalysisConditions)MemberwiseClone();
+        public AnalysisConditions Clone()
+        {
+            var copy = (AnalysisConditions)MemberwiseClone();
+            copy.levelBuckets = new List<int>(levelBuckets);
+            copy.grades = new List<ItemGrade>(grades);
+            copy.presets = new List<GearPreset>(presets);
+            copy.elements = new List<WeaponElement>(elements);
+            copy.enemies = new List<EnemyClass>(enemies);
+            copy.modes = new List<CombatMode>(modes);
+            return copy;
+        }
     }
 
     [Serializable]

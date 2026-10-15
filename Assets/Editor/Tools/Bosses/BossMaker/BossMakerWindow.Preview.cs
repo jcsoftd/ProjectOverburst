@@ -55,7 +55,16 @@ namespace Overburst.EditorTools.BossMaker
         void StepFrame(int direction) { if (preview?.Clip == null) return; Seek(preview.Progress + direction / Mathf.Max(1f, preview.Clip.length * preview.Clip.frameRate)); }
         void UpdateTransport()
         {
-            if (preview == null || Draft == null || preview.Clip == null) return;
+            bool ready = preview != null && Draft != null && preview.Clip != null;
+            playButton?.SetEnabled(ready); frameInput?.SetEnabled(ready); scrub?.SetEnabled(ready);
+            if (!ready)
+            {
+                timeline?.Set(null, 0f, 1f);
+                if (timeLabel != null) timeLabel.text = "";
+                if (previewLabel != null) previewLabel.text = "공격 클립과 타격 설정을 확인하세요.";
+                if (image != null) image.image = null;
+                return;
+            }
             var active = preview.ActiveDraft ?? Draft; var m = active.Material; scrub.SetValueWithoutNotify(preview.Progress);
             frameInput.SetValueWithoutNotify(preview.Progress * preview.Clip.length * preview.Clip.frameRate);
             timeLabel.text = $"원본 {preview.Progress * preview.Clip.length:0.000}s / {preview.Clip.length:0.000}s  ·  실제 {preview.Elapsed:0.000}s / {preview.TotalDuration:0.000}s";

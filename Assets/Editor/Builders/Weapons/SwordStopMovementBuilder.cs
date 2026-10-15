@@ -33,10 +33,10 @@ public static class SwordStopMovementBuilder
             throw new InvalidOperationException("A clean eight-direction set is required.");
         string setPath = AssetDatabase.GetAssetPath(set), guid = AssetDatabase.AssetPathToGUID(setPath);
         File.Copy(setPath, Path.Combine(directory, "SetBefore.asset"), true);
-        var snapshot = UnityEngine.Object.Instantiate(set);
         var clipHashes = set.directions.Select(m => SwordIdleAttackCopyBuilder.Hash(AssetDatabase.GetAssetPath(m.stop))).ToArray();
         var curves = set.directions.Select(m => JsonConvert.SerializeObject(m.stopDistance.keys)).ToArray();
         float[] factors = { 1f, 1f, .92f, .6f, .6f, .6f, .92f, 1f };
+        var snapshot = UnityEngine.Object.Instantiate(set);
         try
         {
             for (int i = 0; i < 8; i++) set.directions[i].stopTravelMultiplier = factors[i];
@@ -77,8 +77,7 @@ public static class SwordStopMovementBuilder
         string setPath = AssetDatabase.GetAssetPath(set);
         string guid = AssetDatabase.AssetPathToGUID(setPath);
         File.Copy(setPath, Path.Combine(directory, "SetBefore.asset"), true);
-        var snapshot = UnityEngine.Object.Instantiate(set);
-        var scene = EditorSceneManager.NewPreviewScene();
+        UnityEngine.SceneManagement.Scene scene = default;
         GameObject actor = null;
         PlayableGraph graph = default;
         var records = new List<object>();
@@ -87,8 +86,10 @@ public static class SwordStopMovementBuilder
             + Folders[i].ToString("D2") + "_Run_Combat_" + Suffix[i] + "_RM/Run_Combat_Stop_" + Suffix[i] + "_RM.anim").ToArray();
         var sourceHashes = sourcePaths.Select(SwordIdleAttackCopyBuilder.Hash).ToArray();
         var stopHashes = set.directions.Select(m => SwordIdleAttackCopyBuilder.Hash(AssetDatabase.GetAssetPath(m.stop))).ToArray();
+        var snapshot = UnityEngine.Object.Instantiate(set);
         try
         {
+            scene = EditorSceneManager.NewPreviewScene();
             actor = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(
                 "Assets/ProjectOverburst/03_Features/Player/Prefabs/PF_PlayerActor.prefab"), scene);
             foreach (var mb in actor.GetComponentsInChildren<MonoBehaviour>(true)) mb.enabled = false;
@@ -152,7 +153,7 @@ public static class SwordStopMovementBuilder
         {
             if (graph.IsValid()) graph.Destroy();
             if (actor != null) UnityEngine.Object.DestroyImmediate(actor);
-            EditorSceneManager.ClosePreviewScene(scene);
+            if (scene.IsValid()) EditorSceneManager.ClosePreviewScene(scene);
             UnityEngine.Object.DestroyImmediate(snapshot);
         }
     }

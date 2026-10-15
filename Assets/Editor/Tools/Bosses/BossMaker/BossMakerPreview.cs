@@ -38,7 +38,11 @@ namespace Overburst.EditorTools.BossMaker
         public BossMakerPreview(EnemyBossMaterialCollection data) { collection = data; stage = new CrustaspikanMaterialPreview(data); }
         public void Load(BossMakerDraft item, AnimationClip motion = null)
         {
-            draft = item; support = motion; Playing = false; Strike = Mathf.Clamp(Strike, 0, item.Material.strikes.Length - 1);
+            Playing = false; ClearOffset(); launches.Clear(); Progress = Elapsed = 0f;
+            draft = item != null && item.HasEditableData ? item : null;
+            support = draft != null ? motion : null;
+            if (draft == null) { Strike = 0; stage.SetHeldRockPreview(false); return; }
+            Strike = Mathf.Clamp(Strike, 0, draft.Material.strikes.Length - 1);
             RebuildLaunches(); Seek(0f);
         }
         public void Changed()
@@ -121,7 +125,7 @@ namespace Overburst.EditorTools.BossMaker
             var surface = stage.Render(width, height); var bounds = stage.FrameBounds;
             if (FreezeFrame)
             { Camera.transform.SetPositionAndRotation(position, rotation); Camera.nearClipPlane = .02f; Camera.farClipPlane = 200f; RenderPipeline.SubmitRenderRequest(Camera, new UniversalRenderPipeline.SingleCameraRequest { destination = surface }); return surface; }
-            if (ShowGeometry && support == null)
+            if (ShowGeometry && support == null && draft != null)
             {
                 for (int i = 0; i < draft.Material.strikes.Length; i++)
                     if (ShowAllStrikes || i == Strike)

@@ -54,7 +54,7 @@ public static partial class MonsterTunerVerifier
                     RequireTempo(MonsterTunerPreviewStage.LiveStages == liveStages, "Preview resources not returned");
                     var catalog = AssetDatabase.LoadAssetAtPath<EnemyCatalog>("Assets/ProjectOverburst/Resources/Enemies/Themes/Catalog.asset");
                     var all = Enumerable.Range(0, catalog.Count).Select(catalog.GetDefinition).ToArray();
-                    RequireTempo(all.Length == 56 && all.All(d => Mathf.Approximately(d.ResolveRuntimeStats().AttackInterval, 1f)), "Default regular attack interval roster differs");
+                    RequireTempo(all.Length == 62 && all.All(d => Mathf.Approximately(d.ResolveRuntimeStats().AttackInterval, 1f)), "Default regular attack interval roster differs");
                     File.WriteAllText(Path.Combine(directory, "default-stats.json"), new JObject { ["regularActors"] = all.Length,
                         ["defaultAttackIntervalSeconds"] = 1f, ["records"] = new JArray(all.Select(d => new JObject {
                             ["id"] = d.EnemyId, ["attackSpeed"] = d.ResolveRuntimeStats().AttackSpeedMultiplier,
@@ -220,9 +220,9 @@ public static partial class MonsterTunerVerifier
         }
         var catalog=AssetDatabase.LoadAssetAtPath<EnemyCatalog>("Assets/ProjectOverburst/Resources/Enemies/Themes/Catalog.asset");
         var definitions=Enumerable.Range(0,catalog.Count).Select(catalog.GetDefinition).ToArray();
-        RequireTempo(definitions.Length==56&&definitions.All(d=>Mathf.Approximately(d.ResolveRuntimeStats().AttackInterval,1f)),"Saved active catalog interval mismatch");
+        RequireTempo(definitions.Length==62&&definitions.All(d=>Mathf.Approximately(d.ResolveRuntimeStats().AttackInterval,1f)),"Saved active catalog interval mismatch");
         File.WriteAllText(Path.Combine(directory,"native-finalization.json"),new JObject{["status"]="PASS_NATIVE_ACTIVE_ROSTER_CUE_TEMPO",
-            ["actors"]=35,["speedConditions"]=175,["actualPoseViews"]=70,["activeRegularActors"]=56,
+            ["actors"]=35,["speedConditions"]=175,["actualPoseViews"]=70,["activeRegularActors"]=definitions.Length,
             ["originalPreviewResult"]=preview["status"],["savedAssetFieldsRechecked"]=true,
             ["records"]=new JArray(definitions.Select(d=>new JObject{["id"]=d.EnemyId,["attackSpeed"]=d.ResolveRuntimeStats().AttackSpeedMultiplier,
                 ["attackIntervalSeconds"]=d.ResolveRuntimeStats().AttackInterval}))}.ToString());

@@ -103,10 +103,10 @@ public static partial class MonsterTunerVerifier
                 try
                 {
                     CapturePanel(window, Path.Combine(Output, "toolkit-minimum-window.png"));
-                    Check("1100×720 상세 최소 폭", root.Q(className: "mt-left").layout.width >= 219 && root.Q(className: "mt-right").layout.width >= 319 && viewport.layout.height >= 200);
-                    Check("XYZ 숫자 입력 폭", Get<ScrollView>(window, "fields").Query<Vector3Field>().ToList().SelectMany(v => v.Query<FloatField>().ToList()).All(f => f.Q(className: "unity-base-field__input").layout.width >= 36));
                 }
                 catch (Exception e) { File.WriteAllText(Path.Combine(Output, "minimum-capture-limitation.txt"), e.ToString()); }
+                Check("1100×720 상세 최소 폭", root.Q(className: "mt-left").layout.width >= 219 && root.Q(className: "mt-right").layout.width >= 319 && viewport.layout.height >= 200);
+                Check("XYZ 숫자 입력 폭", Get<ScrollView>(window, "fields").Query<Vector3Field>().ToList().SelectMany(v => v.Query<FloatField>().ToList()).All(f => f.Q(className: "unity-base-field__input").layout.width >= 36));
                 session.Discard(); Call(window, "UpdateHeader"); window.CloseVerification();
                 Check("검증 창 해제", MonsterTunerPreviewStage.LiveStages == live);
                 Save("ui-ux", true, "");

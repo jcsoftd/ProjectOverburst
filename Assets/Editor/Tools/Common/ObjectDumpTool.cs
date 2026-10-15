@@ -222,13 +222,11 @@ public static class ObjectDumpTool
         SerializedObject serializedObject = new SerializedObject(target);
         SerializedProperty property = serializedObject.GetIterator();
 
-        bool enterChildren = true;
         int propertyCount = 0;
         const int maxPropertyCount = 300;
 
-        while (property.NextVisible(enterChildren))
+        while (property.NextVisible(true))
         {
-            enterChildren = false;
             propertyCount++;
 
             if (propertyCount > maxPropertyCount)

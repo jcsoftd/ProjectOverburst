@@ -10,7 +10,7 @@ namespace Overburst.EditorTools.ComboMaker
         private readonly Action<float> seek;
         private readonly Action<int,int,bool,float> edit;
         private MeleeComboDefinition combo;
-        private int stepIndex,dragPhase=-1;
+        private int stepIndex,dragPhase=-1,dragPointer=-1;
         private bool dragEnd,dragging;
         private float progress;
         private bool heavyMode;
@@ -27,7 +27,7 @@ namespace Overburst.EditorTools.ComboMaker
             generateVisualContent+=Draw;
             RegisterCallback<PointerDownEvent>(e=>
             {
-                if(e.button!=0||combo==null)return;dragPhase=-1;
+                if(e.button!=0||combo==null||stepIndex<0||stepIndex>=combo.StepCount)return;dragPhase=-1;
                 if(e.localPosition.y>=Top && e.localPosition.y<Top+LaneHeight)
                 {
                     var phases=combo.steps[stepIndex].attackPhases??Array.Empty<AttackPhaseData>();
@@ -37,22 +37,36 @@ namespace Overburst.EditorTools.ComboMaker
                         if(Mathf.Abs(e.localPosition.x-X(phases[i].SafeEnd))<6){dragPhase=i;dragEnd=true;break;}
                     }
                 }
-                dragging=true;this.CapturePointer(e.pointerId);Focus();Move(e.localPosition.x);e.StopPropagation();
+                dragging=true;dragPointer=e.pointerId;this.CapturePointer(e.pointerId);Focus();Move(e.localPosition.x);e.StopPropagation();
             });
             RegisterCallback<PointerMoveEvent>(e=>{if(dragging&&this.HasPointerCapture(e.pointerId))Move(e.localPosition.x);});
             RegisterCallback<PointerUpEvent>(e=>{dragging=false;this.ReleasePointer(e.pointerId);});
             RegisterCallback<PointerCaptureOutEvent>(e=>dragging=false);
         }
         public void SetData(MeleeComboDefinition data,int step,float value,Func<int,float,float> resolveCue,bool heavy=false,int discharge=0)
-        {combo=data;stepIndex=step;progress=value;cueTime=resolveCue;heavyMode=heavy;dischargePhase=discharge;continuationLabel.text=heavy?"방출":"연계";MarkDirtyRepaint();}
+        {
+            if (combo == null || data == null || stepIndex != step || step < 0 || step >= data.StepCount
+                || stepIndex < 0 || stepIndex >= combo.StepCount || combo.StepCount != data.StepCount
+                || combo.steps[stepIndex].attackId != data.steps[step].attackId
+                || (combo.steps[stepIndex].attackPhases?.Length ?? 0) != (data.steps[step].attackPhases?.Length ?? 0))
+            {
+                dragging=false;dragPhase=-1;
+                if(dragPointer>=0&&this.HasPointerCapture(dragPointer))this.ReleasePointer(dragPointer);
+            }
+            combo=data;stepIndex=step;progress=value;cueTime=resolveCue;heavyMode=heavy;dischargePhase=discharge;continuationLabel.text=heavy?"방출":"연계";MarkDirtyRepaint();
+        }
         private float X(float t)=>LabelWidth+t*Mathf.Max(1,contentRect.width-LabelWidth-8);
         private void Move(float x)
         {
+            if(combo==null||stepIndex<0||stepIndex>=combo.StepCount)return;
+            var data=combo;int index=stepIndex,phaseIndex=dragPhase;
+            if(phaseIndex>=0&&(data.steps[index].attackPhases==null||phaseIndex>=data.steps[index].attackPhases.Length))return;
             float t=Mathf.Clamp01((x-LabelWidth)/Mathf.Max(1,contentRect.width-LabelWidth-8));
             if(dragPhase<0)seek(t);
             else
             {
-                edit(stepIndex,dragPhase,dragEnd,t);
+                edit(index,phaseIndex,dragEnd,t);
+                if(combo!=data||stepIndex!=index||dragPhase!=phaseIndex)return;
                 var step=combo.steps[stepIndex];var phase=step.attackPhases[dragPhase];
                 if(dragEnd)phase.endNormalizedTime=Mathf.Clamp(t,phase.SafeStart+.001f,1);
                 else phase.startNormalizedTime=Mathf.Clamp(t,0,phase.SafeEnd-.001f);
@@ -61,7 +75,7 @@ namespace Overburst.EditorTools.ComboMaker
         }
         private void Draw(MeshGenerationContext context)
         {
-            if(combo==null||stepIndex>=combo.StepCount)return;
+            if(combo==null||stepIndex<0||stepIndex>=combo.StepCount)return;
             var painter=context.painter2D;var step=combo.steps[stepIndex];
             painter.lineWidth=1;painter.strokeColor=new Color(.26f,.29f,.33f);
             for(int i=0;i<=4;i++){float x=X(i/4f);painter.BeginPath();painter.MoveTo(new Vector2(x,Top));painter.LineTo(new Vector2(x,Top+6*LaneHeight));painter.Stroke();}
