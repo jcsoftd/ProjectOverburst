@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05d1eeaeb3b33de4793eaf5a6700f250, type: 3}
+  m_Name: OverburstBgmCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::OverburstBgmCatalog
+  title: {fileID: 8300000, guid: 1065c81981e6f5e4dbfcb4fa0ce703dd, type: 3}
+  tutorial: {fileID: 8300000, guid: 492e82e2fe569ce4ba44415c85acd7a2, type: 3}
+  town: {fileID: 8300000, guid: 67acae6d538edc74189dcbc8dabaa628, type: 3}
+  outdoor:
+  - {fileID: 8300000, guid: 4db8f51ae7191ac4c98c367263e50026, type: 3}
+  - {fileID: 8300000, guid: 4150a0a7e98a5934ea710d0ad3840aa4, type: 3}
+  - {fileID: 8300000, guid: d0231d742fdd93d4bbc712579fba2294, type: 3}
+  desert:
+  - {fileID: 8300000, guid: 2ef04784ae0ad4141af1d9b6b6f2562d, type: 3}
+  - {fileID: 8300000, guid: 0b917c95cab626542a0733b51c65044b, type: 3}
+  cave:
+  - {fileID: 8300000, guid: 54a152c15fb572f468567ccdac2d24c7, type: 3}
+  - {fileID: 8300000, guid: 4404a8d4958a13f4abe560c654d1a550, type: 3}
+  - {fileID: 8300000, guid: 5d3cb47d7f2ee654b80c5332106253dd, type: 3}
+  - {fileID: 8300000, guid: 4150a0a7e98a5934ea710d0ad3840aa4, type: 3}
+  volume: 0.35
