@@ -8,7 +8,7 @@ namespace Overburst.Quests
     [DefaultExecutionOrder(9000)]
     public sealed class QuestSession : MonoBehaviour
     {
-        private struct KillBatch { public string runId; public long revision; public int count; }
+        private struct KillBatch { public string runId; public long revision; public int count; public bool outdoor; }
         private readonly List<KillBatch> pending = new List<KillBatch>();
         private AccountGameplaySession session;
         private bool draining;
@@ -22,6 +22,7 @@ namespace Overburst.Quests
         public void Bind(AccountGameplaySession account)
         {
             if (session != null) session.QuestsCommitted -= OnCommitted;
+            if (session != account) pending.Clear();
             session = account; Current = this;
             session.QuestsCommitted += OnCommitted;
         }
@@ -37,10 +38,10 @@ namespace Overburst.Quests
         public static void RecordConfirmedKill(EncounterContext encounter)
         {
             var runtime = Current;
-            if (runtime == null || runtime.session == null || encounter == null || !encounter.IsRun
-                || WorldSessionState.Phase != WorldPhase.Run || !encounter.CanGrantRewards) return;
+            if (runtime == null || runtime.session == null || AccountGameplaySession.Current != runtime.session
+                || encounter == null || (!encounter.IsRun && !encounter.IsOutdoor) || !encounter.CanGrantRewards) return;
             var run = runtime.session.ReadRun();
-            if (run == null || run.runId != encounter.RunId || !AccountInvariants.IsRunning(run.phase)) return;
+            if (encounter.IsRun && (run == null || run.runId != encounter.RunId || !AccountInvariants.IsRunning(run.phase))) return;
             bool needed = false;
             foreach (var q in runtime.session.ReadQuests())
                 if (q.state == SavedQuestState.Active)
@@ -48,11 +49,12 @@ namespace Overburst.Quests
                         if (o.kind == QuestObjectiveKind.KillEnemy && o.targetId == "enemy.any-run" && o.current < o.required) needed = true;
             if (!needed) return;
             int last = runtime.pending.Count - 1;
-            if (last >= 0 && runtime.pending[last].runId == encounter.RunId && runtime.pending[last].revision == runtime.session.Revision)
+            if (last >= 0 && runtime.pending[last].runId == encounter.RunId && runtime.pending[last].outdoor == encounter.IsOutdoor
+                && runtime.pending[last].revision == runtime.session.Revision)
             {
                 var batch = runtime.pending[last]; batch.count = checked(batch.count + 1); runtime.pending[last] = batch;
             }
-            else runtime.pending.Add(new KillBatch { runId = encounter.RunId, revision = runtime.session.Revision, count = 1 });
+            else runtime.pending.Add(new KillBatch { runId = encounter.RunId, revision = runtime.session.Revision, count = 1, outdoor = encounter.IsOutdoor });
         }
 
         public bool DrainPending(bool checkpointReady = true)
@@ -66,7 +68,7 @@ namespace Overburst.Quests
                     var batch = pending[0];
                     session.ExecuteQuest(Guid.NewGuid().ToString("N"), session.Revision,
                         state => AccountQuestCommands.Progress(state, QuestObjectiveKind.KillEnemy, "enemy.any-run",
-                            batch.count, batch.runId, batch.revision), false);
+                            batch.count, batch.runId, batch.revision, batch.outdoor), false);
                     pending.RemoveAt(0);
                 }
                 if (checkpointReady && session.ReadQuests().Exists(AccountQuestCommands.IsReady) && session.HasPendingSave && !session.FlushPendingSave())

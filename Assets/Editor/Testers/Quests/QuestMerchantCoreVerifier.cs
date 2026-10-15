@@ -78,6 +78,7 @@ public static class QuestMerchantCoreVerifier
             MigrationChecks(registry);
             PriceChecks();
             MapAndCharacterChecks(registry);
+            OutdoorChecks(registry);
             FrozenAndFutureChecks(registry);
             Check(events == 4, "Only committed changes notify quest UI");
             File.WriteAllText(Path.Combine(output, "result.json"), "{\"status\":\"PASS\",\"checks\":" + passed.Count
@@ -212,6 +213,59 @@ public static class QuestMerchantCoreVerifier
         AccountCharacterCommands.Select(state,first);
         Check(state.quests.Count==2 && state.quests.All(x=>x.state==SavedQuestState.Completed),"Switch back restores personal quest completions");
         AccountInvariants.Validate(state,registry);
+    }
+
+    private static void OutdoorChecks(AccountContentRegistry registry)
+    {
+        var hunt = QuestCatalog.Find("quest.main-town.weapon.first-hunt");
+        var map = QuestCatalog.Find("quest.main-town.weapon.first-map");
+        var state = NewAccountFactory.Create(registry);
+        AccountQuestCommands.Accept(state, hunt, MerchantId, registry); state.revision++;
+        state.quests.Single().objectives.Single().current = 2;
+        var store = new EasySaveAccountStore(Path.Combine(output, "Outdoor"));
+        store.Save(state, "accepted-before-fix"); state = store.Load();
+        Check(!AccountQuestCommands.Progress(state, QuestObjectiveKind.KillEnemy, "enemy.any-run", 1), "Unconfirmed non-run kill remains ignored");
+        Check(!AccountQuestCommands.Progress(state, QuestObjectiveKind.KillEnemy, "enemy.any-run", 1,
+            observedRevision: 0, outdoor: true), "Confirmed outdoor kill before acceptance remains ignored");
+        Check(AccountQuestCommands.Progress(state, QuestObjectiveKind.KillEnemy, "enemy.any-run", 1,
+            observedRevision: state.revision, outdoor: true) && state.quests.Single().objectives.Single().current == 3,
+            "Existing accepted snapshot continues outdoor progress without reset or migration");
+        var running = ItemSnapshotCodec.CopyValues(state);
+        running.run = new RunSnapshot { runId = "other-run", phase = RunPhase.Active,
+            map = new MapInstanceState { level = 1, grade = ItemGrade.Common } };
+        Check(!AccountQuestCommands.Progress(running, QuestObjectiveKind.KillEnemy, "enemy.any-run", 1, outdoor: true),
+            "Outdoor flag cannot bypass an active dungeon identity");
+        Check(!AccountQuestCommands.Progress(state, QuestObjectiveKind.EnterRun, "run.map", 1, outdoor: true),
+            "Outdoor flag cannot fabricate a dungeon entry");
+        Check(AccountQuestCommands.Progress(state, QuestObjectiveKind.KillEnemy, "enemy.any-run", int.MaxValue, outdoor: true)
+            && state.quests.Single().objectives.Single().current == 10, "Outdoor kills stop at the saved requirement");
+        AccountQuestCommands.TurnIn(state, hunt.id, MerchantId, registry); state.revision++;
+        Check(!AccountQuestCommands.Progress(state, QuestObjectiveKind.KillEnemy, "enemy.any-run", 1, outdoor: true),
+            "Completed quest ignores further outdoor kills");
+        AccountQuestCommands.Accept(state, map, MerchantId, registry); state.revision++;
+        var entry = registry.ResolvedEntries.First(e => e.asset is MapItemData);
+        var item = new ItemData((MapItemData)entry.asset, 1, ItemGrade.Common);
+        item.mapState = new MapInstanceState { mapContentId = entry.id, level = 1, grade = ItemGrade.Common };
+        item.EnsureAcquisitionOrder();
+        var baseline = ItemSnapshotCodec.CopyValues(state);
+        var captured = ItemSnapshotCodec.Capture(item, registry); captured.acquisitionOrder = state.nextAcquisitionOrder++;
+        state.items.Add(captured); state.inventory[state.inventory.FindIndex(0, state.unlockedSlots, string.IsNullOrEmpty)] = captured.instanceId;
+        var q = state.quests.Single(x => x.questId == map.id);
+        AccountQuestCommands.CaptureMapAcquisitions(baseline, state);
+        Check(q.objectives[0].current == 0, "Generic non-run inventory changes cannot count a map pickup");
+        AccountQuestCommands.CaptureMapAcquisitions(baseline, state, "different-item");
+        Check(q.objectives[0].current == 0, "Only the successfully picked map identity counts");
+        AccountQuestCommands.CaptureMapAcquisitions(ItemSnapshotCodec.CopyValues(state), state, captured.instanceId);
+        Check(q.objectives[0].current == 0, "Existing owned map movement or repeated capture cannot count as acquisition");
+        AccountQuestCommands.CaptureMapAcquisitions(baseline, state, captured.instanceId);
+        Check(q.objectives[0].current == 1 && q.objectives[1].current == 0, "Successful outdoor map acquisition advances only its objective");
+        Check(AccountQuestCommands.Progress(state, QuestObjectiveKind.SelectMap, "portal.map", 1), "Outdoor acquisition unlocks normal portal selection");
+        AccountRunCommands.PrepareEntry(state, "outdoor-map-entry", captured.map, captured.instanceId);
+        AccountRunCommands.Activate(state, "outdoor-map-entry");
+        Check(AccountQuestCommands.IsReady(q), "Actual selected-map activation completes the outdoor map quest sequence");
+        state.revision++; store.Save(state, "outdoor-progress");
+        Check(AccountQuestCommands.IsReady(new EasySaveAccountStore(Path.Combine(output, "Outdoor")).Load().quests.Single(x => x.questId == map.id)),
+            "Outdoor-derived progress survives the real A/B save reader");
     }
 
     private static void PriceChecks()

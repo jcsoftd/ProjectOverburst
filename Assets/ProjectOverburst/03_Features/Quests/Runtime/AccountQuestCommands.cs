@@ -58,11 +58,15 @@ namespace Overburst.Quests
         }
 
         public static bool Progress(AccountSnapshot state, QuestObjectiveKind kind, string targetId, int amount,
-            string runId = null, long observedRevision = long.MaxValue)
+            string runId = null, long observedRevision = long.MaxValue, bool outdoor = false)
         {
             if (amount < 1) return false;
-            if ((kind == QuestObjectiveKind.KillEnemy || kind == QuestObjectiveKind.EnterRun || kind == QuestObjectiveKind.AcquireMap)
-                && (state.run == null || state.run.runId != runId || !AccountInvariants.IsRunning(state.run.phase))) return false;
+            bool running = state.run != null && AccountInvariants.IsRunning(state.run.phase);
+            bool matchingRun = running && state.run.runId == runId;
+            bool confirmedOutdoor = outdoor && !running && string.IsNullOrEmpty(runId);
+            if ((kind == QuestObjectiveKind.EnterRun && !matchingRun)
+                || ((kind == QuestObjectiveKind.KillEnemy || kind == QuestObjectiveKind.AcquireMap)
+                    && !matchingRun && !confirmedOutdoor)) return false;
             bool changed = false;
             foreach (var q in state.quests)
             {
@@ -85,17 +89,22 @@ namespace Overburst.Quests
             return changed;
         }
 
-        public static void CaptureMapAcquisitions(AccountSnapshot baseline, AccountSnapshot candidate)
+        public static void CaptureMapAcquisitions(AccountSnapshot baseline, AccountSnapshot candidate, string outdoorPickupId = null)
         {
-            if (candidate.run == null || !AccountInvariants.IsRunning(candidate.run.phase)) return;
+            bool running = candidate.run != null && AccountInvariants.IsRunning(candidate.run.phase);
+            bool outdoor = !running && !string.IsNullOrEmpty(outdoorPickupId);
+            if (!running && !outdoor) return;
             int acquired = 0;
             foreach (var item in candidate.items)
             {
-                if (item.map == null || item.originRunId != candidate.run.runId || !candidate.inventory.Contains(item.instanceId)) continue;
+                if (item.map == null || !candidate.inventory.Contains(item.instanceId)) continue;
+                if (outdoor ? item.instanceId != outdoorPickupId || !string.IsNullOrEmpty(item.originRunId)
+                    : item.originRunId != candidate.run.runId) continue;
                 var previous = baseline.items.Find(x => x.instanceId == item.instanceId);
                 acquired = checked(acquired + Math.Max(0, item.count - (previous?.count ?? 0)));
             }
-            Progress(candidate, QuestObjectiveKind.AcquireMap, "map.any", acquired, candidate.run.runId, baseline.revision);
+            Progress(candidate, QuestObjectiveKind.AcquireMap, "map.any", acquired, running ? candidate.run.runId : null,
+                baseline.revision, outdoor);
         }
 
         public static bool TurnIn(AccountSnapshot state, string questId, string merchantId, AccountContentRegistry registry)

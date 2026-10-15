@@ -127,7 +127,9 @@ namespace Overburst.Persistence
                     if (PlayerProgression.Current != null && !PlayerProgression.Current.FlushPendingExperience()) return false;
                 }
                 return Current.Execute(() => inventory.AddItem(item), false, checkpoint,
-                    completionReward ? item.runtimeInstanceId : null);
+                    completionReward ? item.runtimeInstanceId : null,
+                    WorldSessionState.IsHideout && item.mapState != null && string.IsNullOrEmpty(item.originRunId)
+                        ? item.runtimeInstanceId : null);
             }
             catch (Exception error) when (error is System.IO.IOException || error is UnauthorizedAccessException)
             { Debug.LogError("아이템 획득 저장에 실패했습니다: " + error.Message); return false; }
@@ -140,7 +142,8 @@ namespace Overburst.Persistence
             catch (System.IO.IOException error) { Debug.LogError("재화 획득을 확정하지 못했습니다: " + error.Message); return false; }
         }
 
-        private bool Execute(Func<bool> operation, bool currencyOnly, bool saveImmediately = false, string completionPickupId = null)
+        private bool Execute(Func<bool> operation, bool currencyOnly, bool saveImmediately = false,
+            string completionPickupId = null, string outdoorMapPickupId = null)
         {
             if (operation == null) throw new ArgumentNullException(nameof(operation));
             if (restoring) throw new InvalidOperationException("Cannot edit while restoring account state.");
@@ -168,6 +171,8 @@ namespace Overburst.Persistence
                         var candidate = currencyOnly
                             ? AccountGameplayProjection.CaptureCurrencyInventory(before, account.Inventory, registry)
                             : AccountGameplayProjection.Capture(before, account, registry);
+                        if (outdoorMapPickupId != null)
+                            Overburst.Quests.AccountQuestCommands.CaptureMapAcquisitions(before, candidate, outdoorMapPickupId);
                         if (completionPickupId != null) AccountRunCommands.RecordCompletionPickup(candidate, completionPickupId);
                         return candidate;
                     }, saveImmediately);

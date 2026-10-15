@@ -49,10 +49,11 @@ public static class QuestMerchantPlayVerifier
     }
     static string Dir(string name,string destination){string path=Path.GetFullPath(Path.Combine(destination,name));Directory.CreateDirectory(path);return path;}
     static void Write(string name,object data)=>File.WriteAllText(Path.Combine(output,name),JsonConvert.SerializeObject(data,Formatting.Indented));
-    public static void Start(string label,string fixture=null,bool inputEdges=false,bool npcPresentationOnly=false)
+    public static void Start(string label,string fixture=null,bool inputEdges=false,bool npcPresentationOnly=false,bool outdoorCounts=false)
     {
         AppearanceCustomizationBuilder.RequireIdle();
         if(!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OVERBURST_SETTINGS_DIRECTORY")))throw new InvalidOperationException("External settings directory active");
+        SessionState.SetBool(K+"outdoorCounts",outdoorCounts);
         SessionState.SetBool(K+"npcPresentation",npcPresentationOnly);SessionState.SetBool(K+"edges",inputEdges);SessionState.EraseString(K+"checks");checks.Clear();SessionState.SetBool(K+"replay",fixture!=null);string destination=Destination;
         output=Dir(label,destination);string save=Path.Combine(output,"isolated-save");Directory.CreateDirectory(save);
         if(fixture!=null)foreach(string name in new[]{"account-A.es3","account-B.es3"})if(File.Exists(Path.Combine(fixture,name)))File.Copy(Path.Combine(fixture,name),Path.Combine(save,name),false);
@@ -66,7 +67,7 @@ public static class QuestMerchantPlayVerifier
 
         Write("edit-before.json",new{pid=System.Diagnostics.Process.GetCurrentProcess().Id,scenes=Scenes(),input=InputSystem.settings.GetInstanceID(),startScene=AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene)});
         SessionState.SetString(K+"pending",output);SessionState.SetString(K+"return",output);SessionState.SetString(K+"startScene",AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene));
-        SessionState.SetBool(K+"background",Application.runInBackground);SessionState.SetFloat(K+"deadline",(float)EditorApplication.timeSinceStartup+240);
+        SessionState.SetBool(K+"background",Application.runInBackground);SessionState.SetFloat(K+"deadline",(float)EditorApplication.timeSinceStartup+(outdoorCounts?600:240));
         SessionState.SetFloat(K+"returnDeadline",(float)EditorApplication.timeSinceStartup+1200);
         EditorSceneManager.playModeStartScene=AssetDatabase.LoadAssetAtPath<SceneAsset>("Assets/ProjectOverburst/00_Scenes/PersistentScene.unity");
         EditorApplication.update-=Begin;EditorApplication.update+=Begin;
@@ -149,6 +150,7 @@ public static class QuestMerchantPlayVerifier
         var ui=QuestMerchantUI.Current;var account=AccountGameplaySession.Current;var registry=Resources.Load<AccountContentRegistry>(AccountContentRegistry.ResourcePath);var actor=PlayerContext.Instance.CurrentActor;
         Check(ui && QuestSession.Current && QuestSession.Current.IsBoundTo(account),"one quest session binds to current runtime account");
         Check(Object.FindObjectsByType<QuestInventoryStyle>(FindObjectsInactive.Include,FindObjectsSortMode.None).Length==1,"one inventory style binds to existing inventory controls");
+        if(SessionState.GetBool(K+"outdoorCounts",false)){yield return VerifyOutdoorCounts(ui,account,registry,actor);yield break;}
         if(SessionState.GetBool(K+"npcPresentation",false)){yield return VerifyNpcPresentation(ui,account,actor);if(SessionState.GetBool(K+"edges",false))yield return VerifyNpcInputEdges(ui,account,actor);yield break;}
         var npc=WeaponMerchant();yield return Approach(npc,actor);Check(ui.SelectedOption==1,"approach defaults to trade");
         NpcQuestMarkerVerifier.CheckLive(SessionState.GetBool(K+"replay",false)?null:"!",true);
@@ -423,6 +425,95 @@ public static class QuestMerchantPlayVerifier
         if(state==PlayModeStateChange.ExitingPlayMode && work.Count>0)Finish(new Exception("Play exited during verification"));
         if(state==PlayModeStateChange.EnteredEditMode && !string.IsNullOrEmpty(SessionState.GetString(K+"return",""))){EditorApplication.update-=Return;EditorApplication.update+=Return;}
     }
+    static IEnumerator VerifyOutdoorCounts(QuestMerchantUI ui,AccountGameplaySession account,AccountContentRegistry registry,PlayerActorRuntime actor)
+    {
+        const string huntId="quest.main-town.weapon.first-hunt",mapId="quest.main-town.weapon.first-map";
+        if(SessionState.GetBool(K+"replay",false))
+        {
+            Check(account.ReadQuests().Count==2&&account.ReadQuests().All(q=>q.state==SavedQuestState.Completed),"second boot restores both outdoor-derived completions");
+            Check(account.ReadQuests().All(q=>q.objectives.All(o=>o.current==o.required)),"second boot preserves every completed objective count");
+            var bytes=ES3.Serialize(account.Read());
+            Check(!QuestSession.Current.TurnIn(huntId,"merchant.main-town.weapon")&&!QuestSession.Current.TurnIn(mapId,"merchant.main-town.weapon"),"reloaded completions cannot pay twice");
+            Check(bytes.SequenceEqual(ES3.Serialize(account.Read())),"duplicate reports leave saved rewards unchanged");
+            yield return KeyPress(Key.J);Check(ui.Mode==QuestMerchantUI.WindowMode.Journal,"reloaded personal quest list opens normally");
+            ui.Close();yield break;
+        }
+        var npc=WeaponMerchant();yield return OpenQuests(npc,actor);yield return Click(FirstRow(ui).button);yield return Click(ui.merchantInfo.primary);ui.Close();
+        Check(account.ReadQuests().Single().questId==huntId,"real accept button starts first hunt");
+        var outdoor=OutdoorWorldSpawner.Current;
+        var terrain=Object.FindObjectsByType<Terrain>(FindObjectsSortMode.None).First(t=>t.gameObject.scene.name==PersistentSceneFlow.MainSceneName);
+        var position=new Vector3(154,0,76);position.y=terrain.SampleHeight(position)+terrain.transform.position.y;
+        Check(outdoor&&!outdoor.IsInTown(position),"test combat position belongs to the real outdoor area");
+        actor.Health.SetDamageDeathPrevention(actor,true);
+        try
+        {
+            ActorTeleportUtility.TeleportSafely(actor.transform,position,Quaternion.identity);
+            yield return Wait(()=>Object.FindObjectsByType<EnemyRank>(FindObjectsSortMode.None).Count(e=>e.Encounter.IsOutdoor&&e.Encounter.CanGrantRewards&&e.GetComponent<CombatHealth>()&&!e.GetComponent<CombatHealth>().IsDead)>=10,"actual outdoor controller spawns ten reward-eligible enemies");
+            QuestSession.RecordConfirmedKill(EncounterContext.Test);
+            QuestSession.RecordConfirmedKill(new EncounterContext(null,1,ItemGrade.Common,outdoorSessionId:"expired-outdoor-session"));
+            QuestSession.RecordConfirmedKill(new EncounterContext(null,1,ItemGrade.Common,outdoorSessionId:outdoor.SessionId,rewardsAllowed:false));
+            yield return Frames(2);
+            Check(account.ReadQuests().Single().objectives.Single().current==0,"test, stale outdoor and reward-disabled encounters cannot advance hunt");
+            EncounterContext previous=null;
+            for(int i=0;i<10;i++)
+            {
+                var enemy=Object.FindObjectsByType<EnemyRank>(FindObjectsSortMode.None).First(e=>e.Encounter.IsOutdoor&&e.Encounter.CanGrantRewards&&e.GetComponent<CombatHealth>()&&!e.GetComponent<CombatHealth>().IsDead);
+                previous=enemy.Encounter;var health=enemy.GetComponent<CombatHealth>();
+                var hit=new DamageInfo(1000000,health.transform.position,actor.gameObject,suppressDefaultHitVfx:true);
+                health.TakeDamage(hit);health.TakeDamage(hit);yield return Frames(2);
+                Check(account.ReadQuests().Single().objectives.Single().current==i+1,"outdoor death callback counts exactly once: "+(i+1));
+                if(i==2)
+                {
+                    var tracker=Object.FindFirstObjectByType<OverburstObjectiveTracker>();
+                    Check(Field<Text>(tracker,"emptyMessage").text.Contains("3 / 10"),"live HUD follows outdoor count without reopening UI");
+                    yield return Capture("outdoor-hunt-3-of-10");
+                }
+            }
+            Check(AccountQuestCommands.IsReady(new EasySaveAccountStore(AccountBootstrap.SaveDirectory).Load().quests.Single()),"outdoor ready progress is durably checkpointed");
+            yield return OpenQuests(npc,actor);yield return Click(FirstRow(ui).button);yield return Click(ui.merchantInfo.primary);yield return Click(ui.popupConfirm);
+            Check(account.ReadQuests().Single().state==SavedQuestState.Completed,"first hunt reports after real outdoor kills");
+            Check(!previous.CanGrantRewards,"town return invalidates the old outdoor generation");
+            var mapRow=ui.merchantRows.GetComponentsInChildren<QuestRowView>().Single(r=>r.title.text=="미지의 지도");
+            yield return Click(mapRow.button);yield return Click(ui.merchantInfo.primary);ui.Close();
+            Check(account.ReadQuests().Single(q=>q.questId==mapId).objectives.All(o=>o.current==0),"successor accepts its existing saved three-objective contract");
+            ActorTeleportUtility.TeleportSafely(actor.transform,position,Quaternion.identity);
+            yield return Wait(()=>Object.FindObjectsByType<EnemyRank>(FindObjectsSortMode.None).Any(e=>e.Encounter.IsOutdoor&&e.Encounter.CanGrantRewards&&e.GetComponent<CombatHealth>()&&!e.GetComponent<CombatHealth>().IsDead),"outdoor controller starts a fresh generation");
+            var definition=Resources.Load<MapItemData>("Items/Maps/Map_Diamond01");ItemData map=null;
+            for(int i=0;i<200&&map==null;i++)
+            {var candidate=MapGenerationPolicy.CreateItem(definition,registry,1,ItemGrade.Common);if(candidate.mapState.terrain==MapTerrainKind.Cave&&candidate.mapState.areaCount==4)map=candidate;}
+            Check(map!=null,"existing generation policy supplies a small real cave map for entry verification");
+            var source=Object.FindObjectsByType<EnemyRank>(FindObjectsSortMode.None).First(e=>e.Encounter.IsOutdoor&&e.Encounter.CanGrantRewards&&e.GetComponent<CombatHealth>()&&!e.GetComponent<CombatHealth>().IsDead);
+            typeof(EnemyLootDropper).GetMethod("DropFarmingItem",Private).Invoke(source.GetComponent<EnemyLootDropper>(),new object[]{map,actor.transform.position+Vector3.right});
+            yield return Frames(3);
+            var pickup=Object.FindObjectsByType<WorldItemPickup>(FindObjectsSortMode.None).Single(p=>p.RuntimeItem?.runtimeInstanceId==map.runtimeInstanceId);
+            Check(pickup.RuntimeItem.originRunId==null,"actual outdoor drop is not stamped with a dungeon run");
+            Check(pickup.TryPickup(PlayerAccountInventoryService.FindSharedInventory()),"actual world pickup commits outdoor map and quest progress together");
+            Check(!pickup.TryPickup(PlayerAccountInventoryService.FindSharedInventory()),"duplicate pickup is rejected");yield return Frames(3);
+            var acquired=account.ReadQuests().Single(q=>q.questId==mapId);
+            Check(acquired.objectives[0].current==1&&acquired.objectives[1].current==0&&acquired.objectives[2].current==0,"outdoor map acquisition advances only the first saved objective");
+            Check(account.FlushPendingSave()&&new EasySaveAccountStore(AccountBootstrap.SaveDirectory).Load().quests.Single(q=>q.questId==mapId).objectives[0].current==1,"map pickup progress survives a fresh disk read");
+            var portal=Object.FindFirstObjectByType<MapDungeonPortal>();
+            ActorTeleportUtility.TeleportSafely(actor.transform,portal.transform.position+Vector3.right*1.3f,Quaternion.identity);yield return Frames(10);
+            Check(portal.TryInteract(actor)==InteractionExecutionResult.Succeeded,"normal town map portal opens");yield return Frames(3);
+            var panel=MapDungeonPortalPanel.Active;var slot=Field<SlotUI[]>(panel,"inventorySlots").Single(s=>s.DisplayItem?.runtimeInstanceId==map.runtimeInstanceId);
+            Check(panel.TryInsert(slot),"real portal slot accepts acquired outdoor map");
+            Check(account.ReadQuests().Single(q=>q.questId==mapId).objectives[1].current==1,"portal insertion advances the second objective");
+            Check(portal.EnterSelectedMap(map.runtimeInstanceId),"selected outdoor map starts the real dungeon flow");
+            yield return Wait(()=>WorldSessionState.Phase==WorldPhase.Run&&!PersistentSceneFlow.Instance.IsSwitching,"real selected-map run activates",3600);
+            actor=PlayerContext.Instance.CurrentActor;actor.Health.SetDamageDeathPrevention(actor,true);
+            Check(AccountQuestCommands.IsReady(account.ReadQuests().Single(q=>q.questId==mapId)),"real map activation completes all three map quest objectives");
+            PersistentSceneFlow.Instance.GetComponent<RunLifetimeDriver>().RequestAbandon();
+            yield return Wait(()=>WorldSessionState.IsHideout&&!PersistentSceneFlow.Instance.IsSwitching,"normal abandon returns to town",3600);
+            Check(AccountQuestCommands.IsReady(account.ReadQuests().Single(q=>q.questId==mapId)),"map quest progress survives return from run");
+            npc=WeaponMerchant();yield return OpenQuests(npc,actor);
+            mapRow=ui.merchantRows.GetComponentsInChildren<QuestRowView>().Single(r=>r.title.text=="미지의 지도");yield return Click(mapRow.button);
+            yield return Click(ui.merchantInfo.primary);yield return Click(ui.popupConfirm);ui.Close();
+            Check(account.ReadQuests().Count==2&&account.ReadQuests().All(q=>q.state==SavedQuestState.Completed),"both outdoor quest paths report successfully");
+            Check(new EasySaveAccountStore(AccountBootstrap.SaveDirectory).Load().quests.All(q=>q.state==SavedQuestState.Completed),"both completions and rewards survive a fresh disk read");
+        }
+        finally{if(actor&&actor.Health)actor.Health.SetDamageDeathPrevention(actor,false);}
+    }
+
     static void RestoreInput()
     {
         InputSystem.onBeforeUpdate-=Push;foreach(var p in masks)if(p.Key)p.Key.devices=p.Value;masks.Clear();SessionState.EraseString(K+"masks");
@@ -435,7 +526,7 @@ public static class QuestMerchantPlayVerifier
     {
         EditorApplication.update-=Tick;EditorApplication.update-=Begin;EditorApplication.update-=Interrupted;while(work.Count>0)(work.Pop() as IDisposable)?.Dispose();
         bool own=OwnPlay();if(own && QuestMerchantUI.Current)QuestMerchantUI.Current.Close();RestoreInput();
-        Application.runInBackground=SessionState.GetBool(K+"background",Application.runInBackground);SessionState.EraseBool(K+"background");SessionState.EraseString(K+"pending");SessionState.EraseBool(K+"running");SessionState.EraseBool(K+"replay");SessionState.EraseBool(K+"edges");SessionState.EraseBool(K+"npcPresentation");SessionState.EraseFloat(K+"deadline");
+        Application.runInBackground=SessionState.GetBool(K+"background",Application.runInBackground);SessionState.EraseBool(K+"background");SessionState.EraseString(K+"pending");SessionState.EraseBool(K+"running");SessionState.EraseBool(K+"replay");SessionState.EraseBool(K+"edges");SessionState.EraseBool(K+"npcPresentation");SessionState.EraseBool(K+"outdoorCounts");SessionState.EraseFloat(K+"deadline");
         output=SessionState.GetString(K+"return",output);
         if(checks.Count==0){var saved=SessionState.GetString(K+"checks","");if(!string.IsNullOrEmpty(saved))checks.AddRange(JsonConvert.DeserializeObject<List<string>>(saved));}
         try{Write("play-result.json",new{success=error==null,checks,error=error?.ToString()});}
