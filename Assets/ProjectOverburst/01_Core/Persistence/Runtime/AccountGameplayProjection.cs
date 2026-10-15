@@ -38,9 +38,12 @@ namespace Overburst.Persistence
         public static AccountSnapshot Capture(AccountSnapshot baseline, PlayerAccountInventoryService account, AccountContentRegistry registry)
         {
             if (account == null) throw new ArgumentNullException(nameof(account));
-            var state = ItemSnapshotCodec.CopyValues(baseline);
+            // Omit only the rebuilt collections; ES3 still deep-copies every retained field.
+            var copySource = baseline.WithProgression(baseline.level, baseline.experience);
+            copySource.items = new System.Collections.Generic.List<ItemSnapshot>();
+            copySource.merchants = new System.Collections.Generic.List<MerchantSnapshot>();
+            var state = ItemSnapshotCodec.CopyValues(copySource);
             // Rebuild both sides together: a purchased item can move from merchant to player.
-            state.items.Clear(); state.merchants.Clear();
             AccountPlayerProjection.Capture(state, account.Inventory, account.Stash, PlayerProgression.Current, registry);
             AccountMerchantProjection.Capture(state, registry);
             state.nextAcquisitionOrder = Math.Max(baseline.nextAcquisitionOrder, state.items.Count > 0 ? checked(state.items.Max(x => x.acquisitionOrder) + 1) : 1);
