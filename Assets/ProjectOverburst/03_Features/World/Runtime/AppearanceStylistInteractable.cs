@@ -39,7 +39,7 @@ public sealed class AppearanceStylistInteractable : MonoBehaviour,IInteractable
     public bool IsInteractionAvailable(PlayerActorRuntime actor)
     {
         if(!panel)panel=AppearanceCustomizationPanel.Instance;
-        return actor&&panel&&WorldSessionState.IsHideout&&AccountBootstrap.Ready
+        return actor&&WorldSessionState.IsHideout&&AccountBootstrap.Ready
             && AccountGameplaySession.Current!=null&&!AccountGameplaySession.Current.NeedsProjectionRecovery
             && actor.Health&&!actor.Health.IsDead;
     }
@@ -48,7 +48,15 @@ public sealed class AppearanceStylistInteractable : MonoBehaviour,IInteractable
         if(!IsInteractionAvailable(actor)||Vector3.Distance(transform.position,actor.transform.position)>interactRadius)
             return InteractionExecutionResult.Rejected;
         if(OwnsOpenSession){panel.RequestClose();return InteractionExecutionResult.ClosedSession;}
-        return panel.Open(this)?InteractionExecutionResult.Succeeded:InteractionExecutionResult.Rejected;
+        if(!panel)
+        {
+            if(GameplayInputBlocker.IsGameplayInputBlocked || PersistentSceneFlow.Instance?.IsSwitching==true)
+                return InteractionExecutionResult.Rejected;
+            var ui=FindFirstObjectByType<OverburstGameUI>();
+            if(!ui)return InteractionExecutionResult.Rejected;
+            panel=AppearanceCustomizationPanel.Install(ui.transform);
+        }
+        return panel&&panel.Open(this)?InteractionExecutionResult.Succeeded:InteractionExecutionResult.Rejected;
     }
     public void SetInteractionPromptVisible(bool visible)
     {

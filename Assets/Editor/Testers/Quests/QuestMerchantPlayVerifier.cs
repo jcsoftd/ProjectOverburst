@@ -89,7 +89,7 @@ public static class QuestMerchantPlayVerifier
         var pending=SessionState.GetString(K+"pending","");if(string.IsNullOrEmpty(pending)){EditorApplication.update-=Begin;return;}
         output=pending;
         if(EditorApplication.timeSinceStartup>SessionState.GetFloat(K+"deadline",0)){Finish(new Exception("Boot timeout"));return;}
-        if(!EditorApplication.isPlaying || !OwnPlay() || PlayerInputFacade.Current==null || AppearanceCustomizationPanel.Instance==null || !TitleCharacterPanel.Instance || !PlayerContext.Instance?.CurrentActor)return;
+        if(!EditorApplication.isPlaying || !OwnPlay() || PlayerInputFacade.Current==null || !TitleCharacterPanel.Instance || !PlayerContext.Instance?.CurrentActor)return;
         EditorApplication.update-=Begin;SessionState.EraseString(K+"pending");SessionState.SetBool(K+"running",true);
         checks.Clear();Application.runInBackground=true;deadline=EditorApplication.timeSinceStartup+1200;frame=-1;work.Push(Verify());EditorApplication.update+=Tick;
     }
@@ -147,6 +147,9 @@ public static class QuestMerchantPlayVerifier
         yield return Frames(10);SetupInput();yield return Frames(4);
         var title=TitleCharacterPanel.Instance;yield return Click(title.start);yield return Frames(4);yield return Click(title.enter);
         yield return Wait(()=>AccountBootstrap.Ready&&WorldSessionState.IsHideout&&!PersistentSceneFlow.Instance.IsSwitching,"isolated title-to-town boot completes");yield return Frames(10);
+        var tutorial=OptionalTutorialController.Instance;
+        if(tutorial&&tutorial.view.modal.activeSelf&&!tutorial.IsTraining)
+        {Check(tutorial.LastError==null&&tutorial.view.modalTitle.text=="튜토리얼을 체험하시겠습니까?","first-entry tutorial invitation is valid");yield return Click(tutorial.view.secondary);yield return Frames(4);}
         var ui=QuestMerchantUI.Current;var account=AccountGameplaySession.Current;var registry=Resources.Load<AccountContentRegistry>(AccountContentRegistry.ResourcePath);var actor=PlayerContext.Instance.CurrentActor;
         Check(ui && QuestSession.Current && QuestSession.Current.IsBoundTo(account),"one quest session binds to current runtime account");
         Check(Object.FindObjectsByType<QuestInventoryStyle>(FindObjectsInactive.Include,FindObjectsSortMode.None).Length==1,"one inventory style binds to existing inventory controls");
@@ -265,10 +268,13 @@ public static class QuestMerchantPlayVerifier
         Check(Vector3.Distance(position,actor.transform.position)>.02f&&!GameplayInputBlocker.IsGameplayInputBlocked,"actual movement remains enabled with approach visible");
         ActorTeleportUtility.TeleportSafely(actor.transform,stylist.transform.position+stylist.transform.forward*1.35f,Quaternion.LookRotation(-stylist.transform.forward));yield return Frames(10);
         ui.SelectOption(2);Check(ui.SelectedOption==1,"wheel/selection cannot choose unavailable stylist actions");
-        yield return KeyPress(Key.F);Check(AppearanceCustomizationPanel.IsOpen&&AppearanceCustomizationPanel.Instance.Owner==stylist,"F opens existing stylist appearance session");
-        Check(!ui.approach.activeInHierarchy&&GameplayInputBlocker.IsGameplayInputBlocked,"actual appearance window takes modal ownership");yield return Capture("stylist-F-open");
+        Check(!AppearanceCustomizationPanel.Instance,"cold pointer entry has no preinstalled appearance panel");
+        yield return Click(ui.approachButtons[1]);Check(AppearanceCustomizationPanel.IsOpen&&AppearanceCustomizationPanel.Instance.Owner==stylist,"first physical click installs and opens stylist session");
+        var firstPanel=AppearanceCustomizationPanel.Instance;
+        Check(Object.FindObjectsByType<AppearanceCustomizationPanel>(FindObjectsInactive.Include,FindObjectsSortMode.None).Length==1,"first pointer entry creates one appearance panel");
+        Check(!ui.approach.activeInHierarchy&&GameplayInputBlocker.IsGameplayInputBlocked,"actual appearance window takes modal ownership");yield return Capture("stylist-first-click-open");
         yield return KeyPress(Key.F);Check(!AppearanceCustomizationPanel.IsOpen&&!GameplayInputBlocker.IsGameplayInputBlocked,"F closes without reopening on same frame");yield return Frames(8);
-        yield return Click(ui.approachButtons[1]);Check(AppearanceCustomizationPanel.IsOpen&&AppearanceCustomizationPanel.Instance.Owner==stylist,"physical click opens same stylist session");
+        yield return KeyPress(Key.F);Check(AppearanceCustomizationPanel.IsOpen&&AppearanceCustomizationPanel.Instance==firstPanel&&firstPanel.Owner==stylist,"F reuses the first pointer-created stylist panel");
         yield return KeyPress(Key.Escape);Check(!AppearanceCustomizationPanel.IsOpen&&!GameplayInputBlocker.IsGameplayInputBlocked,"Esc closes stylist session and releases owners");yield return Frames(8);
         stylist.enabled=false;yield return Frames(4);Check(!ui.approach.activeInHierarchy&&controller.ExecuteMerchantOption(stylist,1)==InteractionExecutionResult.Rejected,"disabled stylist rejects retained command");stylist.enabled=true;yield return Frames(6);
         ActorTeleportUtility.TeleportSafely(actor.transform,stylist.transform.position+Vector3.forward*9,actor.transform.rotation);yield return Frames(8);Check(controller.ExecuteMerchantOption(stylist,1)==InteractionExecutionResult.Rejected&&!AppearanceCustomizationPanel.IsOpen,"out-of-range click cannot open stylist");

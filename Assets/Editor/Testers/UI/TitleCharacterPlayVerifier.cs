@@ -76,7 +76,7 @@ public static class TitleCharacterPlayVerifier
         output=pending;
         if(EditorApplication.timeSinceStartup>SessionState.GetFloat(K+"deadline",0)){Finish(new Exception("Boot timeout"));return;}
         bool management=Path.GetFileName(output).StartsWith("Management",StringComparison.Ordinal);
-        if(!EditorApplication.isPlaying || !OwnPlay() || (!management&&(PlayerInputFacade.Current==null || AppearanceCustomizationPanel.Instance==null || !TitleCharacterPanel.Instance || !PlayerContext.Instance?.CurrentActor)))return;
+        if(!EditorApplication.isPlaying || !OwnPlay() || (!management&&(PlayerInputFacade.Current==null || !TitleCharacterPanel.Instance || !PlayerContext.Instance?.CurrentActor)))return;
         EditorApplication.update-=Begin;SessionState.EraseString(K+"pending");SessionState.SetBool(K+"running",true);
         checks.Clear();Application.runInBackground=true;deadline=EditorApplication.timeSinceStartup+600;frame=-1;work.Push(management?VerifyManagement():Verify());EditorApplication.update+=Tick;
     }
@@ -198,6 +198,9 @@ public static class TitleCharacterPlayVerifier
         }
         string selected=title.SelectedId;yield return Capture("roster-runtime");yield return Click(title.enter);
         yield return Wait(()=>AccountBootstrap.Ready&&WorldSessionState.IsHideout&&!PersistentSceneFlow.Instance.IsSwitching,"selected character completes original MainScene boot",2400);yield return Frames(8);
+        var tutorial=OptionalTutorialController.Instance;
+        if(tutorial&&tutorial.view.modal.activeSelf&&!tutorial.IsTraining)
+        {Check(tutorial.LastError==null&&tutorial.view.modalTitle.text=="튜토리얼을 체험하시겠습니까?","first-entry tutorial invitation is valid");yield return Click(tutorial.view.secondary);yield return Frames(4);}
         var account=AccountGameplaySession.Current;var state=account.Read();AccountInvariants.Validate(state,Resources.Load<AccountContentRegistry>(AccountContentRegistry.ResourcePath));
         Check(!TitleCharacterPanel.Instance&&state.activeCharacterId==selected&&state.characters.Count==2,"title releases itself and selected character reaches one runtime account session");
         Check(PlayerProgression.CurrentLevel==state.level&&state.level==(SessionState.GetBool(K+"equipment",false)?5:1),"actual player progression belongs to selected character");
@@ -208,6 +211,7 @@ public static class TitleCharacterPlayVerifier
         if(Path.GetFileName(output).StartsWith("Return",StringComparison.Ordinal)){yield return ReturnToTitleRegression(account);yield break;}
         var npc=Object.FindObjectsByType<AppearanceStylistInteractable>(FindObjectsSortMode.None).Single();
         ActorTeleportUtility.TeleportSafely(actor.transform,npc.transform.position+npc.transform.forward*1.35f,Quaternion.LookRotation(-npc.transform.forward));yield return Frames(8);
+        Check(!AppearanceCustomizationPanel.Instance,"creation panel was released with title before cold stylist F");
         Check(actor.GetComponent<PlayerInteractionController>().Current==npc,"existing stylist selected by actual interaction resolver");yield return KeyPress(Key.F);
         var appearance=AppearanceCustomizationPanel.Instance;Check(AppearanceCustomizationPanel.IsOpen&&!appearance.IsCreation&&appearance.Owner==npc,"same shared panel returns to normal stylist context");
         Check(appearance.surface.transform.Find("Title").GetComponent<TMP_Text>().text=="외모 변경"&&!appearance.creationIdentity.activeSelf&&appearance.apply.GetComponentInChildren<TMP_Text>().text=="외모 적용","creation labels and controls restore for stylist");

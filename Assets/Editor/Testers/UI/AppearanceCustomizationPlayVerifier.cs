@@ -53,7 +53,7 @@ public static class AppearanceCustomizationPlayVerifier
         SessionState.SetString(K+"pending",output);SessionState.SetString(K+"return",output);SessionState.SetString(K+"startScene",AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene));
         SessionState.SetBool(K+"background",Application.runInBackground);SessionState.SetFloat(K+"deadline",(float)EditorApplication.timeSinceStartup+240);
         SessionState.SetFloat(K+"returnDeadline",(float)EditorApplication.timeSinceStartup+1200);
-        EditorSceneManager.playModeStartScene=AssetDatabase.LoadAssetAtPath<SceneAsset>("Assets/ProjectOverburst/00_Scenes/PersistentScene.unity");
+        EditorSceneManager.playModeStartScene=AssetDatabase.LoadAssetAtPath<SceneAsset>("Assets/ProjectOverburst/00_Scenes/MainScene.unity");
         EditorApplication.update-=Begin;EditorApplication.update+=Begin;
         try{IsolatedSavePlayGuard.EnterIsolatedPlay(save);}catch(Exception error){Finish(error);}
     }
@@ -82,7 +82,7 @@ public static class AppearanceCustomizationPlayVerifier
         var pending=SessionState.GetString(K+"pending","");if(string.IsNullOrEmpty(pending)){EditorApplication.update-=Begin;return;}
         output=pending;
         if(EditorApplication.timeSinceStartup>SessionState.GetFloat(K+"deadline",0)){Finish(new Exception("Boot timeout"));return;}
-        if(!EditorApplication.isPlaying || !OwnPlay() || PlayerInputFacade.Current==null || AppearanceCustomizationPanel.Instance==null || !AccountBootstrap.Ready || !WorldSessionState.IsHideout || !PlayerContext.Instance?.CurrentActor || Object.FindObjectsByType<AppearanceStylistInteractable>(FindObjectsSortMode.None).Length!=1)return;
+        if(!EditorApplication.isPlaying || !OwnPlay() || PlayerInputFacade.Current==null || !AccountBootstrap.Ready || PersistentSceneFlow.Instance==null || PersistentSceneFlow.Instance.IsSwitching || !WorldSessionState.IsHideout || !PlayerContext.Instance?.CurrentActor || Object.FindObjectsByType<AppearanceStylistInteractable>(FindObjectsSortMode.None).Length!=1)return;
         EditorApplication.update-=Begin;SessionState.EraseString(K+"pending");SessionState.SetBool(K+"running",true);
         checks.Clear();Application.runInBackground=true;deadline=EditorApplication.timeSinceStartup+600;frame=-1;work.Push(SessionState.GetBool(K+"equipment",false)?VerifyEquipment():Verify());EditorApplication.update+=Tick;
     }
@@ -175,12 +175,17 @@ public static class AppearanceCustomizationPlayVerifier
     static IEnumerator Verify()
     {
         yield return Frames(20);SetupInput();yield return Frames(4);
-        var p=AppearanceCustomizationPanel.Instance;var c=p.catalog;var actor=PlayerContext.Instance.CurrentActor;
+        var tutorial=OptionalTutorialController.Instance;
+        if(tutorial&&tutorial.view.modal.activeSelf&&!tutorial.IsTraining)
+        {Check(tutorial.LastError==null&&tutorial.view.modalTitle.text=="튜토리얼을 체험하시겠습니까?","first-entry tutorial invitation is valid");yield return Click(tutorial.view.secondary);yield return Frames(4);}
+        var actor=PlayerContext.Instance.CurrentActor;
         var npc=Object.FindObjectsByType<AppearanceStylistInteractable>(FindObjectsSortMode.None).Single();
         var account=AccountGameplaySession.Current;account.FlushPendingSave();var before=account.Read();string untouched=OtherAccount(before);
         var adapter=actor.GetComponentInChildren<P09CharacterVisualAdapter>(true);var controller=adapter.Animator.runtimeAnimatorController;var socket=adapter.RightHandWeaponSocket;
         Check(PlayerAppearanceController.Instance&&PlayerAppearanceController.Instance.Error==null,"appearance controller binds real player");
+        Check(!AppearanceCustomizationPanel.Instance,"cold stylist entry has no preinstalled appearance panel");
         yield return OpenByInteraction(npc,actor);
+        var p=AppearanceCustomizationPanel.Instance;var c=p.catalog;
         Check(p.Session.PreviewBody==AppearancePreviewBody.Equipment&&p.Session.EquipmentExampleId==c.equipmentExamples[0].id,"first entry shows equipment 1 on preview only");
         Check(GameplayInputBlocker.IsGameplayInputBlocked,"appearance UI blocks gameplay input");
         var screen=p.surface.GetComponent<RectTransform>();var bounds=RectTransformUtility.CalculateRelativeRectTransformBounds(p.rootCanvas.transform,screen);

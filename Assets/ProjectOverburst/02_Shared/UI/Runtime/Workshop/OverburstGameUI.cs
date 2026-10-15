@@ -92,7 +92,7 @@ public sealed class OverburstGameUI : MonoBehaviour
         OverburstGameMenu.Install(transform);
         OverburstSkillTreeUI.Install(transform);
         OverburstHudMenu.Install(this);
-        Overburst.Appearance.AppearanceCustomizationPanel.Install(transform);
+        // The stylist and character creation install the appearance panel on first use.
         Refresh();
         QuestMerchantUI.Install();
         inventory.ApplyQuestMerchantStyle(equipmentButton, inventoryCapacity);
