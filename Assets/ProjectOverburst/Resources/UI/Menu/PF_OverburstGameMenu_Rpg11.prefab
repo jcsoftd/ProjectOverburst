@@ -8727,6 +8727,8 @@ MonoBehaviour:
   hoverClip: {fileID: 8300000, guid: d9d36c6ba89fee741b9403d0496ee2eb, type: 3}
   clickClip: {fileID: 8300000, guid: 1123fdb8d142dab488ee785975d453fe, type: 3}
   confirmClip: {fileID: 8300000, guid: 9a20e972d8df83e4b9a7c1d348b4049b, type: 3}
+  selectionClickClip: {fileID: 8300000, guid: 683c3ed17217a4c3e815e5a937247572, type: 3}
+  selectionConfirmClip: {fileID: 8300000, guid: 4c68e08b375144badbe3754982f37601, type: 3}
   managementPreview: 0
 --- !u!114 &8212320816328226585
 MonoBehaviour:

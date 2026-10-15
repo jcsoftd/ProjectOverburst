@@ -50,6 +50,9 @@ public sealed class OverburstGameMenu : MonoBehaviour
     public AudioClip hoverClip;
     public AudioClip clickClip;
     public AudioClip confirmClip;
+    public AudioClip selectionClickClip;
+    public AudioClip selectionConfirmClip;
+    private int selectionClickFrame = -1;
 
     private Action modalConfirmAction;
     private Action modalCancelAction;
@@ -367,6 +370,21 @@ public sealed class OverburstGameMenu : MonoBehaviour
 
     public void PlayHover() => Play(hoverClip, .35f);
     public void PlayClick() => Play(clickClip, .8f);
+
+    public static void PlaySelectionClick()
+    {
+        var menu = Instance;
+        if (!Application.isPlaying || !menu || menu.selectionClickFrame == Time.frameCount) return;
+        // The name-dialog close button invokes the back button in the same frame.
+        menu.selectionClickFrame = Time.frameCount;
+        menu.Play(menu.selectionClickClip, .65f);
+    }
+
+    public static void PlaySelectionConfirm()
+    {
+        var menu = Instance;
+        if (Application.isPlaying && menu) menu.Play(menu.selectionConfirmClip, .65f);
+    }
 
     private void Play(AudioClip clip, float volume)
     {

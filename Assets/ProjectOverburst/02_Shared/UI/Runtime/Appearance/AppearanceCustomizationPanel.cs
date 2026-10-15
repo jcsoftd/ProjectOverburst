@@ -84,6 +84,9 @@ namespace Overburst.Appearance
             InstallEditorPreview();
 #endif
             wired=true;
+            foreach(var button in GetComponentsInChildren<Button>(true))
+                if(button!=apply)button.onClick.AddListener(PlaySelectionClick);
+            apply.onClick.AddListener(()=>{if(!IsCreation)PlaySelectionClick();});
             foreach(var choice in choices)choice.Bind(SelectChoice);
             appearanceTab.onClick.AddListener(ShowAppearance);
             optionalTabs=GetComponentsInChildren<AppearanceOptionalTab>(true);
@@ -183,7 +186,7 @@ namespace Overburst.Appearance
         public void SetCreationName(string name,Action rename=null)
         {
             creationName=name;if(rename!=null)renameCreation=rename;
-            if(creationRename){creationRename.onClick.RemoveAllListeners();creationRename.onClick.AddListener(()=>renameCreation?.Invoke());}
+            if(creationRename){creationRename.onClick.RemoveAllListeners();creationRename.onClick.AddListener(PlaySelectionClick);creationRename.onClick.AddListener(()=>renameCreation?.Invoke());}
             SetContextLabels();
         }
         private bool Begin(AppearanceStylistInteractable owner,bool exhibition,AccountGameplaySession current,CharacterAppearanceSnapshot initial=null)
@@ -254,6 +257,10 @@ namespace Overburst.Appearance
             if(tmp&&tmp.isFocused)return true;
             var legacy=selected.GetComponentInParent<InputField>();
             return legacy&&legacy.isFocused;
+        }
+        private void PlaySelectionClick()
+        {
+            if(Session!=null&&!IsExhibition)OverburstGameMenu.PlaySelectionClick();
         }
         private void SelectChoice(AppearanceChoiceButton choice)
         {

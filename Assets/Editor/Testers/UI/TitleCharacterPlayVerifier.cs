@@ -143,6 +143,7 @@ public static class TitleCharacterPlayVerifier
     static IEnumerator Verify()
     {
         yield return Frames(12);SetupInput();yield return Frames(4);var title=TitleCharacterPanel.Instance;
+        if(Path.GetFileName(output).StartsWith("SelectionAudio",StringComparison.Ordinal)){yield return VerifySelectionAudio(title);yield break;}
         if(Path.GetFileName(output).StartsWith("Raycast",StringComparison.Ordinal)){yield return Click(title.start);yield return OpenCreation(title,"검증기사");yield return Click(AppearanceCustomizationPanel.Instance.creationRename);yield return TextInput(title.nameInput,"새벽기사");yield return Click(title.nameNext);Check(!title.NameDialogOpen,"rename dialog remains above original shared panel for pointer input");yield break;}
         Check(title&&title.Screen=="title"&&!AccountBootstrap.Ready&&AccountGameplaySession.Current==null,"Persistent boot waits at title before account projection and autosave");
         if(Path.GetFileName(output).StartsWith("Return",StringComparison.Ordinal))yield return VerifyHover(title.start,"title start");
@@ -221,6 +222,42 @@ public static class TitleCharacterPlayVerifier
         Check(!AppearanceCustomizationPanel.IsOpen&&account.ReadAppearance().Equals(before)&&!GameplayInputBlocker.IsGameplayInputBlocked,"stylist discard preserves saved appearance and returns gameplay input");
         Check(PlayerAppearanceController.Instance&&PlayerAppearanceController.Instance.Error==null,"actual actor receives selected saved appearance");
         account.FlushPendingSave();var disk=new EasySaveAccountStore(AccountBootstrap.SaveDirectory).Load();Check(disk.activeCharacterId==selected&&disk.characters.Count==2,"runtime autosave retains roster and active character");yield return Capture("gameplay-runtime");
+    }
+    static IEnumerator VerifySelectionAudio(TitleCharacterPanel title)
+    {
+        var menu=OverburstGameMenu.Instance;
+        Check(menu&&menu.audioSource,"selection uses the existing menu AudioSource before title input");
+        Check(menu.selectionClickClip&&menu.selectionClickClip.name=="fnt_ui_select_click_06","selected click asset loaded");
+        Check(menu.selectionConfirmClip&&menu.selectionConfirmClip.name=="Fantasy_Game_UI_Magic_Confirm_A","selected completion asset loaded");
+        Check(menu.audioSource.spatialBlend==0&&menu.audioSource.ignoreListenerPause,"selection audio is 2D and works during UI pause");
+        menu.audioSource.Stop();OverburstGameMenu.PlaySelectionClick();
+        Check(menu.audioSource.isPlaying,"selected click starts on the shared source");
+        menu.audioSource.Stop();OverburstGameMenu.PlaySelectionClick();
+        Check(!menu.audioSource.isPlaying,"nested click callbacks do not double-play in the same frame");
+        yield return Frames(2);yield return Click(title.start);
+        Check(menu.audioSource.isPlaying&&title.Screen=="characters","title start click plays selected feedback and reaches roster");
+        yield return Click(title.create);yield return Click(title.classNext);
+        // Audio-flow fixture: leave native IME input coverage to the existing name-input verifier.
+        EventSystem.current.SetSelectedGameObject(title.nameNext.gameObject);yield return Frames(2);
+        title.nameInput.text="SoundCheck";title.nameInput.ForceLabelUpdate();
+        yield return Click(title.nameNext);yield return Frames(3);
+        Check(AppearanceCustomizationPanel.IsOpen&&AppearanceCustomizationPanel.Instance.IsCreation,"audio fixture opens shared creation panel");
+        var panel=AppearanceCustomizationPanel.Instance;
+        menu.audioSource.Stop();yield return Click(Choice(panel,AppearanceChoiceKind.Face,panel.catalog.faces[1].id).button);
+        Check(menu.audioSource.isPlaying,"appearance choice plays selected click");
+        var store=TitleStore(title);var candidate=panel.Session.CandidateForSave();
+        store.FaultInjector=phase=>{if(phase=="before-write")throw new IOException("Owned selection audio save failure");};
+        menu.audioSource.Stop();
+        try{yield return Click(panel.apply);Check(panel.IsCreation&&panel.Session.CandidateForSave().Equals(candidate)&&!menu.audioSource.isPlaying,"failed creation save retains draft and does not play success or click");}
+        finally{store.FaultInjector=null;}
+        bool createdAudio=false;panel.apply.onClick.AddListener(()=>createdAudio=menu&&menu.audioSource.isPlaying);
+        menu.audioSource.Stop();yield return Click(panel.apply);
+        Check(createdAudio&&!AppearanceCustomizationPanel.IsOpen&&title.Screen=="characters","successful creation plays selected confirmation and returns to roster");
+        bool enterAudio=false;title.enter.onClick.AddListener(()=>enterAudio=menu&&menu.audioSource.isPlaying);
+        menu.audioSource.Stop();yield return Click(title.enter);
+        Check(enterAudio,"successful adventure start plays selected confirmation");
+        yield return Wait(()=>AccountBootstrap.Ready&&AccountGameplaySession.Current!=null&&!PersistentSceneFlow.Instance.IsSwitching,"selected adventure reaches gameplay");
+        Check(menu&&menu==OverburstGameMenu.Instance&&!TitleCharacterPanel.Instance,"shared sound source survives title destruction");
     }
     static IEnumerator VerifyManagement()
     {

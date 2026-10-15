@@ -13,6 +13,7 @@ public static partial class OverburstGameMenuBuilder
     private const string Kit = "Assets/ThirdParty/RPG and MMO UI 11/Prefabs/";
     private const string EquipmentPrefab = "Assets/ProjectOverburst/02_Shared/UI/Prefabs/RpgMmo11/PF_OverburstEquipment_Rpg11.prefab";
     private const string SoundFolder = "Assets/ThirdParty/11_사운드/Pro Sound Collection/User_Interface_Menu/";
+    public const string SelectionSoundFolder = "Assets/ThirdParty/11_사운드/SelectedFantasyUI/";
 
     private static readonly Color Gold = Hex("E0BD7A");
     private static readonly Color Label = Hex("BDB5A8");
@@ -61,6 +62,8 @@ public static partial class OverburstGameMenuBuilder
             menu.hoverClip = Clip("ui_menu_button_scroll_01");
             menu.clickClip = Clip("ui_menu_button_click_01");
             menu.confirmClip = Clip("ui_menu_button_confirm_01");
+            menu.selectionClickClip = AssetDatabase.LoadAssetAtPath<AudioClip>(SelectionSoundFolder + "fnt_ui_select_click_06.wav");
+            menu.selectionConfirmClip = AssetDatabase.LoadAssetAtPath<AudioClip>(SelectionSoundFolder + "Fantasy_Game_UI_Magic_Confirm_A.wav");
 
             var frame = new GameObject("Menu Frame", typeof(RectTransform), typeof(CanvasGroup));
             frame.transform.SetParent(root.transform, false);

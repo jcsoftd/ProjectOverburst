@@ -76,6 +76,8 @@ public sealed class TitleCharacterPanel : MonoBehaviour
     void Wire()
     {
         if(wired)return;wired=true;
+        foreach(var button in new[]{start,settings,quit,back,create,classNext,nameNext,nameBack,nameClose,quitCancel,quitConfirm}.Concat(classButtons))
+            if(button)button.onClick.AddListener(OverburstGameMenu.PlaySelectionClick);
         start.onClick.AddListener(()=>{if(Reload())Show("characters");});
         create.onClick.AddListener(()=>{draftId=null;nameInput.text="";selectedClass=0;Show("classes");});
         back.onClick.AddListener(Back);
@@ -84,7 +86,7 @@ public sealed class TitleCharacterPanel : MonoBehaviour
         nameNext.onClick.AddListener(OpenAppearance);
         nameBack.onClick.AddListener(CloseName);
         nameClose.onClick.AddListener(()=>nameBack.onClick.Invoke());
-        nameInput.onSubmit.AddListener(_=>OpenAppearance());
+        nameInput.onSubmit.AddListener(_=>{OverburstGameMenu.PlaySelectionClick();OpenAppearance();});
         nameInput.onValueChanged.AddListener(value=>{nameCounter.text=value.Length+" / 12";nameError.text="";});
         nameInput.navigation=new Navigation{mode=Navigation.Mode.Explicit,selectOnDown=nameNext,selectOnUp=nameClose};
         nameNext.navigation=new Navigation{mode=Navigation.Mode.Explicit,selectOnUp=nameInput,selectOnLeft=nameBack};nameBack.navigation=new Navigation{mode=Navigation.Mode.Explicit,selectOnUp=nameInput,selectOnRight=nameNext};nameClose.navigation=new Navigation{mode=Navigation.Mode.Explicit,selectOnDown=nameInput};
@@ -184,6 +186,7 @@ public sealed class TitleCharacterPanel : MonoBehaviour
             button.transform.Find("Info").GetComponent<TMP_Text>().text="Lv. "+personal.level+"  ·  기사  ·  "+Element(personal);
             button.transform.Find("Avatar").GetComponent<Image>().sprite=catalog.faces.FirstOrDefault(f=>f.id==personal.appearance?.faceId)?.thumbnail??catalog.faces[0].thumbnail;
             var visual=button.GetComponent<AppearanceButtonVisual>();if(visual)visual.SetSelected(entry.id==selectedId);
+            button.onClick.AddListener(OverburstGameMenu.PlaySelectionClick);
             button.onClick.AddListener(()=>{selectedId=captured;Show("characters");});
         }
         rosterContent.sizeDelta=new Vector2(rosterContent.sizeDelta.x,Mathf.Max(140f,index*154f-14f));
@@ -211,7 +214,9 @@ public sealed class TitleCharacterPanel : MonoBehaviour
     }
     public void SelectClass(int index)
     {
-        if(index<0||index>2)return;selectedClass=index;
+        if(index<0||index>2)return;
+        if(index!=selectedClass)OverburstGameMenu.PlaySelectionClick();
+        selectedClass=index;
         rotationFrom=rotation;rotationTo=rotation+Mathf.DeltaAngle(rotation,-120*index);rotationElapsed=0;rotating=Mathf.Abs(rotationTo-rotation)>.01f;
         RefreshClass();
     }
@@ -350,7 +355,7 @@ public sealed class TitleCharacterPanel : MonoBehaviour
                     transactions.Execute("create-"+draftId,snapshot.revision,c=>AccountCharacterCommands.Create(c,draftId,draftName,"knight",appearance,registry),true);snapshot=transactions.Read();
                 }
             }
-            selectedId=draftId;draftId=null;return true;
+            selectedId=draftId;draftId=null;OverburstGameMenu.PlaySelectionConfirm();return true;
         }
         catch(Exception error){SetFeedback("저장하지 못했습니다. 외모를 유지했습니다. 다시 시도해 주세요. "+error.Message);return false;}
     }
@@ -362,6 +367,7 @@ public sealed class TitleCharacterPanel : MonoBehaviour
             if(!Reload()||snapshot==null)return;
             var transactions=new AccountTransactions(snapshot,store,registry);
             transactions.Execute("select-"+Guid.NewGuid().ToString("N"),snapshot.revision,c=>AccountCharacterCommands.Select(c,selectedId),true);
+            OverburstGameMenu.PlaySelectionConfirm();
             entering=true;enter.interactable=false;CloseVisuals();
         }
         catch(Exception error){SetFeedback("모험을 시작하지 못했습니다. "+error.Message);}
