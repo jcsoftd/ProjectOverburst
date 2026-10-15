@@ -41,6 +41,7 @@ namespace Overburst.Caves
         [Serializable] public sealed class Connector
         {
             public GameObject prefab;
+            public Vector3[] walkProfile = Array.Empty<Vector3>();
             // Contact points in prefab-local coordinates. Meshes and source scale stay unchanged.
             public Vector3 entry, exit;
             public float width;

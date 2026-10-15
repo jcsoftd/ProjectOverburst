@@ -116,18 +116,26 @@ public class CavePlatformMapBuilder : CavePlatformLayout
             var min = vertices.Aggregate(Vector3.Min); var max = vertices.Aggregate(Vector3.Max);
             var colliders = filters.Select(f => { var c = f.gameObject.AddComponent<MeshCollider>(); c.sharedMesh = f.sharedMesh; return c; }).ToArray();
             var contacts = new List<Vector3>();
+            var walkContacts = new List<Vector3>();
             for (int i = 0; i <= 512; i++)
             {
                 var p = (min + max) * .5f;
                 if (alongZ) p.z = Mathf.Lerp(min.z, max.z, i / 512f); else p.x = Mathf.Lerp(min.x, max.x, i / 512f);
                 p.y = max.y + 1;
-                bool found = false; RaycastHit top = default;
+                bool found = false; RaycastHit top = default; float walkTop = float.MinValue;
                 foreach (var c in colliders)
-                    if (c.Raycast(new Ray(p, Vector3.down), out var hit, max.y - min.y + 3) && hit.normal.y > .55f && (!found || hit.point.y > top.point.y)) { top = hit; found = true; }
+                    for (int side = -1; side <= 1; side++)
+                    {
+                        var near = p + (alongZ ? Vector3.right : Vector3.forward) * (side * .2f);
+                        if (!c.Raycast(new Ray(near, Vector3.down), out var hit, max.y - min.y + 3) || hit.normal.y <= .55f) continue;
+                        walkTop = Mathf.Max(walkTop, hit.point.y);
+                        if (side == 0 && (!found || hit.point.y > top.point.y)) { top = hit; found = true; }
+                    }
                 if (found) contacts.Add(top.point);
+                if (walkTop > float.MinValue) walkContacts.Add(new Vector3(p.x, walkTop, p.z));
             }
             if (contacts.Count < 2) throw new InvalidOperationException("No deck contacts: " + prefab.name);
-            return new CavePlatformLibrary.Connector { prefab = prefab, entry = clone.transform.InverseTransformPoint(contacts.First()), exit = clone.transform.InverseTransformPoint(contacts.Last()), width = (alongZ ? max.x - min.x : max.z - min.z) * (alongZ ? .55f : .68f) };
+            return new CavePlatformLibrary.Connector { prefab = prefab, entry = clone.transform.InverseTransformPoint(contacts.First()), exit = clone.transform.InverseTransformPoint(contacts.Last()), walkProfile = walkContacts.Select(clone.transform.InverseTransformPoint).ToArray(), width = (alongZ ? max.x - min.x : max.z - min.z) * (alongZ ? .55f : .68f) };
         }
         finally { Object.DestroyImmediate(clone); }
     }
@@ -253,6 +261,19 @@ public class CavePlatformMapBuilder : CavePlatformLayout
         finally { EditorSceneManager.ClosePreviewScene(preview); }
     }
 
+    public static void RefreshStairWalkProfiles()
+    {
+        Guard(); var library = AssetDatabase.LoadAssetAtPath<CavePlatformLibrary>(LibraryPath);
+        var preview = EditorSceneManager.NewPreviewScene();
+        try
+        {
+            foreach (var connector in new[] { library.singleStair, library.doubleStair })
+                connector.walkProfile = MeasureConnector(connector.prefab, true, preview).walkProfile;
+            EditorUtility.SetDirty(library); AssetDatabase.SaveAssetIfDirty(library);
+        }
+        finally { EditorSceneManager.ClosePreviewScene(preview); }
+    }
+
     static CapsuleCollider placementProbe;
     static readonly Dictionary<CavePlatformLibrary.Platform, Collider[]> placementColliders = new Dictionary<CavePlatformLibrary.Platform, Collider[]>();
     public static Layout Plan(CavePlatformLibrary library, int count, int seed, float spacing = 1)
@@ -342,6 +363,8 @@ public class CavePlatformMapBuilder : CavePlatformLayout
                 world.courts.Add(new CaveWorld.Court { name = go.name, center = room.position + Rotate(definition.spawn, room.yaw), radius = go.GetComponent<CaveTile>().combatRadius, tile = go.GetComponent<CaveTile>() });
             }
             foreach (var link in plan.links) Bridge(world, library, plan, link);
+            foreach (var connection in world.generatedRoot.GetComponentsInChildren<CaveRigidConnection>())
+                if (connection.walkCollider) owned.Add(connection.walkCollider.sharedMesh);
 
             var bounds = BoundsOf(world.generatedRoot.GetComponentsInChildren<Renderer>().Where(r => r.enabled)); world.mapSize = Mathf.Max(bounds.size.x, bounds.size.z) + 40;
             Physics.SyncTransforms();

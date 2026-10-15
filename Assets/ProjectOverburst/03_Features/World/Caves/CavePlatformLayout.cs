@@ -225,6 +225,17 @@ public class CavePlatformLayout
                     if (PassageHitsRoom(library, room, start, end) || layout.links.Any(l => PassageHitsRoom(library, room, l.start, l.end))) continue;
                     if (layout.rooms.Any(r => PassageHitsRoom(library, r, start, end))) continue;
                     if (layout.rooms.Any(r => InvadesFloor(r, room) || InvadesFloor(room, r))) { Reject("neighbour combat floor"); continue; }
+                    if (ra.stone)
+                    {
+                        float? Floor(bool fromA, Vector3 near)
+                        {
+                            var placed = fromA ? parent : room;
+                            if (!library.platforms[placed.platform].Surface(Rotate(near - placed.position, -placed.yaw), out var point)) return null;
+                            return placed.position.y + point.y;
+                        }
+                        float width = ConnectorPieces(library, stairCount).Min(p => p.width);
+                        if (StairWalkPoints(start, end, width, StairDeckPoints(library, stairCount, start, end), Floor) == null) { Reject("stair walk slope"); continue; }
+                    }
                     parent.used[portA] = true; room.used[portB] = true; layout.rooms.Add(room);
                     placedHulls.Add(room, hull);
                     order[candidateIndex] = order[next]; order[next] = candidatePlatform;
@@ -304,6 +315,63 @@ public class CavePlatformLayout
         }
     }
 
+    public static List<Vector3> StairDeckPoints(CavePlatformLibrary library, int count, Vector3 start, Vector3 end)
+    {
+        var result = new List<Vector3>(); var cursor = start;
+        var direction = end - start; direction.y = 0; direction.Normalize();
+        foreach (var piece in ConnectorPieces(library, count))
+        {
+            if (piece.walkProfile == null || piece.walkProfile.Length < 2) throw new InvalidOperationException("Refresh stair walk profiles before generation.");
+            bool reverse = Mathf.Sign(piece.Span.y) != Mathf.Sign(end.y - start.y);
+            var entry = reverse ? piece.exit : piece.entry; var exit = reverse ? piece.entry : piece.exit;
+            var scale = piece.prefab.transform.localScale; var span = Vector3.Scale(exit - entry, scale);
+            var rotation = Quaternion.LookRotation(direction) * Quaternion.Inverse(Quaternion.LookRotation(new Vector3(span.x, 0, span.z)));
+            var position = cursor - rotation * Vector3.Scale(entry, scale);
+            foreach (var point in reverse ? piece.walkProfile.Reverse() : piece.walkProfile)
+                result.Add(position + rotation * Vector3.Scale(point, scale));
+            cursor = position + rotation * Vector3.Scale(exit, scale);
+        }
+        return result.OrderBy(p => Vector3.Dot(p - start, direction)).ToList();
+    }
+
+    public static Vector3[] StairWalkPoints(Vector3 start, Vector3 end, float width, IList<Vector3> deck, Func<bool, Vector3, float?> floor)
+    {
+        var direction = end - start; direction.y = 0;
+        float length = direction.magnitude;
+        if (length < .01f || deck == null || deck.Count < 2) return null;
+        direction /= length;
+        var side = new Vector3(-direction.z, 0, direction.x);
+        float startHeight = floor(true, start) ?? start.y, endHeight = floor(false, end) ?? end.y;
+        const float approach = 2f, footprint = .15f, clearance = .02f, maxRisePerMetre = .97f;
+        int count = Mathf.CeilToInt((length + approach * 2) / .1f), index = 0;
+        float step = (length + approach * 2) / count;
+        var points = new Vector3[count + 1];
+        for (int i = 0; i <= count; i++)
+        {
+            float along = -approach + step * i;
+            var near = start + direction * along;
+            float height = along < 0 ? startHeight : along > length ? endHeight : Mathf.Lerp(start.y, end.y, along / length);
+            if (along >= 0 && along <= length)
+            {
+                while (index < deck.Count - 2 && Vector3.Dot(deck[index + 1] - start, direction) < along) index++;
+                float a = Vector3.Dot(deck[index] - start, direction), b = Vector3.Dot(deck[index + 1] - start, direction);
+                height = Mathf.Lerp(deck[index].y, deck[index + 1].y, Mathf.InverseLerp(a, b, along));
+            }
+            bool fromA = along < length * .5f;
+            float anchor = fromA ? startHeight : endHeight;
+            for (int lane = -2; lane <= 2; lane++)
+            {
+                var supported = floor(fromA, near + side * (lane * width * .25f) + direction * (fromA ? -footprint : footprint));
+                if (supported.HasValue && Mathf.Abs(supported.Value - anchor) < .5f) height = Mathf.Max(height, supported.Value);
+            }
+            points[i] = near; points[i].y = height + clearance;
+        }
+        // The smallest slope-limited upper surface follows real treads without intersecting them or creating vertical risers.
+        for (int i = 1; i <= count; i++) points[i].y = Mathf.Max(points[i].y, points[i - 1].y - step * maxRisePerMetre);
+        for (int i = count - 1; i >= 0; i--) points[i].y = Mathf.Max(points[i].y, points[i + 1].y - step * maxRisePerMetre);
+        if (points[0].y > startHeight + .15f || points[count].y > endHeight + .15f) return null;
+        return points;
+    }
     public static CavePlatformLibrary.Connector[] ConnectorPieces(CavePlatformLibrary library, int stairs)
     {
         switch (stairs)

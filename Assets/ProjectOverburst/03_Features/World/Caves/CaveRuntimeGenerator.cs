@@ -198,7 +198,7 @@ namespace Overburst.Caves
             var instance = Object.Instantiate(piece.prefab, root.transform);
             instance.transform.SetParent(root.transform, false);
             instance.transform.SetPositionAndRotation(cursor - rotation * Vector3.Scale(entry, scale), rotation);
-            // Native mesh references, scale, stair treads, thickness and authored colliders are preserved.
+            // Visible source meshes and scale stay intact; stairs get one continuous walk collider below.
             if (!instance.GetComponentsInChildren<Collider>(true).Any(c => c.enabled && !c.isTrigger))
                 foreach (var f in instance.GetComponentsInChildren<MeshFilter>(true).Where(f => f.sharedMesh && f.GetComponent<Renderer>() && f.GetComponent<Renderer>().enabled))
                     f.gameObject.AddComponent<MeshCollider>().sharedMesh = f.sharedMesh;
@@ -211,6 +211,7 @@ namespace Overburst.Caves
         var floorsB = world.courts[link.b].tile.transform.Find("Platform").GetComponentsInChildren<MeshCollider>();
         placed.startContactGap = FloorHit(floorsA, link.start, out var ga) ? Mathf.Abs(ga.y - link.start.y) : 1;
         placed.endContactGap = FloorHit(floorsB, link.end, out var gb) ? Mathf.Abs(gb.y - link.end.y) : Mathf.Max(1, link.reviewShortfall);
+        if (link.stone) BuildStairWalkSurface(placed, library);
         placed.needsReview = link.reviewShortfall > 0 || placed.startContactGap > .25f || placed.endContactGap > .25f;
         if (placed.needsReview) root.name += " · REVIEW contact";
         int samples = Mathf.Max(2, Mathf.CeilToInt(Vector3.Distance(link.start, link.end) / .3f));
@@ -223,5 +224,22 @@ namespace Overburst.Caves
         }
         world.passages.Add(new CaveWorld.Passage { a = link.a, b = link.b, points = points, widths = Enumerable.Repeat(ConnectorPieces(library, link.stairCount).Min(p => p.width), points.Length).ToArray() });
     }
+
+        static void BuildStairWalkSurface(CaveRigidConnection connection, CavePlatformLibrary library)
+        {
+            var definitionA = library.platforms.First(p => p.source.GetComponent<CavePlatformBoundary>() == connection.boundaryA.Data);
+            var definitionB = library.platforms.First(p => p.source.GetComponent<CavePlatformBoundary>() == connection.boundaryB.Data);
+            float? Floor(bool fromA, Vector3 near)
+            {
+                var definition = fromA ? definitionA : definitionB;
+                var pose = (fromA ? connection.boundaryA : connection.boundaryB).transform;
+                if (!definition.Surface(pose.InverseTransformPoint(near), out var point)) return null;
+                return pose.TransformPoint(point).y;
+            }
+            var deck = CavePlatformLayout.StairDeckPoints(library, connection.stairCount, connection.start, connection.end);
+            var points = CavePlatformLayout.StairWalkPoints(connection.start, connection.end, connection.walkWidth, deck, Floor);
+            if (points == null) throw new InvalidOperationException("Stair connection exceeds the player walk slope: " + connection.name);
+            connection.CreateStairWalkSurface(points);
+        }
     }
 }
