@@ -14,7 +14,8 @@ public static class DesertMinimapBuilder
 {
     public const string AssetRoot = "Assets/ProjectOverburst/Resources/UI/Minimap/Desert";
     const string Key = "Overburst.DesertMinimapBuilder.";
-    const float CellSize = .25f;
+    const float CellSize = .125f;
+    const float BoundaryAllowance = 1.5f;
     static string output;
     static List<MapTerrainCatalog.DesertCandidate> candidates;
     static readonly List<object> reports = new List<object>();
@@ -105,7 +106,8 @@ public static class DesertMinimapBuilder
                 throw new InvalidOperationException("Candidate catalog does not match the generated terrain: " + candidate.id);
             var data = AssetDatabase.LoadAssetAtPath<DesertMinimapData>(path);
             if (data && data.version == DesertMinimapData.CurrentVersion && data.sourceDependencyHash == dependency
-                && data.layoutSignature == DesertMinimapData.LayoutSignature(world) && data.cellSize <= CellSize)
+                && data.layoutSignature == DesertMinimapData.LayoutSignature(world) && data.cellSize <= CellSize
+                && Mathf.Approximately(data.boundaryAllowance, BoundaryAllowance))
             {
                 data.Validate(candidate, world); ValidateTopology(data, world);
                 return new { candidate.id, status = "CURRENT", data.width, data.height, seconds = watch.Elapsed.TotalSeconds, source = dependency };
@@ -127,9 +129,18 @@ public static class DesertMinimapBuilder
                     bucket.Add(collider);
                 }
             }
+            var islands = world.GetComponent<IslandBiome>();
+            bool SurfaceClear(Vector2 p)
+            {
+                // Keep this post-layout rule in parity with MojaveWorld.IsWalkable; samples below verify it.
+                if (islands && world.Ground(p).y < islands.seaLevel + .30f) return false;
+                if (world.blockers != null) foreach (var b in world.blockers)
+                    if ((new Vector2(b.x, b.y) - p).sqrMagnitude < (b.z + .05f) * (b.z + .05f)) return false;
+                return true;
+            }
             bool Floor(Vector2 p)
             {
-                if (!world.IsWalkable(p, .05f)) return false;
+                if (!SurfaceClear(p)) return false;
                 Vector3 ground = world.Ground(p);
                 if (!obstacles.TryGetValue(new Vector2Int(Mathf.FloorToInt(p.x / 8), Mathf.FloorToInt(p.y / 8)), out var bucket)) return true;
                 foreach (var collider in bucket)
@@ -144,31 +155,62 @@ public static class DesertMinimapBuilder
             try
             {
                 prepared.version = DesertMinimapData.CurrentVersion; prepared.candidateId = candidate.id;
+                prepared.boundaryAllowance = BoundaryAllowance;
                 prepared.sourceScene = candidate.scene; prepared.sourceDependencyHash = dependency;
                 prepared.seed = candidate.seed; prepared.layoutVersion = world.bakedLayoutVersion;
                 prepared.layoutSignature = DesertMinimapData.LayoutSignature(world);
                 prepared.combatTiles = world.layout.places.Select(p => world.catalog.patches[p.patch]).ToArray();
                 prepared.terrainPosition = world.surface.transform.position; prepared.terrainSize = world.surface.terrainData.size;
                 // Retry only a topology that lost a passage at the initial resolution.
-                string coarseFailure = null;
+                string coarseFailure = null; int paritySamples = 0;
                 for (int attempt = 0; attempt < 2; attempt++)
                 {
                     float cell = attempt == 0 ? CellSize : CellSize * .5f;
-                    prepared.cellSize = cell; prepared.bounds = DesertMinimapData.SamplingBounds(world, cell);
+                    prepared.cellSize = cell; prepared.bounds = DesertMinimapData.SamplingBounds(world, cell, BoundaryAllowance - .5f);
                     prepared.width = Mathf.RoundToInt(prepared.bounds.width / cell); prepared.height = Mathf.RoundToInt(prepared.bounds.height / cell);
-                    if (prepared.width > 4096 || prepared.height > 4096 || (long)prepared.width * prepared.height > 4194304)
+                    if (prepared.width > 4096 || prepared.height > 4096 || (long)prepared.width * prepared.height > 8388608)
                         throw new InvalidOperationException("사막 고해상도 베이크가 탐색 지도 크기 제한을 초과합니다: " + candidate.id);
                     prepared.cells = new byte[prepared.width * prepared.height]; prepared.connections = new byte[prepared.cells.Length];
-                    Vector2 Point(int x, int z) => prepared.bounds.position + new Vector2((x + .5f) * cell, (z + .5f) * cell);
+                    Vector2 origin = prepared.bounds.position;
+                    Vector2 Point(int x, int z) => origin + new Vector2((x + .5f) * cell, (z + .5f) * cell);
+                    var layout = world.layout; int width = prepared.width, height = prepared.height;
+                    var geometry = new bool[prepared.cells.Length];
+                    var eastGeometry = new bool[geometry.Length]; var northGeometry = new bool[geometry.Length];
+                    var options = new System.Threading.Tasks.ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, Math.Min(8, SystemInfo.processorCount - 1)) };
+                    // Only immutable layout math runs on workers; terrain, physics and asset APIs stay here.
+                    System.Threading.Tasks.Parallel.For(1, height - 1, options, z =>
+                    {
+                        for (int x = 1; x < width - 1; x++)
+                        {
+                            int i = z * width + x; var p = Point(x, z);
+                            if (!(geometry[i] = layout.CanWalk(p, .05f - (BoundaryAllowance - .5f)))) continue;
+                            eastGeometry[i] = layout.CanWalk(p + new Vector2(cell * .5f, 0), .05f - (BoundaryAllowance - .5f));
+                            northGeometry[i] = layout.CanWalk(p + new Vector2(0, cell * .5f), .05f - (BoundaryAllowance - .5f));
+                        }
+                    });
+                    void CheckParity(Vector2 p, bool approved)
+                    {
+                        if ((approved && SurfaceClear(p)) != world.IsWalkable(p, .05f, BoundaryAllowance - .5f))
+                            throw new InvalidOperationException("Cached minimap surface differs from world walkability: " + candidate.id);
+                        paritySamples++;
+                    }
+                    for (int i = width + 1; i < geometry.Length - width - 1; i += Math.Max(1, geometry.Length / 4096))
+                    {
+                        int x = i % width, z = i / width; if (x == 0 || x == width - 1) continue;
+                        var p = Point(x, z); CheckParity(p, geometry[i]);
+                        if (!geometry[i]) continue;
+                        CheckParity(p + new Vector2(cell * .5f, 0), eastGeometry[i]);
+                        CheckParity(p + new Vector2(0, cell * .5f), northGeometry[i]);
+                    }
                     for (int z = 1; z < prepared.height - 1; z++) for (int x = 1; x < prepared.width - 1; x++)
-                        if (Floor(Point(x, z))) prepared.cells[z * prepared.width + x] = MinimapTerrainPixels.Ground;
+                        if (geometry[z * width + x] && Floor(Point(x, z))) prepared.cells[z * prepared.width + x] = MinimapTerrainPixels.Ground;
                     for (int z = 1; z < prepared.height - 1; z++) for (int x = 1; x < prepared.width - 1; x++)
                     {
                         int i = z * prepared.width + x;
                         if (prepared.cells[i] == 0) continue;
-                        if (prepared.cells[i + 1] != 0 && Floor(Point(x, z) + new Vector2(cell * .5f, 0)))
+                        if (prepared.cells[i + 1] != 0 && eastGeometry[i] && Floor(Point(x, z) + new Vector2(cell * .5f, 0)))
                         { prepared.connections[i] |= MinimapExplorationMap.East; prepared.connections[i + 1] |= MinimapExplorationMap.West; }
-                        if (prepared.cells[i + prepared.width] != 0 && Floor(Point(x, z) + new Vector2(0, cell * .5f)))
+                        if (prepared.cells[i + prepared.width] != 0 && northGeometry[i] && Floor(Point(x, z) + new Vector2(0, cell * .5f)))
                         { prepared.connections[i] |= MinimapExplorationMap.North; prepared.connections[i + prepared.width] |= MinimapExplorationMap.South; }
                     }
                     try { ValidateTopology(prepared, world); break; }
@@ -191,8 +233,8 @@ public static class DesertMinimapBuilder
                     throw new InvalidOperationException("Source terrain changed while baking: " + candidate.id);
                 if (!data) { data = ScriptableObject.CreateInstance<DesertMinimapData>(); AssetDatabase.CreateAsset(data, path); }
                 EditorUtility.CopySerialized(prepared, data); EditorUtility.SetDirty(data); AssetDatabase.SaveAssetIfDirty(data);
-                return new { candidate.id, status = "BAKED", data.width, data.height, data.cellSize, ground = data.cells.Count(c => c != 0),
-                    seconds = watch.Elapsed.TotalSeconds, source = dependency, coarseFailure };
+                return new { candidate.id, status = "BAKED", data.width, data.height, data.cellSize, data.boundaryAllowance, ground = data.cells.Count(c => c != 0),
+                    seconds = watch.Elapsed.TotalSeconds, source = dependency, coarseFailure, paritySamples };
             }
             finally { Object.DestroyImmediate(prepared); }
         }

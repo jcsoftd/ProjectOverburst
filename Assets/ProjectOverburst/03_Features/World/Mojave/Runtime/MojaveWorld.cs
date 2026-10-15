@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -178,9 +178,10 @@ namespace Overburst.Mojave
         public float TrailDistance(Vector2 p,out float elevation,out float halfWidth) => volcanoTrailField!=null?volcanoTrailField.Distance(p,out elevation,out halfWidth):layout.TrailDistance(p,out elevation,out halfWidth);
         public bool InMap(Vector2 p,float inset=0) => layout==null ? Mathf.Abs(p.x)+inset<MapSize*.5f&&Mathf.Abs(p.y)+inset<MapSize*.5f : layout.Contains(p,inset);
         public float PlayDistance(Vector2 p) => layout.CombineDistance(layout.RoomDistance(p,out _),TrailDistance(p,out _,out _));
-        public bool IsWalkable(Vector2 p,float clearance=.45f)
+        public bool IsWalkable(Vector2 p,float clearance=.45f) => IsWalkable(p,clearance,0);
+        public bool IsWalkable(Vector2 p,float clearance,float boundaryOutset)
         {
-            EnsureLayout();if(!layout.CanWalk(p,clearance))return false;
+            EnsureLayout();if(!layout.CanWalk(p,clearance-Mathf.Max(0,boundaryOutset)))return false;
             var islands=GetComponent<IslandBiome>();if(islands!=null&&Ground(p).y<islands.seaLevel+.30f)return false;
             if(blockers!=null)foreach(var b in blockers)if((new Vector2(b.x,b.y)-p).sqrMagnitude<(b.z+clearance)*(b.z+clearance))return false;
             return true;

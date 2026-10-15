@@ -11,6 +11,7 @@ public sealed class DesertMinimapData : ScriptableObject
     public MojavePatch[] combatTiles;
     public int version, seed, layoutVersion, width, height;
     public float cellSize;
+    public float boundaryAllowance;
     public Rect bounds;
     public Vector3 terrainPosition, terrainSize;
     public Texture2D image;
@@ -31,7 +32,8 @@ public sealed class DesertMinimapData : ScriptableObject
             || seed != candidate.seed || seed != world.bakedSeed || world.seed != seed
             || layoutVersion != MojaveLayout.Version || layoutVersion != world.bakedLayoutVersion
             || string.IsNullOrEmpty(sourceDependencyHash) || cellSize <= 0 || !float.IsFinite(cellSize)
-            || width < 3 || height < 3 || width > 4096 || height > 4096 || (long)width * height > 4194304
+            || boundaryAllowance < 0 || !float.IsFinite(boundaryAllowance)
+            || width < 3 || height < 3 || width > 4096 || height > 4096 || (long)width * height > 8388608
             || cells == null || connections == null || cells.Length != width * height || cells.Length != connections.Length
             || !image || !image.isReadable || image.width != width || image.height != height
             || !Mathf.Approximately(bounds.width, width * cellSize) || !Mathf.Approximately(bounds.height, height * cellSize)
@@ -42,7 +44,7 @@ public sealed class DesertMinimapData : ScriptableObject
         world.EnsureLayout();
         if ((world.layout.bounds - new Vector2(candidate.width, candidate.depth)).sqrMagnitude > .0001f
             || world.layout.places.Count != candidate.areaCount || combatTiles.Length != world.layout.places.Count
-            || layoutSignature != LayoutSignature(world) || bounds != SamplingBounds(world, cellSize))
+            || layoutSignature != LayoutSignature(world) || bounds != SamplingBounds(world, cellSize, Mathf.Max(0, boundaryAllowance - .5f)))
             throw new InvalidOperationException("사막 전투 타일·연결길이 바뀌었습니다. 탐색 지도를 다시 베이크해야 합니다.");
         for (int i = 0; i < combatTiles.Length; i++)
             if (combatTiles[i] != world.catalog.patches[world.layout.places[i].patch])
@@ -62,7 +64,7 @@ public sealed class DesertMinimapData : ScriptableObject
         return Hash128.Compute(JsonUtility.ToJson(new LayoutState { places = world.layout.places.ToArray(),
             trails = world.layout.trails.ToArray(), junctionRounding = world.layout.junctionRounding })).ToString();
     }
-    public static Rect SamplingBounds(MojaveWorld world, float cell)
+    public static Rect SamplingBounds(MojaveWorld world, float cell, float outset = 0)
     {
         world.EnsureLayout();
         if (world.layout.places.Count == 0 || cell <= 0 || !float.IsFinite(cell)) throw new ArgumentException("Valid combat tiles and cell size required.");
@@ -78,7 +80,7 @@ public sealed class DesertMinimapData : ScriptableObject
         foreach (var trail in world.layout.trails)
             for (int i = 0; i < trail.points.Length; i++)
                 Include(trail.points[i], trail.widths != null && trail.widths.Length == trail.points.Length ? trail.widths[i] : trail.width);
-        float padding = cell + Mathf.Max(0, world.layout.junctionRounding);
+        float padding = cell + Mathf.Max(0, world.layout.junctionRounding) + Mathf.Max(0, outset);
         low = Vector2.Max(low - Vector2.one * padding, -world.layout.bounds * .5f - Vector2.one * cell);
         high = Vector2.Min(high + Vector2.one * padding, world.layout.bounds * .5f + Vector2.one * cell);
         low = new Vector2(Mathf.Floor(low.x / cell), Mathf.Floor(low.y / cell)) * cell;

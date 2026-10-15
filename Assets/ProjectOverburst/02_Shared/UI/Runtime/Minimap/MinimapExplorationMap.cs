@@ -24,7 +24,7 @@ public sealed class MinimapExplorationMap : IDisposable
     // Arrays are transferred to this owner; callers must not mutate them afterwards.
     public MinimapExplorationMap(int width, int height, float cellSize, Vector2 origin, byte[] kinds, byte[] links, Color32[] sourcePixels = null)
     {
-        if (width < 1 || height < 1 || width > 4096 || height > 4096 || (long)width * height > 4194304
+        if (width < 1 || height < 1 || width > 4096 || height > 4096 || (long)width * height > 8388608
             || cellSize <= 0 || float.IsNaN(cellSize) || float.IsInfinity(cellSize)
             || kinds == null || links == null || kinds.Length != width * height || links.Length != kinds.Length
             || sourcePixels != null && sourcePixels.Length != kinds.Length)
