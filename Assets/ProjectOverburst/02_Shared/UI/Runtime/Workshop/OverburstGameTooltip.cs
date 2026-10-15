@@ -9,7 +9,7 @@ public sealed class OverburstGameTooltip : MonoBehaviour
 
     public OverburstUITooltipView view;
 
-    // 2026-10-01 장착 비교: Alt를 누르고 있으면 같은 승인 뷰를 한 벌 더 써서 장착 중인 무기·방어구·장신구를 띄운다.
+    // 장착 비교: 호버하면 같은 승인 뷰를 한 벌 더 써서 장착 중인 아이템을 나란히 띄운다.
     // 항상 왼쪽이 장착 중인 것, 오른쪽이 올려 둔 것이다. 두 툴팁은 같은 폭(432)·같은 높이로 선다.
     private OverburstUITooltipView equippedView;
     private ItemData shownItem;
@@ -33,7 +33,7 @@ public sealed class OverburstGameTooltip : MonoBehaviour
 
     // 두 툴팁을 한 묶음으로 포인터 오른쪽에 둔다. 자리가 없으면 포인터 왼쪽으로 옮겨 커서와 슬롯을 가리지 않게 한다.
     private bool PlacePair(Vector2 pointer,Rect area){
-        if(shownItem==null||!EquippedWeaponComparison.IsAltHeld()||!EquippedWeaponComparison.TryGetComparableEquipped(shownItem,out ItemData equipped)){HideEquipped();return false;}
+        if(shownItem==null||!EquippedWeaponComparison.TryGetComparableEquipped(shownItem,out ItemData equipped)){HideEquipped();return false;}
         if(!equippedView){
             equippedView=Instantiate(view,view.transform.parent);
             equippedView.name="Equipped Compare View";
