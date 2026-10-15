@@ -40,6 +40,9 @@ namespace Overburst.Quests
             var runtime = Current;
             if (runtime == null || runtime.session == null || AccountGameplaySession.Current != runtime.session
                 || encounter == null || (!encounter.IsRun && !encounter.IsOutdoor) || !encounter.CanGrantRewards) return;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            using var cspScope = Overburst.DebugTools.Performance.CombatSpawnQualityTrace.QuestRecordKill.Auto();
+#endif
             var run = runtime.session.ReadRun();
             if (encounter.IsRun && (run == null || run.runId != encounter.RunId || !AccountInvariants.IsRunning(run.phase))) return;
             bool needed = false;
@@ -60,6 +63,9 @@ namespace Overburst.Quests
         public bool DrainPending(bool checkpointReady = true)
         {
             if (draining || session == null || session.IsEditing || session.NeedsProjectionRecovery) return false;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            using var cspScope = Overburst.DebugTools.Performance.CombatSpawnQualityTrace.QuestDrain.Auto();
+#endif
             draining = true;
             try
             {

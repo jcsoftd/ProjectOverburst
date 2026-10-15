@@ -50,6 +50,12 @@ public static class TransientVfxPool
         new Dictionary<GameObject, Queue<GameObject>>();
     private static PoolHost host;
     private static bool shuttingDown;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    // Scheduled leases, not particle counts; destroyed leases remain until normal maintenance.
+    public static int DiagnosticFixedLeaseCount => host != null ? host.FixedLeaseCount : 0;
+    public static int DiagnosticNaturalLeaseCount => host != null ? host.NaturalLeaseCount : 0;
+    public static bool DiagnosticLeaseCountsValid => host == null || host.LeaseCountsValid;
+#endif
     private static readonly Dictionary<GameObject, Counters> Diagnostics = new Dictionary<GameObject, Counters>();
     private static readonly ProfilerMarker CreateMarker = new ProfilerMarker("Overburst.TransientVfx.Create");
 
@@ -413,6 +419,9 @@ public static class TransientVfxPool
 
     private static bool IsPlaybackAlive(GameObject instance)
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        using var cspScope = Overburst.DebugTools.Performance.CombatSpawnQualityTrace.VfxNaturalCheck.Auto();
+#endif
         if (instance == null || !instance.activeInHierarchy)
             return false;
 
@@ -470,6 +479,12 @@ public static class TransientVfxPool
     private sealed class PoolHost : MonoBehaviour
     {
         private readonly List<ActiveLease> activeLeases = new List<ActiveLease>(32);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public int FixedLeaseCount { get; private set; }
+        public int NaturalLeaseCount { get; private set; }
+        public bool LeaseCountsValid => FixedLeaseCount >= 0 && NaturalLeaseCount >= 0
+            && FixedLeaseCount + NaturalLeaseCount == activeLeases.Count;
+#endif
 
         public void Schedule(
             GameObject instance,
@@ -496,10 +511,17 @@ public static class TransientVfxPool
                 returnMode,
                 useUnscaledTime,
                 contentSceneHandle));
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (returnMode == TransientVfxReturnMode.NaturalParticleCompletion) NaturalLeaseCount++;
+            else FixedLeaseCount++;
+#endif
         }
 
         private void Update()
         {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            using var cspScope = Overburst.DebugTools.Performance.CombatSpawnQualityTrace.VfxMaintenance.Auto();
+#endif
             for (int i = activeLeases.Count - 1; i >= 0; i--)
             {
                 ActiveLease lease = activeLeases[i];
@@ -534,6 +556,10 @@ public static class TransientVfxPool
         {
             var lease = activeLeases[index];
             activeLeases.RemoveAt(index);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (lease.ReturnMode == TransientVfxReturnMode.NaturalParticleCompletion) NaturalLeaseCount--;
+            else FixedLeaseCount--;
+#endif
             GetCounters(lease.Prefab).Active--;
             Release(lease.Instance, lease.Prefab, lease.PoolCapacity);
         }

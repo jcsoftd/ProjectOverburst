@@ -48,6 +48,7 @@ namespace Overburst.DebugTools.Performance
         static void BootstrapPlayer()
         {
 #if !UNITY_EDITOR
+            if (CspPlayerRequested) { StartCspPlayer(); return; }
             string[] args = Environment.GetCommandLineArgs();
             int i = Array.IndexOf(args, "--overburst-combat-perf");
             if (i < 0 || i + 1 >= args.Length) return;
@@ -340,7 +341,9 @@ namespace Overburst.DebugTools.Performance
             segment.rosterSignature = CombatPerformancePaths.Hash(string.Join("|", Run.rosterIds ?? Array.Empty<string>()));
             poolStart = spawner != null ? spawner.Pool.CreatedCount : 0; parryStart = player != null ? player.GetComponent<PlayerParryController>()?.SuccessCount ?? 0 : 0;
             Progress = scenario + " · " + theme + " · " + count + " · " + element + " · 반복 " + (repeat + 1);
-            recorder = new CombatPerformanceRecorder(Run.profile, segment, blood, metricNames: Run.profile.csp ? CspMetrics() : null);
+            recorder = new CombatPerformanceRecorder(Run.profile, segment, blood,
+                captureSampleCounts: Run.profile.csp && Run.profile.cspObservation == "Detailed",
+                metricNames: Run.profile.csp ? CspMetrics() : null);
         }
         void End()
         {

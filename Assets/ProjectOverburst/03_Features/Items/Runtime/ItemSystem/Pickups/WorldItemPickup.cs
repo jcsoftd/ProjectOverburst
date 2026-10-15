@@ -41,6 +41,9 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
     public static event Action RegistryChanged; // 활성 목록 변경 알림
 
     public static int RegistryRevision => registryRevision;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    public static int DiagnosticRegisteredCount => activePickups.Count;
+#endif
 
     private void Awake()
     {

@@ -20,6 +20,11 @@ namespace Overburst.Persistence
 
         public static string ResolveSaveDirectory()
         {
+#if DEVELOPMENT_BUILD && !UNITY_EDITOR
+            if (Overburst.DebugTools.Performance.CombatPerformanceRunner.CspPlayerRequested
+                && !Overburst.DebugTools.Performance.CombatPerformanceRunner.CspPlayerAccountReady)
+                throw new InvalidOperationException("CSP Player account preparation failed; normal account boot is blocked.");
+#endif
             string isolated = Environment.GetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY");
             return string.IsNullOrWhiteSpace(isolated) ? Path.Combine(Application.persistentDataPath, "Account") : Path.GetFullPath(isolated);
         }

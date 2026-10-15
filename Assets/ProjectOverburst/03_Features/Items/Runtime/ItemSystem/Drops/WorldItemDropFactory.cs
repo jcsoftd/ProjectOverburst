@@ -62,6 +62,9 @@ public static class WorldItemDropFactory // 월드 아이템 생성
 
         if (!WeaponContentPolicy.IsAllowedRuntimeItem(item))
             return null;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        using var cspScope = Overburst.DebugTools.Performance.CombatSpawnQualityTrace.PickupCreate.Auto();
+#endif
 
         GameObject pickupObject = InstantiateWorldPickupObject(item);
         pickupObject.name = BuildPickupName(item);
@@ -70,6 +73,9 @@ public static class WorldItemDropFactory // 월드 아이템 생성
         WorldItemPickup pickup = EnsureWorldItemPickupComponent(pickupObject);
         pickup.Initialize(item, inventory, player, pickupGradeVfxSet);
         RunWalkableContext.TryAttachFallGuard(pickupObject);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        Overburst.DebugTools.Performance.CombatSpawnQualityTrace.ItemPickupsCreated++;
+#endif
         return pickup;
     }
 
@@ -107,6 +113,9 @@ public static class WorldItemDropFactory // 월드 아이템 생성
 
     private static GameObject InstantiateWorldPickupObject(ItemData item)
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        using var cspScope = Overburst.DebugTools.Performance.CombatSpawnQualityTrace.PickupInstantiate.Auto();
+#endif
         GameObject prefab = item != null && item.baseData != null ? item.baseData.worldPickupPrefab : null;
         if (prefab == null && item != null)
             prefab = ResolveSharedEquipmentPickupPrefab(item.baseData);

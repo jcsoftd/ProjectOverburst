@@ -63,6 +63,9 @@ public sealed class EnemyCorpseFade : MonoBehaviour
     private void Prepare()
     {
         if (targets != null) return;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        using var cspScope = Overburst.DebugTools.Performance.CombatSpawnQualityTrace.CorpsePrepare.Auto();
+#endif
         var actor = GetComponent<EnemyActor>();
         targets = (actor != null ? actor.VisualRoot : transform).GetComponentsInChildren<Renderer>(true);
         original = new Material[targets.Length][]; fading = new Material[targets.Length][];

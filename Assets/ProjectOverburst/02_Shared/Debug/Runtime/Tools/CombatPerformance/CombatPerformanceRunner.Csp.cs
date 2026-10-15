@@ -55,9 +55,17 @@ namespace Overburst.DebugTools.Performance
             }
         }
 
-        struct CspFrame { public int frame, phase, active, pending, visited, hits, fatal, threatened, attacking, blocked, created, leased, returns; public double seconds; public Vector3 point; public Vector2 stick; }
+        struct CspFrame { public int frame, phase, active, pending, visited, hits, fatal, threatened, attacking, blocked, created, leased, returns, pickups, pickupsCreated, nameplates, vfxFixed, vfxNatural; public double seconds; public Vector3 point; public Vector2 stick; }
         struct CspEvent { public int phase, kind, frame, target, lease, sequence, attack, attackPhase, element, dot; public double seconds; public float damage, hp; public CombatSpawnQualityTrace.Entry spawn; }
-        [Serializable] sealed class CspResult { public int schema=2, frames, events, dropped, hits, fatal, bound, activeBindings; public string program="CSP", goal="G00", observation, status, reason, boundary="Actual gamepad movement; terrain and enemy collision unchanged; no town immunity", threat="AI target/aggro observed; first accepted enemy attack unavailable; attack state is a separate observation"; public double setupMs, setupBytes, traceMs, traceBytes, setupMonoHeapDelta; public bool threadAllocationAvailable, monoHeapDeltaAvailable; public string allocationScope="Known 1MiB sentinel validates API; heap delta is global and not retained-buffer or thread allocation"; public Vector3 start, exit; public List<string> checks=new List<string>(); }
+        [Serializable] sealed class CspResult { public int schema=3, frames, events, dropped, hits, fatal, bound, activeBindings; public string program="CSP", goal="G00", observation, status, reason, boundary="Actual gamepad movement; terrain and enemy collision unchanged; no town immunity", threat="AI target/aggro observed; first accepted enemy attack unavailable; attack state is a separate observation"; public double setupMs, setupBytes, traceMs, traceBytes, setupMonoHeapDelta; public bool threadAllocationAvailable, monoHeapDeltaAvailable; public string[] missingMetrics; public string allocationScope="Known 1MiB sentinel validates API; heap delta is global and not retained-buffer or thread allocation"; public Vector3 start, exit; public List<string> checks=new List<string>(); }
+        [Serializable] public sealed class CspRecordContract
+        {
+            public int schema, frameCapacity, eventCapacity, requestCapacity;
+            public string program, goal, observation, clock, markerScope, workloadScope, traceScope;
+            public string qualityBoundary, controlBoundary, exportBoundary, candidateAccounting, phase14, phase17, phase13;
+            public string[] requestedMetrics, missingMetrics;
+            public bool metricSampleCounts, threadAllocationAvailable, monoHeapDeltaAvailable, traceBinding;
+        }
         CspFrame[] cspFrames; CspEvent[] cspEvents;
         int cspFrameCount, cspEventCount, cspPhase, cspHits, cspFatal, cspDropped, cspBound;
         CspResult cspResult;
@@ -68,9 +76,18 @@ namespace Overburst.DebugTools.Performance
         readonly Dictionary<CombatHealth, EnemyActor> cspActors = new Dictionary<CombatHealth, EnemyActor>(512);
         readonly List<EnemyActor> cspTracked = new List<EnemyActor>(512);
         Action<CombatHealth,DamageInfo,float,bool> cspHitHandler;
-        static string[] DetailedMetrics = { "Main Thread", "Render Thread", "PlayerLoop", "GC Allocated In Frame", "GC.Collect", "GC Used Memory", "Total Used Memory", "Physics.Simulate", "Animators.Update", "ParticleSystem.UpdateJob", "Gfx.WaitForPresentOnGfxThread", "WaitForTargetFPS", "Resources.Load", "Shader.CreateGPUProgram", "OVERBURST.MapSpawn.Detail.Acquire", "OVERBURST.MapSpawn.Detail.Prepare", "OVERBURST.MapSpawn.Detail.Activate", "OVERBURST.MapSpawn.Detail.Finalize", "OVERBURST.CSP.Outdoor.Total", "OVERBURST.CSP.Outdoor.Queue", "OVERBURST.CSP.Outdoor.Position", "Audio.Update", "Draw Calls Count", "SetPass Calls Count", "Triangles Count", "GC Reserved Memory" };
+        static string[] DetailedMetrics = { "Main Thread", "Render Thread", "PlayerLoop", "GC Allocated In Frame", "GC.Collect", "GC Used Memory", "Total Used Memory", "Physics.Simulate", "Animators.Update", "ParticleSystem.UpdateJob", "Gfx.WaitForPresentOnGfxThread", "WaitForTargetFPS", "Resources.Load", "Shader.CreateGPUProgram", "OVERBURST.MapSpawn.Detail.Acquire", "OVERBURST.MapSpawn.Detail.Prepare", "OVERBURST.MapSpawn.Detail.Activate", "OVERBURST.MapSpawn.Detail.Finalize", "OVERBURST.CSP.Outdoor.Total", "OVERBURST.CSP.Outdoor.Queue", "OVERBURST.CSP.Outdoor.Position", "Audio.Update", "Draw Calls Count", "SetPass Calls Count", "Triangles Count", "GC Reserved Memory", "Overburst.Cost.Pool.ResolveLifetime", "Overburst.Cost.Pool.Release", "Overburst.TransientVfx.Create", "Overburst.Loot.Resolve", "Overburst.Loot.Origin", "Overburst.Loot.Items" };
         static readonly string[] BaseMetrics={"GC Allocated In Frame","GC.Collect","GC Used Memory"};
-        string[] CspMetrics() => Run.profile.cspObservation == "Detailed" ? DetailedMetrics : BaseMetrics;
+        static readonly string[] TraceMetrics = { CombatSpawnQualityTrace.TraceObserverName };
+        string[] CspRequiredMetrics() => Run.profile.cspObservation == "Detailed" ? CombatSpawnQualityTrace.DetailedMetricNames : TraceMetrics;
+        string[] CspMetrics()
+        {
+            var core = Run.profile.cspObservation == "Detailed" ? DetailedMetrics : BaseMetrics;
+            var extra = CspRequiredMetrics();
+            var names = new string[core.Length + extra.Length];
+            Array.Copy(core, names, core.Length); Array.Copy(extra, 0, names, core.Length, extra.Length);
+            return names;
+        }
         public static string CspInputContract(InputActionAsset asset)
         {
             if(!asset)return "UNAVAILABLE";
@@ -135,7 +152,11 @@ namespace Overburst.DebugTools.Performance
             long setup=Stopwatch.GetTimestamp(), bytes=GC.GetAllocatedBytesForCurrentThread(), setupHeap=UnityEngine.Profiling.Profiler.GetMonoUsedSizeLong();
             cspFrames=new CspFrame[Run.profile.frameCapacity]; cspEvents=new CspEvent[Run.profile.eventCapacity];
             cspHitHandler=CspHit;
+            CombatSpawnQualityTrace.ResetObservation();
             Begin("csp-continuous", "CSP phases; fixture combat separated from real town",0,"",CombatPerformanceLayout.Dense,Run.profile.elements[0],0,0);
+            cspResult.missingMetrics=recorder.MissingRequestedMetrics;
+            foreach(var required in CspRequiredMetrics())
+                CspCheck(Array.IndexOf(cspResult.missingMetrics,required)<0,"required metric available: "+required);
             if(Run.profile.cspObservation!="WallOnly") CombatSpawnQualityTrace.Sink=CspTrace;
             cspResult.setupMs=(Stopwatch.GetTimestamp()-setup)*1000d/Stopwatch.Frequency; cspResult.setupBytes=GC.GetAllocatedBytesForCurrentThread()-bytes; cspResult.setupMonoHeapDelta=UnityEngine.Profiling.Profiler.GetMonoUsedSizeLong()-setupHeap;
             cspWasInTown=cspOutdoor && cspOutdoor.IsInTown(player.transform.position);
@@ -224,9 +245,12 @@ namespace Overburst.DebugTools.Performance
             long observerAt=Stopwatch.GetTimestamp();
             if(Screen.width!=Run.width||Screen.height!=Run.height)throw new InvalidOperationException("CSP render resolution changed during continuous recording");
             if(recorder.CapacityReached || cspFrameCount>=cspFrames.Length)throw new InvalidOperationException("CSP frame buffer capacity");
+            if(!TransientVfxPool.DiagnosticLeaseCountsValid)throw new InvalidOperationException("CSP VFX lease counters disagree with active leases");
             cspFrames[cspFrameCount++]=new CspFrame{frame=Time.frameCount,phase=cspPhase,seconds=recorder.ElapsedSeconds,point=player?player.transform.position:default,stick=cspStick,
                 active=cspPhase>=10?Alive():(cspOutdoor?cspOutdoor.ActiveCount:0),pending=cspOutdoor?cspOutdoor.PendingCount:0,visited=cspOutdoor?cspOutdoor.VisitedCount:0,hits=cspHits,fatal=cspFatal,
-                blocked=GameplayInputBlocker.IsGameplayInputBlocked?1:0,created=spawner&&spawner.Pool?spawner.Pool.CreatedCount:0,leased=spawner&&spawner.Pool?spawner.Pool.LeasedCount:0,returns=spawner&&spawner.Pool?spawner.Pool.PendingReturnCount:0};
+                blocked=GameplayInputBlocker.IsGameplayInputBlocked?1:0,created=spawner&&spawner.Pool?spawner.Pool.CreatedCount:0,leased=spawner&&spawner.Pool?spawner.Pool.LeasedCount:0,returns=spawner&&spawner.Pool?spawner.Pool.PendingReturnCount:0,
+                pickups=WorldItemPickup.DiagnosticRegisteredCount,pickupsCreated=CombatSpawnQualityTrace.ItemPickupsCreated,nameplates=WorldItemNameplateVisibilityRegistry.VisibleCount,
+                vfxFixed=TransientVfxPool.DiagnosticFixedLeaseCount,vfxNatural=TransientVfxPool.DiagnosticNaturalLeaseCount};
             recorder.AddObserverTicks(observerAt);
         }
         void CspLateTick()
@@ -317,7 +341,7 @@ namespace Overburst.DebugTools.Performance
         }
         void CspExportAndCleanup()
         {
-            CombatSpawnQualityTrace.Sink=null;
+            if(CombatSpawnQualityTrace.Sink==CspTrace)CombatSpawnQualityTrace.Sink=null;
             if(player)player.Health.OnDamageResolved-=CspPlayerHit;
             foreach(var pair in cspActors)if(pair.Key)pair.Key.OnDamageResolved-=cspHitHandler;
             cspActors.Clear();cspTracked.Clear();
@@ -330,12 +354,16 @@ namespace Overburst.DebugTools.Performance
             if(cspDropped>0){Run.status="FAILED";Run.reason+=" CSP event buffer overflow";}
             string folder=Path.Combine(Run.output,"CSP");Directory.CreateDirectory(folder);
             using(var w=new StreamWriter(Path.Combine(folder,"positions.csv"),false,new System.Text.UTF8Encoding(false)))
-            {w.WriteLine("frame,seconds,phase,x,y,z,input_x,input_y,active,pending,visited,hits,fatal,threatened,attacking,input_blocked,pool_created,pool_leased,pool_returns");for(int i=0;i<cspFrameCount;i++){var f=cspFrames[i];w.WriteLine(string.Join(",",new[]{N(f.frame),N(f.seconds),N(f.phase),N(f.point.x),N(f.point.y),N(f.point.z),N(f.stick.x),N(f.stick.y),N(f.active),N(f.pending),N(f.visited),N(f.hits),N(f.fatal),N(f.threatened),N(f.attacking),N(f.blocked),N(f.created),N(f.leased),N(f.returns)}));}}
+            {w.WriteLine("frame,seconds,phase,x,y,z,input_x,input_y,active,pending,visited,hits,fatal,threatened,attacking,input_blocked,pool_created,pool_leased,pool_returns,item_pickups_registered,item_pickups_created_total,nameplates_visible,vfx_fixed_leases,vfx_natural_leases");for(int i=0;i<cspFrameCount;i++){var f=cspFrames[i];w.WriteLine(string.Join(",",new[]{N(f.frame),N(f.seconds),N(f.phase),N(f.point.x),N(f.point.y),N(f.point.z),N(f.stick.x),N(f.stick.y),N(f.active),N(f.pending),N(f.visited),N(f.hits),N(f.fatal),N(f.threatened),N(f.attacking),N(f.blocked),N(f.created),N(f.leased),N(f.returns),N(f.pickups),N(f.pickupsCreated),N(f.nameplates),N(f.vfxFixed),N(f.vfxNatural)}));}}
             using(var w=new StreamWriter(Path.Combine(folder,"events.csv"),false,new System.Text.UTF8Encoding(false)))
             {w.WriteLine("sequence,frame,seconds,phase,kind,target,lease,damage,hp,attack,attack_phase,element,dot,seed,cell_x,cell_z,group,level,definition,x,y,z,candidates,town,distance,ground,visible,capsule,crowded");for(int i=0;i<cspEventCount;i++){var e=cspEvents[i];var s=e.spawn;w.WriteLine(string.Join(",",new[]{N(e.sequence),N(e.frame),N(e.seconds),N(e.phase),N(e.kind),N(e.target),N(e.lease),N(e.damage),N(e.hp),N(e.attack),N(e.attackPhase),N(e.element),N(e.dot),N(s.seed),N(s.cell.x),N(s.cell.y),N(s.group),N(s.level),"\""+(s.definition??"").Replace("\"","\"\"")+"\"",N(s.point.x),N(s.point.y),N(s.point.z),N(s.candidates),N(s.town),N(s.distance),N(s.ground),N(s.visible),N(s.capsule),N(s.crowded)}));}}
             CspWriteRequests(folder);
             CombatPerformancePaths.SaveJson(Path.Combine(folder,"quality.json"),cspResult);
-            CombatPerformancePaths.SaveJson(Path.Combine(folder,"record-contract.json"),new { schema=2,program="CSP",goal="G00",observation=Run.profile.cspObservation,requestedMetrics=CspMetrics(),frameCapacity=Run.profile.frameCapacity,eventCapacity=Run.profile.eventCapacity,requestCapacity=1024,clock="Stopwatch seconds; Time.frameCount; completed wall intervals only",threadAllocationAvailable=cspResult.threadAllocationAvailable,monoHeapDeltaAvailable=cspResult.monoHeapDeltaAvailable,qualityBoundary="Automated contracts only; visual, audio and direct feel NOT_RUN",controlBoundary="WallOnly retains shared wall/GC/positions/core arena health observers. Incremental trace overhead comparison; not zero-automation gameplay.",traceBinding=Run.profile.cspObservation!="WallOnly",exportBoundary="Raw export occurs after measurement closes; full analysis runs after actual EditMode return",candidateAccounting="Rejected and successful attempts included",phase14="Injected arena fatalities and 5s tail",phase17="Injected real outdoor fatalities, with production rewards",phase13="100 direct damage fixture; not natural combat"});
+            CombatPerformancePaths.SaveJson(Path.Combine(folder,"record-contract.json"),new CspRecordContract { schema=3,program="CSP",goal="G00",observation=Run.profile.cspObservation,requestedMetrics=CspMetrics(),missingMetrics=cspResult.missingMetrics,metricSampleCounts=Run.profile.cspObservation=="Detailed",
+                markerScope="Inclusive CPU durations; nested markers and worker time must not be summed or subtracted from wall. Trace observer marker is separate from observer_ms and can overlap fixture observer scopes.",
+                workloadScope="positions.csv counts are early-Update snapshots; phase/threat fields are updated in early LateUpdate. Pickup registry and successful factory creation total exclude currency; nameplates are the last published visible set; VFX counts are scheduled pool leases, not particles or all effects. Marker sample counts are calls, not successful drops.",
+                traceScope="Observer.Trace is frame-local ProfilerRecorder time, including trace accounting. quality.traceMs is callback Stopwatch total for this run. WallOnly has no trace sink. Missing samples remain unavailable; neither duration is net game time.",
+                frameCapacity=Run.profile.frameCapacity,eventCapacity=Run.profile.eventCapacity,requestCapacity=1024,clock="Stopwatch seconds; Time.frameCount; completed wall intervals only",threadAllocationAvailable=cspResult.threadAllocationAvailable,monoHeapDeltaAvailable=cspResult.monoHeapDeltaAvailable,qualityBoundary="Automated contracts only; visual, audio and direct feel NOT_RUN",controlBoundary="WallOnly retains shared wall/GC/positions/core arena health observers. Incremental trace overhead comparison; not zero-automation gameplay.",traceBinding=Run.profile.cspObservation!="WallOnly",exportBoundary="Raw export occurs after measurement closes; full analysis runs after actual EditMode return",candidateAccounting="Rejected and successful attempts included",phase14="Injected arena fatalities and 5s tail",phase17="Injected real outdoor fatalities, with production rewards",phase13="100 direct damage fixture; not natural combat"});
         }
         static string N(double value)=>value.ToString("0.######",CultureInfo.InvariantCulture);
     }

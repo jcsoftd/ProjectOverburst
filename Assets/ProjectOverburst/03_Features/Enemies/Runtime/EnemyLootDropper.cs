@@ -80,6 +80,9 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
     {
         if (dropped || !encounter.CanGrantRewards)
             return;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        using var cspScope = Overburst.DebugTools.Performance.CombatSpawnQualityTrace.LootTotal.Auto();
+#endif
 
         dropped = true;
 
@@ -164,6 +167,9 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
 
     private List<ItemData> CreateDropList()
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        using var cspScope = Overburst.DebugTools.Performance.CombatSpawnQualityTrace.LootTableRoll.Auto();
+#endif
         if (!useWeightedDropCount)
         {
             List<ItemData> drops = dropTable.RollDrops(encounter.IsRun ? BagQuality.EquippedBonus(BagStat.RareGradeWeight) : 0);

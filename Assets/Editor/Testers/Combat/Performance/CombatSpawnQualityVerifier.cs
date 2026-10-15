@@ -63,12 +63,37 @@ public static class CombatSpawnQualityVerifier
         }
         finally{UnityEngine.Object.DestroyImmediate(node);}
         var previous=CombatSpawnQualityTrace.Sink;
+        long previousTicks=CombatSpawnQualityTrace.ObserverTicks,previousBytes=CombatSpawnQualityTrace.ObserverAllocated;
+        int previousPickups=CombatSpawnQualityTrace.ItemPickupsCreated;
+        var previousFailure=CombatSpawnQualityTrace.Failure;
         try
         {
+            CombatSpawnQualityTrace.ObserverTicks=17;CombatSpawnQualityTrace.ObserverAllocated=23;CombatSpawnQualityTrace.ItemPickupsCreated=7;
+            CombatSpawnQualityTrace.Failure=new InvalidOperationException("previous run fixture");
+            CombatSpawnQualityTrace.ResetObservation();
+            Check(CombatSpawnQualityTrace.ObserverTicks==0&&CombatSpawnQualityTrace.ObserverAllocated==0&&CombatSpawnQualityTrace.ItemPickupsCreated==0&&CombatSpawnQualityTrace.Failure==null,"trace starts without prior-run totals or failure");
+            using(var metrics=new CombatPerformanceRecorder(new CombatPerformanceProfile{frameCapacity=128,eventCapacity=128},new CombatPerformanceSegment(),null,captureSampleCounts:true,metricNames:CombatSpawnQualityTrace.DetailedMetricNames))
+                Check(metrics.MissingRequestedMetrics.Length==0,"all CSP markers discoverable before gameplay exercises them");
+            using(var missing=new CombatPerformanceRecorder(new CombatPerformanceProfile{frameCapacity=128,eventCapacity=128},new CombatPerformanceSegment(),null,metricNames:new[]{"OVERBURST.CSP.IntentionallyMissingFixture"}))
+                Check(missing.MissingRequestedMetrics.Length==1,"unavailable marker is explicit, not zero time");
             CombatSpawnQualityTrace.Sink=e=>throw new InvalidOperationException("expected observer failure");
+            var ownedSink=CombatSpawnQualityTrace.Sink;
+            bool ownerRejected=false;try{CombatSpawnQualityTrace.ResetObservation();}catch(InvalidOperationException){ownerRejected=true;}
+            Check(ownerRejected&&CombatSpawnQualityTrace.Sink==ownedSink,"reset preserves an existing trace owner");
             CombatSpawnQualityTrace.Emit(999);Check(CombatSpawnQualityTrace.Failure!=null,"trace observer exception contained");
         }
-        finally{CombatSpawnQualityTrace.Sink=previous;CombatSpawnQualityTrace.Failure=null;}
+        finally{CombatSpawnQualityTrace.Sink=previous;CombatSpawnQualityTrace.Failure=previousFailure;CombatSpawnQualityTrace.ObserverTicks=previousTicks;CombatSpawnQualityTrace.ObserverAllocated=previousBytes;CombatSpawnQualityTrace.ItemPickupsCreated=previousPickups;}
+        var contract=new CombatPerformanceRunner.CspRecordContract{schema=3,program="CSP",requestedMetrics=new[]{CombatSpawnQualityTrace.TraceObserverName},markerScope="inclusive"};
+        var contractCopy=JsonUtility.FromJson<CombatPerformanceRunner.CspRecordContract>(JsonUtility.ToJson(contract));
+        Check(contractCopy.schema==3&&contractCopy.program=="CSP"&&contractCopy.requestedMetrics.Length==1&&contractCopy.markerScope=="inclusive","CSP record contract serializes actual fields");
+        var receipt=new CombatPerformanceRunner.CspPlayerSession{status="COMPLETE",pid=123,traceReleased=true};
+        var receiptCopy=JsonUtility.FromJson<CombatPerformanceRunner.CspPlayerSession>(JsonUtility.ToJson(receipt));
+        Check(receiptCopy.protocol==CombatPerformanceRunner.CspPlayerProtocol&&receiptCopy.status=="COMPLETE"&&receiptCopy.pid==123&&receiptCopy.traceReleased,"Player session receipt roundtrip");
+        var playerProfile=new CombatPerformanceProfile{csp=true};CombatPerformanceRunner.ValidateCspPlayerProfile(playerProfile);
+        playerProfile.mode=CombatPerformanceMode.Observation;rejected=false;try{CombatPerformanceRunner.ValidateCspPlayerProfile(playerProfile);}catch(ArgumentException){rejected=true;}Check(rejected,"Player automation rejects observation profiles");
+        string playerOutput=Path.Combine(output,"PlayerPathFixture"),playerAccount=Path.Combine(playerOutput,"IsolatedAccount");
+        CombatPerformanceRunner.ValidateCspPlayerIsolation(playerOutput,playerAccount,playerAccount);
+        rejected=false;try{CombatPerformanceRunner.ValidateCspPlayerIsolation(playerOutput,playerAccount,Path.Combine(output,"OtherAccount"));}catch(InvalidOperationException){rejected=true;}Check(rejected,"Player save and settings isolation must match");
         var recordProfile=new CombatPerformanceProfile{frameCapacity=128,eventCapacity=128};
         var result=new CombatPerformanceSegment();
         using(var record=new CombatPerformanceRecorder(recordProfile,result,null,metricNames:Array.Empty<string>()))

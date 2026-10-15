@@ -45,6 +45,7 @@ namespace Overburst.DebugTools.Performance
         readonly BloodHitVfxService blood;
         readonly int[] gcStart = new int[3];
         public CombatPerformanceSegment Result { get; }
+        public string[] MissingRequestedMetrics { get; }
         public bool CapacityReached => count >= frames.Length;
         public double ElapsedSeconds => Milliseconds(start, Stopwatch.GetTimestamp()) / 1000d;
 
@@ -64,9 +65,18 @@ namespace Overburst.DebugTools.Performance
                 if (!used.Add(d.Category.Name + "/" + d.Name)) continue;
                 var recorder = ProfilerRecorder.StartNew(d.Category, d.Name, 1,
                     ProfilerRecorderOptions.StartImmediately | ProfilerRecorderOptions.WrapAroundWhenCapacityReached | ProfilerRecorderOptions.SumAllSamplesInFrame);
+                if (!recorder.Valid) { recorder.Dispose(); continue; }
                 recorders.Add(recorder);
                 descriptors.Add(new CombatPerformanceMetric { name = d.Name, category = d.Category.Name, unit = d.UnitType.ToString(), nanoseconds = d.UnitType == ProfilerMarkerDataUnit.TimeNanoseconds });
             }
+            var missing = new List<string>();
+            if (metricNames != null) foreach (string name in metricNames)
+            {
+                bool found = false;
+                foreach (var descriptor in descriptors) if (descriptor.name == name) { found = true; break; }
+                if (!found) missing.Add(name);
+            }
+            MissingRequestedMetrics = missing.ToArray();
             metricValues = new double[frames.Length * recorders.Count];
             if (captureSampleCounts) metricSampleCounts = new long[metricValues.Length];
             bloodRequestStart = blood != null ? blood.RequestedCount : 0;

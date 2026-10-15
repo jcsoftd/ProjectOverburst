@@ -152,6 +152,9 @@ public static class OverburstGameSettings
     {
         get
         {
+#if DEVELOPMENT_BUILD && !UNITY_EDITOR
+            Overburst.DebugTools.Performance.CombatPerformanceRunner.RequireCspPlayerIsolation();
+#endif
             string dir = Environment.GetEnvironmentVariable("OVERBURST_SETTINGS_DIRECTORY");
             if (string.IsNullOrEmpty(dir)) dir = Environment.GetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY");
             if (string.IsNullOrEmpty(dir)) dir = Application.persistentDataPath;

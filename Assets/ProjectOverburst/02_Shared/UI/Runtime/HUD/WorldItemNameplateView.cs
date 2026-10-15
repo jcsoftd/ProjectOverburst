@@ -38,6 +38,9 @@ public sealed class WorldItemNameplateView : MonoBehaviour
         float horizontalPadding,
         float height)
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        using var cspScope = Overburst.DebugTools.Performance.CombatSpawnQualityTrace.NameplateMeasure.Auto();
+#endif
         float resolvedMin = Mathf.Max(1f, minWidth);
         float resolvedMax = Mathf.Max(resolvedMin, maxWidth);
         float preferredWidth = 0f;
