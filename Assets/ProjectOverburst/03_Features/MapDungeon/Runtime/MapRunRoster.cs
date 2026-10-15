@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Overburst.Persistence;
+using Overburst.Mojave;
 using UnityEngine;
 
 // The finite natural population belongs to this run, never to pooled Actor instance IDs.
@@ -31,7 +32,8 @@ public sealed class MapRunRoster
         public int Medium { get; internal set; }
         public int Elite { get; internal set; }
         public int Kills { get; internal set; }
-        public int ClearTarget => Count > 0 ? CaveTarget(Count) : 0;
+        public int ConcurrentLimit { get; internal set; }
+        public int ClearTarget => Count;
         public bool Cleared => Count > 0 && Kills >= ClearTarget;
     }
     public string RunId { get; }
@@ -62,6 +64,21 @@ public sealed class MapRunRoster
     {
         if (count <= 0) throw new ArgumentOutOfRangeException(nameof(count));
         return (int)((95L * count + 99) / 100);
+    }
+    public static int ConcurrentLimit(MapTerrainKind terrain, MapCombatGeometry.Area area)
+    {
+        if (area == null) throw new ArgumentNullException(nameof(area));
+        if (terrain == MapTerrainKind.Cave)
+            return area.SquareMetres <= 60 ? 10 : area.SquareMetres <= 180 ? 16 : 24;
+        if (terrain != MapTerrainKind.Desert) throw new ArgumentException("Product terrain required.");
+        var source = area.Source;
+        if (source != null && source.desert && source.desert.catalog && source.place != null)
+        {
+            var size = source.desert.catalog.patches[source.place.patch].combatSize;
+            return size == MojaveCombatSize.Small ? 16 : size == MojaveCombatSize.Medium ? 26 : 40;
+        }
+        int population = BasePopulation(terrain, area.SquareMetres, 1);
+        return population <= 60 ? 16 : population <= 110 ? 26 : 40;
     }
     // Continuous initial tuning; anchors are measured connected square metres, not tile width.
     public static int BasePopulation(MapTerrainKind terrain, float squareMetres, float density)
@@ -98,7 +115,8 @@ public sealed class MapRunRoster
             int[] weights = band == 0 ? new[] { 85, 13, 2 } : band == 1 ? new[] { 80, 16, 4 } : new[] { 75, 19, 6 };
             var portions = Allocate(count, weights);
             for (int tier = 0; tier < 3; tier++) counts[i, tier] = portions[tier];
-            areas.Add(new Area { Ground = ground[i], BasePopulation = count });
+            areas.Add(new Area { Ground = ground[i], BasePopulation = count,
+                ConcurrentLimit = count > 0 ? ConcurrentLimit(map.terrain, ground[i]) : 0 });
         }
         string[] optionIds = { MapOptionPolicy.MoreSmall, MapOptionPolicy.MoreMedium, MapOptionPolicy.MoreElite };
         for (int tier = 0; tier < 3; tier++)
@@ -129,8 +147,8 @@ public sealed class MapRunRoster
             for (int i = roster.Count - 1; i > 0; i--) { int j = random.Next(i + 1); (roster[i], roster[j]) = (roster[j], roster[i]); }
             area.Small = counts[a, 0]; area.Medium = counts[a, 1]; area.Elite = counts[a, 2];
             area.Count = roster.Count; area.FirstMember = members.Count;
-            area.InitialCount = Mathf.Clamp(Mathf.RoundToInt(area.Count * (.3f + (float)random.NextDouble() * .2f)),
-                Mathf.CeilToInt(area.Count * .3f), Mathf.FloorToInt(area.Count * .5f));
+            area.InitialCount = Mathf.Min(area.ConcurrentLimit, Mathf.Clamp(Mathf.RoundToInt(area.Count * (.3f + (float)random.NextDouble() * .2f)),
+                Mathf.CeilToInt(area.Count * .3f), Mathf.FloorToInt(area.Count * .5f)));
             for (int i = 0; i < roster.Count; i++)
                 members.Add(new Member { Id = runId + "/" + a + "/" + i, Index = members.Count, AreaIndex = a,
                     Definition = roster[i], Tier = MapSpawnPolicy.Tier(theme, roster[i]), Initial = i < area.InitialCount });

@@ -34,6 +34,10 @@ public static class MapRunRosterVerifier
             int[] metres = { 55, 85, 300, 1950 };
             for (int i = 0; i < 4; i++) areas.Add(new MapCombatGeometry.Area(i, "Synthetic " + i, Vector3.right * i * 100, Math.Min(2, i),
                 Enumerable.Range(0, metres[i]).Select(n => new Vector3(n % 40, 0, n / 40)).ToList()));
+            Check(areas.Select(x => MapRunRoster.ConcurrentLimit(MapTerrainKind.Cave, x)).SequenceEqual(new[] { 10, 16, 24, 24 }),
+                "Cave platform area selects the fixed 10/16/24 live cap");
+            Check(areas.Select(x => MapRunRoster.ConcurrentLimit(MapTerrainKind.Desert, x)).SequenceEqual(new[] { 16, 16, 26, 40 }),
+                "Desert fixtures select the separate 16/26/40 live cap");
             MapRunRoster last = null; MapInstanceState lastMap = null;
             foreach (var theme in MapThemeCatalog.Tables)
             {
@@ -48,8 +52,10 @@ public static class MapRunRosterVerifier
                 Check(a.Members.All(m => theme.Entries.Any(e => e.definition == m.Definition)) && a.ThemeId == theme.ThemeId, theme.ThemeId + ": every natural member belongs to the stored theme");
                 Check(a.Areas.Sum(x => x.Small + x.Medium + x.Elite) == a.Total && a.Target == MapRunRoster.CaveTarget(a.Total), theme.ThemeId + ": tier sums and fixed denominator agree");
                 Check(a.Members.Select(m => m.Id).Distinct().Count() == a.Total && a.Members.All(m => m.Id.StartsWith("run-a/")), theme.ThemeId + ": stable unique logical IDs independent of pooled actors");
-                Check(a.Areas.All(x => x.InitialCount >= Math.Ceiling(x.Count * .3) && x.InitialCount <= Math.Floor(x.Count * .5))
-                    && a.Members.Count(m => m.Initial) == a.Areas.Sum(x => x.InitialCount), theme.ThemeId + ": 30..50 percent initial allocation plus finite reserve");
+                Check(a.Areas.All(x => x.ConcurrentLimit == MapRunRoster.ConcurrentLimit(map.terrain, x.Ground)
+                    && x.InitialCount >= Math.Min(x.ConcurrentLimit, Math.Ceiling(x.Count * .3))
+                    && x.InitialCount <= Math.Min(x.ConcurrentLimit, Math.Floor(x.Count * .5)))
+                    && a.Members.Count(m => m.Initial) == a.Areas.Sum(x => x.InitialCount), theme.ThemeId + ": Initial population respects the platform cap with finite reserves");
                 Check(a.Areas[0].Count >= 30 && a.Areas[3].Count > a.Areas[2].Count && a.Areas[2].Count > a.Areas[1].Count, theme.ThemeId + ": measured area changes reduced population");
                 map.options.Add(new MapOptionRoll { optionId = MapOptionPolicy.MoreSmall, value = .9f });
                 map.options.Add(new MapOptionRoll { optionId = MapOptionPolicy.MoreMedium, value = .6f });
@@ -108,9 +114,9 @@ public static class MapRunRosterVerifier
             Check(!clearing.TryRecordDeath(final, finalLease) && !court.Cleared, "Stale pooled lease cannot clear a platform");
             clearing.TryRecordDeath(final, newLease);
             Check(court.Cleared && court.Kills == court.ClearTarget && !clearing.TryRecordDeath(final, newLease)
-                && clearing.Areas.Skip(1).All(a => !a.Cleared && a.Kills == 0), "Only 95 percent unique natural deaths clear their own platform once");
+                && clearing.Areas.Skip(1).All(a => !a.Cleared && a.Kills == 0), "Only the entire assigned population clears its own platform once");
             Check(court.Count - court.Kills == clearing.Members.Take(court.Count).Count(m => m.State == MapRunRoster.Life.Pending)
-                && clearing.Kills + clearing.Active + clearing.Pending == clearing.Total, "Clearing preserves the unspawned remainder and fixed denominator without fabricated deaths");
+                && clearing.Kills + clearing.Active + clearing.Pending == clearing.Total, "Clearing exhausts the platform and preserves the fixed denominator without fabricated deaths");
             var newRun = MapRunRoster.Build("new-run", lastMap, areas);
             Check(newRun.Areas.All(a => !a.Cleared && a.Kills == 0), "New map run resets platform clearing independently of seed");
             preview = EditorSceneManager.NewPreviewScene();

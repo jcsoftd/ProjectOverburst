@@ -108,8 +108,7 @@ public sealed partial class MapSpawnBudget
                 {
                     using (ReinforcementMarker.Auto())
                     {
-                        int local = LocalAlive(player);
-                        foreach (var field in finiteFields) field.PrepareReinforcement(player, local, preparing);
+                        foreach (var field in finiteFields) field.PrepareReinforcement(player, field.FiniteActiveCount, preparing);
                     }
                     nextFiniteRefresh = Time.unscaledTime + .1f;
                     finiteRefreshing = false; finiteRefreshField = 0;

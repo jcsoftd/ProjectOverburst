@@ -102,6 +102,10 @@ public static class MapFiniteSpawnIndexVerifier
             Check(!(bool)Call(field, "TryFinitePositionWithinBudget", args) && (bool)Get(first, "PositionDeferred")
                 && (int)Get(first, "Cursor") == cursor, "Expired budget defers without consuming a placement candidate");
             Check(roster.Kills == 0 && List(field, "spawnSlots").Count == pending, "Budget deferral preserves logical state and retry queue");
+            Call(field, "RefreshFinite", Vector3.zero, false, System.Diagnostics.Stopwatch.GetTimestamp());
+            Check(!field.HasTriggered, "Entering an untouched platform does not start reinforcement");
+            Call(field, "PrepareReinforcement", Vector3.zero, 0, false);
+            Check(List(field, "spawnSlots").All(s => Member(s).Initial), "Untouched initial population cannot release reserves");
             foreach (var s in slots.Where(s => Member(s).Initial)) Set(s, "EverSpawned", true);
             Set(field, "initialRemaining", 0); Set(field, "triggered", true);
             var unreleased = List(field, "reserves");

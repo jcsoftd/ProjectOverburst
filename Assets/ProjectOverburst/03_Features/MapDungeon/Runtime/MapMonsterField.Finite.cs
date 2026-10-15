@@ -44,7 +44,6 @@ public sealed partial class MapMonsterField
     NavMeshPath spawnPath;
     List<Vector3> approaches;
     readonly List<MapCombatGeometry.Area> reinforcementNeighbours = new List<MapCombatGeometry.Area>();
-    System.Random finiteRandom;
     float areaRadius, nextPackAt;
     bool finiteAwake;
     int nextFiniteSlot;
@@ -76,9 +75,7 @@ public sealed partial class MapMonsterField
         finiteRoster = roster; finiteArea = area; budget = sharedBudget;
         finiteRoster.DeathRecorded += ApplyNaturalProgress;
         spawnPath = new NavMeshPath();
-        finiteRandom = new System.Random(unchecked(seed ^ 0x310AB));
-        LocalFightLimit = area.BasePopulation <= 60 ? finiteRandom.Next(12, 17)
-            : area.BasePopulation <= 110 ? finiteRandom.Next(18, 27) : finiteRandom.Next(28, 41);
+        LocalFightLimit = area.ConcurrentLimit;
         foreach (var point in area.Ground.Points) areaRadius = Mathf.Max(areaRadius, Vector3.Distance(point, area.Ground.Center));
         approaches = MapCombatGeometry.Approaches(area.Ground);
         // Adjacent courts come from this generated terrain's links, never fixed coordinates.
@@ -174,7 +171,6 @@ public sealed partial class MapMonsterField
     }
     internal bool RefreshFinite(Vector3 player, bool preparing, long started)
     {
-        if (!preparing && MapCombatGeometry.Contains(finiteArea.Ground, player)) triggered = true;
         while (refreshCursor < activeSlots.Count)
         {
             if (!MapSpawnBudget.HasFiniteTime(started)) return false;
@@ -183,7 +179,6 @@ public sealed partial class MapMonsterField
             var actor = slot.Actor;
             slot.HealthRatio = actor.Health.CurrentHp / actor.Health.MaxHp;
             if (actor.Health.IsDead) continue;
-            if (slot.HealthRatio < 1f || actor.AI && actor.AI.IsAggroActive) triggered = true;
             if (preparing) continue;
             using (RefreshGroundMarker.Auto()) CheckFiniteGround(slot);
             if (FlatDistance(actor.transform.position, player) > 80 && !budget.InView(actor.transform.position, .5f))
@@ -193,9 +188,7 @@ public sealed partial class MapMonsterField
     }
     internal void PrepareReinforcement(Vector3 player, int nearby, bool preparing)
     {
-        foreach (var slot in activeSlots)
-            if (!slot.Member.Initial && Valid(slot) && !slot.Actor.Health.IsDead && FlatDistance(slot.Actor.transform.position, player) > 24) nearby++;
-        if (preparing || finiteArea.Cleared || !triggered || !NearForInitial(player) || !InitialPlaced || nearby >= LocalFightLimit * .6f) return;
+        if (preparing || finiteArea.Cleared || !triggered || !NearForInitial(player) || !InitialPlaced || nearby >= LocalFightLimit) return;
         if (releasedReserves > 0) return;
         if (nearby > 0 && Time.unscaledTime < nextPackAt) return;
         Slot first = reserves.First?.Value;
@@ -227,7 +220,7 @@ public sealed partial class MapMonsterField
         chosen = chosen ?? wrapped;
         if (chosen == null) { nextSpawnAttempt = earliest; return false; }
         nextFiniteSlot = (chosen.Order + 1) % slots.Count;
-        if (!preparing && !chosen.Member.Initial && budget.LocalAlive(player) >= LocalFightLimit) return false;
+        if (FiniteActiveCount >= LocalFightLimit) return false;
         if (!TryFinitePositionWithinBudget(chosen, player, preparing, started, out var position))
         {
             if (chosen.PositionDeferred) return false;
@@ -260,7 +253,7 @@ public sealed partial class MapMonsterField
         chosen.EverSpawned = true; chosen.Failures = 0;
         DequeueSpawn(chosen); chosen.ActiveIndex = activeSlots.Count; activeSlots.Add(chosen);
         chosen.BoundHealth = actor.Health; budget.InvalidateFiniteCounts();
-        bindings.Add(actor.Health, chosen); actor.Health.OnDead += FiniteDead; actor.Health.OnHealthChanged += FiniteHealth;
+        bindings.Add(actor.Health, chosen); actor.Health.OnDead += FiniteDead; actor.Health.OnDamaged += FiniteDamaged; actor.Health.OnHealthChanged += FiniteHealth;
         SpawnedCount++; spawned = true;
         if (chosen.SpawnAreaIndex != finiteArea.Ground.Index) NeighbourSpawnedCount++;
         Freeze(chosen, preparing || !finiteAwake);
@@ -282,13 +275,14 @@ public sealed partial class MapMonsterField
         bool Clear(MapCombatGeometry.Area ground, Vector3 candidate, bool approach, out Vector3 result)
         {
             result = default;
-            if (finiteRoster.Areas[ground.Index].Cleared) return false;
+            if (finiteRoster.Areas[ground.Index].Cleared || !slot.EverSpawned && ground.Index != finiteArea.Ground.Index) return false;
             if (FlatDistance(candidate, player) < MapCombatGeometry.EntrySafety + (preparing ? 0 : slot.Radius)) return false;
             if (!preparing && budget.InView(candidate, .12f, slot.Radius, slot.Height)) return false;
             if (!MapCombatGeometry.TryRuntimePoint(ground, slot.Member.Definition, candidate, approach, spawnOverlaps, spawnPath, out result)) return false;
             // Approach points and restored actors can belong to a different platform than their roster owner.
             foreach (var area in finiteRoster.Areas)
-                if ((area.Ground.Index == finiteRoster.EntryAreaIndex || area.Cleared)
+                if ((area.Ground.Index == finiteRoster.EntryAreaIndex || area.Cleared
+                    || !slot.EverSpawned && area.Ground.Index != finiteArea.Ground.Index)
                     && MapCombatGeometry.Contains(area.Ground, result)) return false;
             if (ground != finiteArea.Ground && (!NavMesh.CalculatePath(result, finiteArea.Ground.Center, NavMesh.AllAreas, spawnPath)
                 || spawnPath.status != NavMeshPathStatus.PathComplete)) return false;
@@ -323,7 +317,7 @@ public sealed partial class MapMonsterField
             var candidate = approach ? approaches[index - points.Count] : points[index];
             if (Clear(finiteArea.Ground, candidate, approach, out position)) return true;
         }
-        if (!preparing && !slot.Member.Initial)
+        if (!preparing && slot.EverSpawned && !slot.Member.Initial)
             foreach (var neighbour in reinforcementNeighbours)
                 for (int i = 0; i < Mathf.Min(8, neighbour.Points.Count); i++)
                 {
@@ -352,6 +346,11 @@ public sealed partial class MapMonsterField
         if (actor.Animator) actor.Animator.enabled = !frozen;
         if (slot.Body) slot.Body.isKinematic = frozen || slot.WasKinematic;
     }
+    void FiniteDamaged(CombatHealth health, DamageInfo hit)
+    {
+        if (!triggered && bindings.TryGetValue(health, out var slot) && Valid(slot) && slot.Member.Initial
+            && hit.source && hit.source.GetComponentInParent<PlayerActorRuntime>()) triggered = true;
+    }
     void FiniteHealth(CombatHealth health, float current, float maximum)
     {
         if (bindings.TryGetValue(health, out var slot) && Valid(slot)) slot.HealthRatio = current / maximum;
@@ -360,7 +359,7 @@ public sealed partial class MapMonsterField
     {
         if (!bindings.TryGetValue(health, out var slot) || !Valid(slot) || !health.IsDead
             || !finiteRoster.TryRecordDeath(slot.Member.Index, slot.RosterLease)) return;
-        Unbind(slot); triggered = true;
+        Unbind(slot);
         if (!context.CanGrantRewards || !hit.source || !hit.source.GetComponentInParent<PlayerActorRuntime>()) return;
         var item = MapDropPolicy.Roll(mapDefinition, registry, map, slot.Member.Tier, context.RunId);
         if (item != null) WorldItemDropFactory.CreateWorldPickup(item, health.transform.position + Vector3.up * .4f,
@@ -369,7 +368,7 @@ public sealed partial class MapMonsterField
     void Unbind(Slot slot)
     {
         var health = slot.BoundHealth;
-        if (health) { health.OnDead -= FiniteDead; health.OnHealthChanged -= FiniteHealth; }
+        if (health) { health.OnDead -= FiniteDead; health.OnDamaged -= FiniteDamaged; health.OnHealthChanged -= FiniteHealth; }
         if (!ReferenceEquals(health, null)) bindings.Remove(health);
         slot.BoundHealth = null;
         if (slot.ActiveIndex >= 0)
