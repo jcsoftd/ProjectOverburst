@@ -19,7 +19,6 @@ MonoBehaviour:
   run: {fileID: 1827226128182048838, guid: 72afd112fd872714c8208c66b1bddf9e, type: 3}
   attackClips:
   - {fileID: 1827226128182048838, guid: 970da2de833e012419c5b196fe18cc76, type: 3}
-  - {fileID: 1827226128182048838, guid: 2f7fc70362968e54c97a1ca8373cb825, type: 3}
   hit: {fileID: 1827226128182048838, guid: b0cbde4e72a5933428805b6d6f2ee641, type: 3}
   death: {fileID: 1827226128182048838, guid: 29fc4d891748ba44db05589dbef12375, type: 3}
   optional:
