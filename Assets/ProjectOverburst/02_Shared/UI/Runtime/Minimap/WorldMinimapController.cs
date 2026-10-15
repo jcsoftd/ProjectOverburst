@@ -331,6 +331,7 @@ public sealed class WorldMinimapController : MonoBehaviour
                 {
                     exploration = caveWorld ? CaveMinimapTerrain.Build(caveWorld) : desertWorld.MinimapData.CreateExploration();
                     exploration.EnsureTextures(); nextReveal = 0; TerrainBuildCount++;
+                    OverlayRequested = true;
                 }
                 catch (System.Exception error)
                 {

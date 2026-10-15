@@ -62,6 +62,22 @@ public static class MapMinimapResolutionVerifier
         yield return Frames(12);
         var controller = WorldMinimapController.Instance; var map = controller.Exploration;
         check(map != null, "Resolution checks use the actual generated map");
+        Directory.CreateDirectory(output);
+        object EntryState() => new { controller.OverlayRequested, controller.OverlayVisible, controller.IsVisible,
+            blocked = GameplayInputBlocker.IsGameplayInputBlocked, switching = PersistentSceneFlow.Instance.IsSwitching,
+            overlayActive = controller.Overlay.gameObject.activeSelf, parentActive = controller.Overlay.gameObject.activeInHierarchy,
+            blockers = ((System.Collections.IEnumerable)typeof(GameplayInputBlocker).GetField("blockers", Flags).GetValue(null))
+                .Cast<UnityEngine.Object>().Where(o => o).Select(o => o.name).ToArray() };
+        var entryBefore = EntryState();
+        var tutorial = OptionalTutorialController.Instance;
+        if (tutorial && !tutorial.IsTraining && tutorial.view.modal.activeSelf
+            && tutorial.view.modalTitle.text == "튜토리얼을 체험하시겠습니까?")
+            tutorial.view.secondary.onClick.Invoke();
+        double inputReadyUntil = EditorApplication.timeSinceStartup + 5;
+        while (GameplayInputBlocker.IsGameplayInputBlocked && EditorApplication.timeSinceStartup < inputReadyUntil) yield return null;
+        yield return Frames(2);
+        File.WriteAllText(Path.Combine(output, "entry-overlay-state.json"), JsonConvert.SerializeObject(new { before = entryBefore, after = EntryState() }, Formatting.Indented));
+        check(controller.OverlayRequested && controller.OverlayVisible, "Exploration overlay opens automatically on map entry");
         var view = (EditorWindow)Resources.FindObjectsOfTypeAll(ViewType).First();
         var group = Group(view); int count = (int)Call(group, "GetTotalCount"), original = (int)Get(view, "selectedSizeIndex");
         if (SessionState.GetString(Key + "owner", "") != "") throw new InvalidOperationException("An earlier size probe must return first.");
@@ -95,8 +111,11 @@ public static class MapMinimapResolutionVerifier
                     controller.SetOverlay(true); QuarterViewCamera.ActiveInstance.SetYaw(zoom == 1 ? yaw : 45); yield return Frames(8); Canvas.ForceUpdateCanvases();
                     var overlay = ScreenRect(controller.Overlay.viewport);
                     check(controller.IsVisible && controller.OverlayVisible && Inside(overlay, Screen.safeArea), "Both maps fit at " + resolution + " scale " + zoom);
-                    check(Mathf.Abs(overlay.width / Screen.safeArea.width - .72f) < .01f && Mathf.Abs(overlay.height / Screen.safeArea.height - .68f) < .01f,
-                        "Overlay leaves the authored screen margins " + resolution + " scale " + zoom);
+                    float layoutScale = Screen.safeArea.height / 1080f;
+                    check(Mathf.Abs(overlay.width - 600 * layoutScale) < 1 && Mathf.Abs(overlay.height - 480 * layoutScale) < 1
+                        && Mathf.Abs(overlay.xMin - Screen.safeArea.xMin - 20 * layoutScale) < 1
+                        && Mathf.Abs(overlay.yMin - Screen.safeArea.yMin - 40 * layoutScale) < 1,
+                        "Overlay keeps the bottom-left layout " + resolution + " scale " + zoom);
                     check(Mathf.Approximately(controller.Overlay.outline.color.a, .35f) && controller.Overlay.GetComponentsInChildren<UnityEngine.UI.Graphic>(true).All(g => !g.raycastTarget),
                         "Overlay stays translucent and passes clicks " + resolution + " scale " + zoom);
                     check(ReferenceEquals(map, controller.Exploration) && visited.All(map.IsRevealedCell) && builds == controller.TerrainBuildCount, "Resolution changes keep the explored topology " + resolution + " scale " + zoom);

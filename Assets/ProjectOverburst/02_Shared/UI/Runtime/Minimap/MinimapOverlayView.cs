@@ -34,8 +34,10 @@ public sealed class MinimapOverlayView : MonoBehaviour
         Rect safe = Screen.safeArea;
         RectTransformUtility.ScreenPointToLocalPointInRectangle(parent, safe.min, camera, out var low);
         RectTransformUtility.ScreenPointToLocalPointInRectangle(parent, safe.max, camera, out var high);
-        viewport.localPosition = new Vector3((low.x + high.x) * .5f, (low.y + high.y) * .5f, 0);
-        viewport.sizeDelta = Vector2.Scale(high - low, new Vector2(.72f, .68f));
+        float layoutScale = (high.y - low.y) / 1080f;
+        viewport.anchorMin = viewport.anchorMax = viewport.pivot = Vector2.zero;
+        viewport.sizeDelta = new Vector2(600, 480) * layoutScale;
+        viewport.localPosition = new Vector3(low.x + 20 * layoutScale, low.y + 40 * layoutScale, 0);
         // A diagonal-sized quad covers the rectangular clip at every camera yaw.
         float diameter = viewport.rect.size.magnitude;
         outline.rectTransform.sizeDelta = Vector2.one * diameter;

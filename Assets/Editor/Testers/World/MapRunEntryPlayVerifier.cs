@@ -406,10 +406,11 @@ public static class MapRunEntryPlayVerifier
             Check(account.ReadRun().phase == RunPhase.Failed, label + ": existing abandon settlement maintained");
             if (SessionState.GetBool(Key + "minimapOnly", false))
             {
-                yield return Frames(3);
                 var controller = WorldMinimapController.Instance;
-                Check(controller.Exploration == null && controller.View.TerrainImage.texture != null,
-                    label + ": unloading the run releases exploration and restores the hub bake");
+                Write("minimap-hub-return-" + item.map.terrain + "-before.json", new { explored = controller.Exploration != null,
+                    texture = controller.View.TerrainImage.texture ? controller.View.TerrainImage.texture.name : null });
+                yield return Wait(() => controller.Exploration == null && controller.View.TerrainImage.texture != null,
+                    label + ": unloading the run releases exploration and restores the hub bake", 5);
                 Check(priorTextures.All(t => !t), label + ": both textures from every visited run have been destroyed");
                 Check(!Resources.FindObjectsOfTypeAll<Texture2D>().Any(t => t.name == "Explored terrain (run)" || t.name == "Explored outline (run)"),
                     label + ": no run-owned exploration texture accumulates at the hub");
