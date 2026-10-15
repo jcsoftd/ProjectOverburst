@@ -90,7 +90,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
                 }
                 ThemeRequire(field.SpawnedCount == expectedCount && actors.Length == expectedCount
                     && counts[0] == 50 && counts[1] == 16 && counts[2] == 4, "Field tier/count mismatch: " + id);
-                yield return new WaitForSeconds(.8f);
+                yield return new WaitForSeconds(Mathf.Clamp((float?)theme["observationSeconds"] ?? .8f, .8f, 15f));
                 var squad = EnemySquadPursuitRuntimeService.GetRuntimeStats();
                 ThemeRequire(squad.RegisteredAgentCount >= 66 && squad.IsActive, "Actual crowd squad did not activate: " + id);
                 int livingBefore = field.RemainingCount;

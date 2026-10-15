@@ -15,7 +15,7 @@ public static class SerpenopodEliteBuilder
     const string FootfallPath = Root + "Footfalls/" + Id + ".asset";
     public const float HealthCoefficient = 18.8f;
     public const float DamageMultiplier = 1.25f;
-    public const float AuthoredSize = 1.4f;
+    public const float AuthoredSize = 1.5f;
 
     static T Load<T>(string path) where T : UnityEngine.Object
         => AssetDatabase.LoadAssetAtPath<T>(path) ?? throw new InvalidOperationException("Missing asset: " + path);
@@ -93,7 +93,7 @@ public static class SerpenopodEliteBuilder
         } finally { PrefabUtility.UnloadPrefabContents(root); }
         float authoredSize = definition.ActorPrefab.Animator.transform.localScale.x;
         if (!Mathf.Approximately(authoredSize, AuthoredSize)) {
-            if (!Mathf.Approximately(authoredSize, 1f))
+            if (!Mathf.Approximately(authoredSize, 1f) && !Mathf.Approximately(authoredSize, 1.4f))
                 throw new InvalidOperationException("Unexpected authored scale; preserve the later size edit.");
             string planPath = Path.Combine(outputDirectory, "size-plan.json");
             File.WriteAllText(planPath, new JObject { ["entries"] = new JArray(new JObject {

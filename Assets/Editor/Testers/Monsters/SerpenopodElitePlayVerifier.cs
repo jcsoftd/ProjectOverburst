@@ -37,7 +37,7 @@ public static class SerpenopodElitePlayVerifier
         try {
             if (parry) return MonsterWeakAttackPlayerLoopVerifier.StartRealPlayerParry(output, SerpenopodEliteBuilder.DefinitionPath);
             string plan = Path.Combine(output, "theme-test-plan.json");
-            File.WriteAllText(plan, "{\"schema\":\"overburst.v3.theme-activation.v1\",\"themes\":[{\"runtimeThemeId\":\"PrimalHunt\"}]}");
+            File.WriteAllText(plan, "{\"schema\":\"overburst.v3.theme-activation.v1\",\"themes\":[{\"runtimeThemeId\":\"PrimalHunt\",\"observationSeconds\":8}]}");
             return MonsterWeakAttackPlayerLoopVerifier.StartActualThemeActivation(output, plan);
         } catch { SessionState.EraseString(Key + "output"); throw; }
     }

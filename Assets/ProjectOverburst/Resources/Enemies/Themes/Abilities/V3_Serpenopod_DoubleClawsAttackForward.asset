@@ -15,8 +15,8 @@ MonoBehaviour:
   parryCueBonePath: VisualRoot/Authored model scale/Serpenopod/root/Serpenopod_/Serpenopod_
     Pelvis/Serpenopod_ Spine/Serpenopod_ L Clavicle/Serpenopod_ L UpperArm/Serpenopod_
     L Forearm/Serpenopod_ L Hand
-  parryCueLocalPosition: {x: -0.0000025242, y: 2.3012934, z: 1.5276916}
-  parryCueScale: 0.77
+  parryCueLocalPosition: {x: -0.0000027044998, y: 2.4656713, z: 1.6368123}
+  parryCueScale: 0.8249999
   parryMotionWindows:
   - {x: 0.34285712, y: 0.45714283}
   firstStrikeOnlyParry: 1
@@ -38,10 +38,10 @@ MonoBehaviour:
   minimumRecoveryTime: 0.425
   parryable: 1
   minimumRange: 0
-  range: 2.6599998
-  hitRadius: 2.6599998
+  range: 2.8499997
+  hitRadius: 2.8499997
   hitAngle: 125
-  verticalTolerance: 2.1
+  verticalTolerance: 2.2499998
   requireLineOfSight: 1
   cooldown: 2.4
   hitDelay: 0.53333336

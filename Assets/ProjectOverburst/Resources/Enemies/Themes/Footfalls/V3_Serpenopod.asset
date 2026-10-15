@@ -22,11 +22,11 @@ MonoBehaviour:
   groundStepTier: 2
   walkContacts:
   - phase: 0.475
-    localPosition: {x: -1.3097235, y: 0.06056207, z: -0.7010403}
+    localPosition: {x: -1.4032751, y: 0.06488793, z: -0.7511146}
   - phase: 0.9916667
-    localPosition: {x: 1.3198534, y: 0.04749197, z: -0.38650912}
+    localPosition: {x: 1.4141287, y: 0.050884254, z: -0.4141169}
   runContacts:
   - phase: 0.31666666
-    localPosition: {x: -1.5771585, y: 0.054339334, z: 0.037766773}
+    localPosition: {x: -1.6898125, y: 0.058220714, z: 0.040464398}
   - phase: 0.475
-    localPosition: {x: 1.5716715, y: 0.05348866, z: 0.08825083}
+    localPosition: {x: 1.6839337, y: 0.057309277, z: 0.09455446}
