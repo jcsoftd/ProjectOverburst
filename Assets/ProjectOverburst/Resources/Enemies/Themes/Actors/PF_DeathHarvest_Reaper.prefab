@@ -1282,8 +1282,6 @@ MonoBehaviour:
       weight: 0.0052120085
     - bone: {fileID: 7567548265593483603}
       localPoint: {x: 0.073240094, y: 0.21031986, z: 0.0000004613707}
-  statusAuraAnchor: {fileID: 0}
-  statusAuraLocalCenter: {x: 0, y: 0, z: 0}
       weight: 0.001886375
     - bone: {fileID: 7567548265593514703}
       localPoint: {x: -0.40813556, y: 0.08886424, z: 0.00000012449955}
@@ -1416,6 +1414,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: eda51c7a802e24b449bbf9594314109f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackMotionDriver
+  owner: {fileID: 770439688934804059}
+  movement: {fileID: 5796576335025451137}
 --- !u!114 &5393031095365479023
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1443,10 +1445,6 @@ MonoBehaviour:
   - clip: {fileID: 8300000, guid: 2fc7d74c926fd0b4ebc5596cf7903748, type: 3}
     volume: 0.75
   pitch: 1
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackMotionDriver
-  owner: {fileID: 770439688934804059}
-  movement: {fileID: 5796576335025451137}
 --- !u!1 &5025276219172829565
 GameObject:
   m_ObjectHideFlags: 0

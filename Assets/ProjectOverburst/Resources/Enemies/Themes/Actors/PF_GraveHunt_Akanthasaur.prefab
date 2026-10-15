@@ -1278,6 +1278,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: eda51c7a802e24b449bbf9594314109f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackMotionDriver
+  owner: {fileID: 4422249047511631680}
+  movement: {fileID: 7941064502579664629}
 --- !u!114 &3776576888968165665
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1307,10 +1311,6 @@ MonoBehaviour:
   - clip: {fileID: 8300000, guid: 5ba7b462a8aa64e1b997afd50262ee4a, type: 3}
     volume: 0.49673
   pitch: 1
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackMotionDriver
-  owner: {fileID: 4422249047511631680}
-  movement: {fileID: 7941064502579664629}
 --- !u!1 &1965703413044919314
 GameObject:
   m_ObjectHideFlags: 0

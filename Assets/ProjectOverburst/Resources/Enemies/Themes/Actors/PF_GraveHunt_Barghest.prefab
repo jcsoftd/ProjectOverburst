@@ -3603,6 +3603,10 @@ MonoBehaviour:
         weightedMode: 0
         inWeight: 0
         outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    reverseBackpedal: 0
 --- !u!114 &7084992959128973708
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3628,10 +3632,6 @@ MonoBehaviour:
     volume: 0.75
   melee: []
   pitch: 1
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
-    reverseBackpedal: 0
 --- !u!1 &4950708461966048877
 GameObject:
   m_ObjectHideFlags: 0

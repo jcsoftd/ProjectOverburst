@@ -1673,8 +1673,6 @@ MonoBehaviour:
       weight: 0.038271166
     - bone: {fileID: 1542905087357955371}
       localPoint: {x: -0.17262723, y: -0.097840846, z: -0.09321871}
-  statusAuraAnchor: {fileID: 0}
-  statusAuraLocalCenter: {x: 0, y: 0, z: 0}
       weight: 0.2424727
     - bone: {fileID: 4977068613717760177}
       localPoint: {x: -0.04085002, y: -0.1098427, z: -0.014572838}
@@ -3050,6 +3048,10 @@ MonoBehaviour:
         weightedMode: 0
         inWeight: 0
         outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    reverseBackpedal: 0
 --- !u!114 &6787309549870576930
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3081,10 +3083,6 @@ MonoBehaviour:
   - clip: {fileID: 8300000, guid: 5ba7b462a8aa64e1b997afd50262ee4a, type: 3}
     volume: 0.49673
   pitch: 1
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
-    reverseBackpedal: 0
 --- !u!1 &8397776656497602290
 GameObject:
   m_ObjectHideFlags: 0

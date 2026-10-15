@@ -3601,6 +3601,10 @@ MonoBehaviour:
         weightedMode: 0
         inWeight: 0
         outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    reverseBackpedal: 0
 --- !u!114 &4489062109403144272
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3632,10 +3636,6 @@ MonoBehaviour:
   - clip: {fileID: 8300000, guid: 6662875e85f60044984cf914f3385cfd, type: 3}
     volume: 0.47601
   pitch: 1
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
-    reverseBackpedal: 0
 --- !u!1 &8281582031870517531
 GameObject:
   m_ObjectHideFlags: 0
