@@ -7,6 +7,7 @@ using Newtonsoft.Json;
 using UnityEditor;
 using UnityEngine;
 
+// Historical implementation below; Run now uses the current attack-policy suite.
 // Local-only 2026-10-01: 몬스터 강공 규칙 확인용 실제 Play(격리 계정). 아무것도 저장하지 않는다.
 // 1 cadence: 중형·대형이 AI로 싸울 때 공격 순서 기록 — 첫 공격은 평타, 강공 사이 평타·원거리 중형 3번·대형 2번 이상.
 //   평타·원거리 시작 때 바닥 장판이 없고, 강공 때만 장판과 패링 가능 표시가 뜨는지.
@@ -22,19 +23,16 @@ public static class StrongAttackCadenceVerifier
     static readonly List<string> shots = new List<string>(), notes = new List<string>(), errors = new List<string>(), violations = new List<string>();
     static readonly List<object> sequences = new List<object>();
     static string Output => SessionState.GetString(Key + ".output", "");
-    public static string Status => SessionState.GetString(Key + ".status", "NOT_RUN");
+    public static string Status => File.Exists(Path.Combine(Output, "player-loop-results.json"))
+        ? Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(Path.Combine(Output, "player-loop-results.json")))["status"].ToString()
+        : SessionState.GetString(Key + ".status", "NOT_RUN");
     static StrongAttackCadenceVerifier() { EditorApplication.playModeStateChanged += State; }
 
     public static void Run(string output)
     {
-        if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Already playing");
-        if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name != "PersistentScene") throw new InvalidOperationException("Persistent scene required");
-        Directory.CreateDirectory(output);
+        // The current policy replaces the 2026-10-01 fixed-count cadence.
+        MonsterWeakAttackPlayerLoopVerifier.StartAttackPolicy(output);
         SessionState.SetString(Key + ".output", output);
-        SessionState.EraseString(Key + ".env");
-        IsolatedSavePlayGuard.PrepareIsolatedPlay(Path.Combine(output, "IsolatedAccount"));
-        SessionState.SetBool(Key, true); SessionState.SetString(Key + ".status", "RUNNING");
-        EditorApplication.EnterPlaymode();
     }
 
     static void State(PlayModeStateChange state)

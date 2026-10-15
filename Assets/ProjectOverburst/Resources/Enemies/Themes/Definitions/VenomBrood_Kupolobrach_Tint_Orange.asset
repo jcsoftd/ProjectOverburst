@@ -17,7 +17,7 @@ MonoBehaviour:
   referenceHealthCoefficient: 19.6
   species: {fileID: 11400000, guid: c52e582c36a9b9d43a1e91c0712f230a, type: 2}
   grade: {fileID: 11400000, guid: a31d741b009cc2b4c8677c617e319108, type: 2}
-  variant: {fileID: 11400000, guid: 1c5e357903268aa43abf18bc53262d8a, type: 2}
+  variant: {fileID: 11400000, guid: 784f7907fa7c4fc6b51f3f9f07b1fd3f, type: 2}
   actorPrefab: {fileID: 966101985607141419, guid: 93a4e228387023c48b03a4b788a263c3, type: 3}
   animationProfile: {fileID: 11400000, guid: adf50005210e95d4c926581c28ef7ff5, type: 2}
   abilitySet: {fileID: 11400000, guid: 91b0bc2a04a3d5a4e9c2dffb14de579f, type: 2}

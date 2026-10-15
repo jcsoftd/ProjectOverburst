@@ -123,7 +123,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         plan=new Plan { directory=outputDirectory,token=Guid.NewGuid().ToString("N"),phase="booting",
             previousStart=AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene),background=Application.runInBackground,
             captureDelta=Time.captureDeltaTime,fixedDelta=Time.fixedDeltaTime,deadline=EditorApplication.timeSinceStartup+600,
-            fixedAnimator=fixedAnimator,attackSpeed=attackSpeed,timeScale=Time.timeScale,stress=stress,savedProfiles=savedProfiles,leaseVerification=leaseVerification,leaseDefinitionPaths=leaseDefinitionPaths?.ToArray(),testDefinition=testDefinition,realPlayerParry=realPlayerParry,themeActivationPath=themeActivationPath,attackBatch=attackBatch,presentationCalibration=(bool?)selectedBatch?["verifyPresentationCalibration"]==true,presentationCaseKeys=presentationCaseKeys,undeadCrowdVerification=(bool?)selectedBatch?["verifyUndeadCrowd"]==true,expectedWeakCases=!string.IsNullOrEmpty(themeActivationPath)?JObject.Parse(File.ReadAllText(themeActivationPath))["themes"].Count():presentationCases+weakCases+(!leaseVerification&&selectedBatch!=null?(leaseDefinitionPaths?.Length??0)*2:0),validationFrameRates=frameRates,scenes=SceneEvidence() };
+            fixedAnimator=fixedAnimator,attackSpeed=attackSpeed,timeScale=Time.timeScale,stress=stress,savedProfiles=savedProfiles,leaseVerification=leaseVerification,leaseDefinitionPaths=leaseDefinitionPaths?.ToArray(),testDefinition=testDefinition,realPlayerParry=realPlayerParry,themeActivationPath=themeActivationPath,attackBatch=attackBatch,presentationCalibration=(bool?)selectedBatch?["verifyPresentationCalibration"]==true,presentationCaseKeys=presentationCaseKeys,undeadCrowdVerification=(bool?)selectedBatch?["verifyUndeadCrowd"]==true,expectedWeakCases=(int?)selectedBatch?["attackPolicyCases"]??(!string.IsNullOrEmpty(themeActivationPath)?JObject.Parse(File.ReadAllText(themeActivationPath))["themes"].Count():presentationCases+weakCases+(!leaseVerification&&selectedBatch!=null?(leaseDefinitionPaths?.Length??0)*2:0)),validationFrameRates=frameRates,scenes=SceneEvidence() };
         plan.fixture=realPlayerParry?"Assets/ProjectOverburst/00_Scenes/PersistentScene.unity":"Assets/Editor/Testers/Characters/WeakPlayerLoop_"+plan.token+".unity";
         cases.Clear(); failure=null; Save();
         File.WriteAllText(Path.Combine(outputDirectory,"plan.json"),JsonConvert.SerializeObject(plan,Formatting.Indented));
@@ -215,6 +215,8 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
     static Vector3 Vector(JToken value)=>new Vector3((float)value[0],(float)value[1],(float)value[2]);
     static IEnumerator RunCases()
     {
+        if (!string.IsNullOrEmpty(plan.attackBatch) && (bool?)JObject.Parse(File.ReadAllText(plan.attackBatch))["verifyAttackPolicy"] == true)
+        { yield return RunAttackPolicyCases(); yield break; }
         if(!string.IsNullOrEmpty(plan.themeActivationPath)){yield return RunActualThemeCases();yield break;}
         if(plan.realPlayerParry){yield return RunRealPlayerParryCases();yield break;}
         if(plan.leaseVerification){yield return RunLeaseCases();yield break;}

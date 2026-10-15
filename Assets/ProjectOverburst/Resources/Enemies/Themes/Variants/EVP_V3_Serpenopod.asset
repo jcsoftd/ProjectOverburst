@@ -22,4 +22,4 @@ MonoBehaviour:
   damageMultiplier: 1.25
   moveSpeedMultiplier: 1
   attackSpeedMultiplier: 1
-  attackInterval: 1.15
+  attackInterval: 2

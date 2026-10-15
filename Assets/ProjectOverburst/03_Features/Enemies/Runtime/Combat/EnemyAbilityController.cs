@@ -52,6 +52,13 @@ public sealed partial class EnemyAbilityController : MonoBehaviour // 선택·�
     }
     // 중형이 평타 경직 중에 강공만 골라 시작할 때 AI가 감싸 쓰는 구간.
     private bool strongOnlyPass;
+    private bool? mediumStrongChoice;
+    private Transform mediumChoiceTarget;
+    public const float MediumStrongAttackChance = .30f;
+    private bool UsesEliteStrongOnly => bossMaterialExecutor == null && reaction != null && reaction.CanActThroughOrdinaryHit;
+    private bool UsesMediumAttackMix => bossMaterialExecutor == null && reaction != null && reaction.IsStandardTier;
+    private bool IsEnabledByAttackPolicy(EnemyAbilityDefinition ability) => !UsesEliteStrongOnly || ability.IsTelegraphedStrongAttack;
+    private void ClearAttackChoice() { mediumStrongChoice = null; mediumChoiceTarget = null; }
     public void BeginStrongOnlyPass()
     {
         ResolveReferences();
@@ -65,7 +72,7 @@ public sealed partial class EnemyAbilityController : MonoBehaviour // 선택·�
     }
     // 2026-09-30: 핵앤슬래시 기준으로 인정 구간을 첫 타격 0.70초 전부터 연다(신호와 동일).
     public const float ParryLeadSeconds = .70f;
-    // 2026-10-01: 강공 빈도 규칙. 강공을 쓴 뒤에는 강공이 아닌 공격(평타·원거리)을 중형 3번, 대형(정예) 2번 써야 다음 강공이 열린다.
+    // Legacy cadence for unclassified actors/fixtures. Ranked elites use strong-only; medium actors use the 70/30 draw.
     // 싸움 첫 공격은 평타 한 번(그 뒤부터 강공 가능). 경직 중 강공 시작(strongOnlyPass)도 같은 조건이라, 잠겨 있으면 그냥 경직된다.
     // 강공밖에 없는 공격 목록(은신처 패링 연습대)은 셀 평타가 없으므로 잠그지 않는다.
     public const int MediumAttacksBetweenStrong = 3;
@@ -74,8 +81,9 @@ public sealed partial class EnemyAbilityController : MonoBehaviour // 선택·�
     private bool strongUsedInFight;
     private int RequiredAttacksBetweenStrong => !strongUsedInFight ? 1
         : reaction != null && reaction.CanActThroughOrdinaryHit ? LargeAttacksBetweenStrong : MediumAttacksBetweenStrong;
-    public bool IsStrongAttackLocked => bossMaterialExecutor == null && attacksSinceStrong < RequiredAttacksBetweenStrong && HasNonStrongAbility();
-    private bool IsSelectable(EnemyAbilityDefinition ability) => IsCooldownReady(ability)
+    public bool IsStrongAttackLocked => !UsesEliteStrongOnly && !UsesMediumAttackMix
+        && bossMaterialExecutor == null && attacksSinceStrong < RequiredAttacksBetweenStrong && HasNonStrongAbility();
+    private bool IsSelectable(EnemyAbilityDefinition ability) => IsEnabledByAttackPolicy(ability) && IsCooldownReady(ability)
         && !(ability.IsTelegraphedStrongAttack && IsStrongAttackLocked);
     private bool HasNonStrongAbility()
     {
@@ -235,7 +243,7 @@ public sealed partial class EnemyAbilityController : MonoBehaviour // 선택·�
         for (int i = 0; i < abilitySet.Count; i++)
         {
             var ability = abilitySet.GetAbility(i);
-            if (ability == null || !ability.IsValid
+            if (ability == null || !ability.IsValid || !IsEnabledByAttackPolicy(ability)
                 || hp < ability.MinimumSelfHealthNormalized || hp > ability.MaximumSelfHealthNormalized)
                 continue;
             if (ability.HasWeakAttackExecution && (animationBridge == null
@@ -260,7 +268,7 @@ public sealed partial class EnemyAbilityController : MonoBehaviour // 선택·�
         for (int i = 0; i < abilitySet.Count; i++)
         {
             var ability = abilitySet.GetAbility(i);
-            if (ability == null || !ability.IsValid || ability.ExecutionMode != EnemyAbilityExecutionMode.Projectile
+            if (ability == null || !ability.IsValid || !IsEnabledByAttackPolicy(ability) || ability.ExecutionMode != EnemyAbilityExecutionMode.Projectile
                 || hp < ability.MinimumSelfHealthNormalized || hp > ability.MaximumSelfHealthNormalized
                 || !(FindExecutor(ability) is EnemyThemeSpecialExecutor)) continue;
             if (selected == null || ability.Range > selected.Range) selected = ability;
@@ -292,6 +300,7 @@ public sealed partial class EnemyAbilityController : MonoBehaviour // 선택·�
         lastCommittedAbilityIndex = -1;
         lastCommittedAbility = null;
         ResetStrongCadence();
+        ClearAttackChoice();
         if (meleeExecutor == null)
             return;
 
@@ -356,6 +365,7 @@ public sealed partial class EnemyAbilityController : MonoBehaviour // 선택·�
         committedAttackRunning = true;
         smoothFacingAttackCommitted = movement != null && movement.UsesSmoothCombatFacing;
         CountCommittedAttack(selected.Ability);
+        ClearAttackChoice();
         if (selected.Executor is EnemyBossMaterialExecutor) GetComponent<EnemyBossCombatDirector>()?.NotifyCommitted(selected.Ability);
         if (selected.Ability.IsTelegraphedStrongAttack) reaction?.SetStrongAttackActive(true);
         firstImpactAt = Time.time + first;
@@ -400,6 +410,7 @@ public sealed partial class EnemyAbilityController : MonoBehaviour // 선택·�
     {
         ResolveReferences();
         if (target == null || ResolveIsExecuting() || !IsAttackIntervalReady) return false;
+        if (UsesMediumAttackMix && strongOnlyPass && mediumChoiceTarget == target && mediumStrongChoice == false) return false;
         if (abilitySet == null || !abilitySet.IsValid || executors.Length == 0)
             return true; // Preserve the legacy melee-only start path.
         Vector3 delta = ResolveAimPosition(target) - transform.position; delta.y = 0f;
@@ -448,6 +459,7 @@ public sealed partial class EnemyAbilityController : MonoBehaviour // 선택·�
 
     public void ClearTarget()
     {
+        ClearAttackChoice();
         ClearPreparedAim();
         meleeExecutor?.ClearTarget();
     }
@@ -473,6 +485,7 @@ public sealed partial class EnemyAbilityController : MonoBehaviour // 선택·�
         lastCommittedAbilityIndex = -1;
         lastCommittedAbility = null;
         ResetStrongCadence();
+        ClearAttackChoice();
     }
 
     private bool TrySelectAbility(
@@ -489,10 +502,33 @@ public sealed partial class EnemyAbilityController : MonoBehaviour // 선택·�
         for (int i = 0; i < abilitySet.Count; i++)
         {
             var ability = abilitySet.GetAbility(i);
-            if (!TryResolveAvailableCandidate(ability, target, distance, selfHealth, out var executor)) continue;
+            if (!TryResolveAvailableCandidate(ability, target, distance, selfHealth, out var executor,
+                includeWeakDuringStrongPass: UsesMediumAttackMix)) continue;
             candidates.Add(new AbilityCandidate(ability, executor, i));
-            hasStationaryWeak |= IsStationaryWeakMelee(ability);
         }
+        if (UsesMediumAttackMix)
+        {
+            bool hasWeak = false, hasStrong = false;
+            foreach (var candidate in candidates)
+            {
+                if (candidate.Ability.Weight <= 0f) continue;
+                if (candidate.Ability.IsTelegraphedStrongAttack) hasStrong = true;
+                else hasWeak = true;
+            }
+            if (!hasWeak && !hasStrong) return false;
+            if (mediumChoiceTarget != target) ClearAttackChoice();
+            // Keep a weak draw through hit-stun/retries; otherwise every frame
+            // rerolls until the strong-only hit-reaction route wins.
+            bool chooseStrong = hasStrong && (!hasWeak
+                || (mediumStrongChoice ?? (Random.value < MediumStrongAttackChance)));
+            mediumStrongChoice = chooseStrong;
+            mediumChoiceTarget = target;
+            if (strongOnlyPass && !chooseStrong) return false;
+            for (int i = candidates.Count - 1; i >= 0; i--)
+                if (candidates[i].Ability.Weight <= 0f || candidates[i].Ability.IsTelegraphedStrongAttack != chooseStrong)
+                    candidates.RemoveAt(i);
+        }
+        foreach (var candidate in candidates) hasStationaryWeak |= IsStationaryWeakMelee(candidate.Ability);
         // Choose the eligible motion family before Priority/Weight. Otherwise a
         // high-priority advance can erase a ready stationary attack while close.
         int highestPriority = int.MinValue;
@@ -550,12 +586,13 @@ public sealed partial class EnemyAbilityController : MonoBehaviour // 선택·�
     }
 
     private bool TryResolveAvailableCandidate(EnemyAbilityDefinition ability, Transform target,
-        float distance, float selfHealth, out EnemyAbilityExecutor executor, EnemyAbilityStartContext startContext = default)
+        float distance, float selfHealth, out EnemyAbilityExecutor executor, EnemyAbilityStartContext startContext = default,
+        bool includeWeakDuringStrongPass = false)
     {
         executor = null;
         if (ability == null || !ability.IsValid
             || !EnemyAttackThreatGeometry.MatchesUseConditions(actor, ability, distance, selfHealth)
-            || !IsSelectable(ability) || strongOnlyPass && !ability.IsTelegraphedStrongAttack) return false;
+            || !IsSelectable(ability) || strongOnlyPass && !includeWeakDuringStrongPass && !ability.IsTelegraphedStrongAttack) return false;
         executor = FindExecutor(ability);
         return executor != null && executor.CanStart(ability, target, startContext);
     }
@@ -615,7 +652,7 @@ public sealed partial class EnemyAbilityController : MonoBehaviour // 선택·�
         for (int i = 0; i < abilitySet.Count; i++)
         {
             EnemyAbilityDefinition ability = abilitySet.GetAbility(i);
-            if (ability != null && ability.IsValid)
+            if (ability != null && ability.IsValid && IsEnabledByAttackPolicy(ability))
                 maximum = Mathf.Max(maximum, EnemyAttackThreatGeometry.ResolveStartRange(actor, ability));
         }
         return maximum;
