@@ -230,6 +230,7 @@ GameObject:
   - component: {fileID: 3960510555661600888}
   - component: {fileID: 3306176544643192896}
   - component: {fileID: 579992344206636241}
+  - component: {fileID: 9190036787065090183}
   m_Layer: 7
   m_Name: PF_V3_Ghoul
   m_TagString: Untagged
@@ -1459,6 +1460,8 @@ MonoBehaviour:
       weight: 0.0816987
     - bone: {fileID: 8146041915065069412}
       localPoint: {x: 0.0053001354, y: 0.10922164, z: 0.1571519}
+  statusAuraAnchor: {fileID: 0}
+  statusAuraLocalCenter: {x: 0, y: 0, z: 0}
       weight: 0.013454809
     - bone: {fileID: 8146041915065069410}
       localPoint: {x: 0.08114581, y: -0.09432568, z: -0.023560328}
@@ -2706,6 +2709,39 @@ MonoBehaviour:
         weightedMode: 0
         inWeight: 0
         outWeight: 0
+--- !u!114 &9190036787065090183
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6901253781352033675}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 239912c68d76420479bfdc23f8bce38a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySoundEmitter
+  attack:
+  - clip: {fileID: 8300000, guid: 5b9d65f773ca54d4cb8e2465d9b6b199, type: 3}
+    volume: 0.54948
+  hurt:
+  - clip: {fileID: 8300000, guid: 97653e38c0246b2429f9999823f58cec, type: 3}
+    volume: 0.75
+  - clip: {fileID: 8300000, guid: afbe6bdd48da1404381626d238681767, type: 3}
+    volume: 0.61706
+  - clip: {fileID: 8300000, guid: b46a5cf891a42ab4ca55fe638281a525, type: 3}
+    volume: 0.72562
+  death:
+  - clip: {fileID: 8300000, guid: 0eaecc6d76a86d343afa5a7c8bbf0f5f, type: 3}
+    volume: 0.75
+  melee:
+  - clip: {fileID: 8300000, guid: 492eabb07c35c6e499bcd9efd7561b35, type: 3}
+    volume: 0.75
+  - clip: {fileID: 8300000, guid: 5344d1c6d30105844801b9bd389a80c2, type: 3}
+    volume: 0.75
+  - clip: {fileID: 8300000, guid: 5ba7b462a8aa64e1b997afd50262ee4a, type: 3}
+    volume: 0.49673
+  pitch: 1
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4

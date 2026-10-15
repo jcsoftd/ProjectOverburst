@@ -79,6 +79,7 @@ GameObject:
   - component: {fileID: 8102710453263735587}
   - component: {fileID: 5847017157775115073}
   - component: {fileID: 2898934622419643273}
+  - component: {fileID: 5287952504337474888}
   m_Layer: 7
   m_Name: PF_GraveHunt_Minotaur
   m_TagString: Untagged
@@ -1946,6 +1947,41 @@ MonoBehaviour:
       m_PostInfinity: 2
       m_RotationOrder: 4
     reverseBackpedal: 0
+--- !u!114 &5287952504337474888
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1221667493942019064}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 239912c68d76420479bfdc23f8bce38a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySoundEmitter
+  attack:
+  - clip: {fileID: 8300000, guid: 860d1d2896e24f14c876dcd7e67d90d2, type: 3}
+    volume: 0.28655
+  - clip: {fileID: 8300000, guid: 9537bba3b7d6aeb489ba4fba9bf7a166, type: 3}
+    volume: 0.36737
+  hurt:
+  - clip: {fileID: 8300000, guid: b84d62c9cc1ca7d41a69b24ec02fc090, type: 3}
+    volume: 0.75
+  - clip: {fileID: 8300000, guid: 6662875e85f60044984cf914f3385cfd, type: 3}
+    volume: 0.47601
+  - clip: {fileID: 8300000, guid: 42d36057215b47246a2de737116e0702, type: 3}
+    volume: 0.50168
+  death:
+  - clip: {fileID: 8300000, guid: 1b2695cbfdcc6ea42afd3549962daf3a, type: 3}
+    volume: 0.47849
+  melee:
+  - clip: {fileID: 8300000, guid: b84d62c9cc1ca7d41a69b24ec02fc090, type: 3}
+    volume: 0.75
+  - clip: {fileID: 8300000, guid: 6662875e85f60044984cf914f3385cfd, type: 3}
+    volume: 0.47601
+  - clip: {fileID: 8300000, guid: 42d36057215b47246a2de737116e0702, type: 3}
+    volume: 0.50168
+  pitch: 1
 --- !u!1 &1479329032069496135
 GameObject:
   m_ObjectHideFlags: 0

@@ -158,6 +158,7 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
                 if (!suppressMotion && !reactionOwnsMotion && currentHp > 0f) PlayCombatDamagedHitAnimation(info);
             }
 
+            EnemySoundEmitter.PlayConfirmedHit(info, actualDamage);
             RaiseDamageResolved(info, actualDamage, currentHp <= 0f);
             RaiseDamageEvent(OnDamaged, info); // 기존 UI·어그로·사망 표현 구독자 유지
             RaiseHealthChanged(); // HP바 갱신

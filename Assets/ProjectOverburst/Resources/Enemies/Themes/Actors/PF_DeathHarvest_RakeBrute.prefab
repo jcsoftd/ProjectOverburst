@@ -707,6 +707,7 @@ GameObject:
   - component: {fileID: 6900479509506111431}
   - component: {fileID: 8748142885222510080}
   - component: {fileID: 795619282423835599}
+  - component: {fileID: 6787309549870576930}
   m_Layer: 7
   m_Name: PF_DeathHarvest_RakeBrute
   m_TagString: Untagged
@@ -1672,6 +1673,8 @@ MonoBehaviour:
       weight: 0.038271166
     - bone: {fileID: 1542905087357955371}
       localPoint: {x: -0.17262723, y: -0.097840846, z: -0.09321871}
+  statusAuraAnchor: {fileID: 0}
+  statusAuraLocalCenter: {x: 0, y: 0, z: 0}
       weight: 0.2424727
     - bone: {fileID: 4977068613717760177}
       localPoint: {x: -0.04085002, y: -0.1098427, z: -0.014572838}
@@ -3047,6 +3050,37 @@ MonoBehaviour:
         weightedMode: 0
         inWeight: 0
         outWeight: 0
+--- !u!114 &6787309549870576930
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7630111263970318984}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 239912c68d76420479bfdc23f8bce38a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySoundEmitter
+  attack:
+  - clip: {fileID: 8300000, guid: 82d7c3bf91b1bde4daa473627ff9de92, type: 3}
+    volume: 0.55262
+  hurt:
+  - clip: {fileID: 8300000, guid: 986a6d7f399a50c4a93a90461255681b, type: 3}
+    volume: 0.75
+  - clip: {fileID: 8300000, guid: afbe6bdd48da1404381626d238681767, type: 3}
+    volume: 0.61706
+  death:
+  - clip: {fileID: 8300000, guid: 73ec99c360ebd0d4f91344d747985647, type: 3}
+    volume: 0.75
+  melee:
+  - clip: {fileID: 8300000, guid: 492eabb07c35c6e499bcd9efd7561b35, type: 3}
+    volume: 0.75
+  - clip: {fileID: 8300000, guid: 5344d1c6d30105844801b9bd389a80c2, type: 3}
+    volume: 0.75
+  - clip: {fileID: 8300000, guid: 5ba7b462a8aa64e1b997afd50262ee4a, type: 3}
+    volume: 0.49673
+  pitch: 1
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4

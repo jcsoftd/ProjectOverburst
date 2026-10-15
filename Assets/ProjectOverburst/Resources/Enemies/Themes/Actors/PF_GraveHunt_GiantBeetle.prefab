@@ -768,6 +768,7 @@ GameObject:
   - component: {fileID: 3527721388063012870}
   - component: {fileID: 517406684526516609}
   - component: {fileID: 8367984601189699618}
+  - component: {fileID: 2647443440175727476}
   m_Layer: 7
   m_Name: PF_GraveHunt_GiantBeetle
   m_TagString: Untagged
@@ -3664,6 +3665,53 @@ MonoBehaviour:
         weightedMode: 0
         inWeight: 0
         outWeight: 0
+--- !u!114 &2647443440175727476
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9025277145922951384}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 239912c68d76420479bfdc23f8bce38a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySoundEmitter
+  attack:
+  - clip: {fileID: 8300000, guid: 280e4ddda314d3a448d2859380715d78, type: 3}
+    volume: 0.75
+  - clip: {fileID: 8300000, guid: 60455541e5ca38444a0ee950d789aa41, type: 3}
+    volume: 0.75
+  - clip: {fileID: 8300000, guid: 1d9482de9a0180348b8e1a3d776a7b8f, type: 3}
+    volume: 0.75
+  - clip: {fileID: 8300000, guid: bcdec11a4f2e8a945b691fc8ee285793, type: 3}
+    volume: 0.75
+  - clip: {fileID: 8300000, guid: 508701c55400415459a4a082d991b3ae, type: 3}
+    volume: 0.75
+  hurt:
+  - clip: {fileID: 8300000, guid: 3611fe61444d29b4cad276ef5f9c779c, type: 3}
+    volume: 0.75
+  - clip: {fileID: 8300000, guid: d2b96cf0c385484498a6033bf9106d6f, type: 3}
+    volume: 0.75
+  - clip: {fileID: 8300000, guid: 86b43f37307d7464d95cade72076a045, type: 3}
+    volume: 0.75
+  - clip: {fileID: 8300000, guid: 4dff595816ebc9240b10da8caad11584, type: 3}
+    volume: 0.75
+  - clip: {fileID: 8300000, guid: b7d85a081fb523449b9b8feda1c919cd, type: 3}
+    volume: 0.75
+  death:
+  - clip: {fileID: 8300000, guid: 280e4ddda314d3a448d2859380715d78, type: 3}
+    volume: 0.75
+  - clip: {fileID: 8300000, guid: 60455541e5ca38444a0ee950d789aa41, type: 3}
+    volume: 0.75
+  - clip: {fileID: 8300000, guid: 1d9482de9a0180348b8e1a3d776a7b8f, type: 3}
+    volume: 0.75
+  - clip: {fileID: 8300000, guid: bcdec11a4f2e8a945b691fc8ee285793, type: 3}
+    volume: 0.75
+  - clip: {fileID: 8300000, guid: 508701c55400415459a4a082d991b3ae, type: 3}
+    volume: 0.75
+  melee: []
+  pitch: 1
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4

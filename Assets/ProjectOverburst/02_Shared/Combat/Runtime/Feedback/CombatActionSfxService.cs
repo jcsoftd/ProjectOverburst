@@ -109,6 +109,20 @@ public sealed class CombatActionSfxService : MonoBehaviour
     private bool monsterHitCommonMissingReported;
     private int lastMonsterHitCommon = -1;
 
+    public static bool PlayMonsterLayer(AudioClip clip, Vector3 position, float volume, float pitch)
+    {
+        if (clip == null || volume <= 0f || !EnsureInstance()) return false;
+        const int priority = 160;
+        int active = 0;
+        for (int i = 0; i < instance.voiceCount; i++)
+            if (instance.voices[i].isPlaying && instance.voices[i].priority == priority) active++;
+        if (active >= 12) return false;
+        // Additional layers never evict the existing combat cues. Crowds share a quieter mix.
+        float gain = 1.15f / Mathf.Sqrt(1f + active * .3f);
+        return instance.Play(clip, position, .65f, Mathf.Clamp(volume, 0f, .8f) * gain,
+            4f, 24f, priority, Mathf.Clamp(pitch, .7f, 1.3f));
+    }
+
     public static bool TryPlayOrganicHit(CombatHitFeedbackRequest request, Vector3 position)
     {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD

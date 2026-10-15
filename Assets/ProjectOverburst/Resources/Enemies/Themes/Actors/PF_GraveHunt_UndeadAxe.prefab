@@ -737,6 +737,7 @@ GameObject:
   - component: {fileID: 7563349666516131011}
   - component: {fileID: 5659757238934233529}
   - component: {fileID: 459557976992636096}
+  - component: {fileID: 7156423142956931529}
   m_Layer: 7
   m_Name: PF_GraveHunt_UndeadAxe
   m_TagString: Untagged
@@ -3632,6 +3633,39 @@ MonoBehaviour:
         weightedMode: 0
         inWeight: 0
         outWeight: 0
+--- !u!114 &7156423142956931529
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6924226337590325206}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 239912c68d76420479bfdc23f8bce38a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySoundEmitter
+  attack:
+  - clip: {fileID: 8300000, guid: 211b51e17755e4c44bbc2bba77e7ed48, type: 3}
+    volume: 0.54948
+  hurt:
+  - clip: {fileID: 8300000, guid: 986a6d7f399a50c4a93a90461255681b, type: 3}
+    volume: 0.75
+  - clip: {fileID: 8300000, guid: 97653e38c0246b2429f9999823f58cec, type: 3}
+    volume: 0.75
+  - clip: {fileID: 8300000, guid: b46a5cf891a42ab4ca55fe638281a525, type: 3}
+    volume: 0.72562
+  death:
+  - clip: {fileID: 8300000, guid: 5f10c1b2f14387f48bdfd0430d86cc60, type: 3}
+    volume: 0.75
+  melee:
+  - clip: {fileID: 8300000, guid: 6e93bd9e2a7d443b494e6645dad8588b, type: 3}
+    volume: 0.40291
+  - clip: {fileID: 8300000, guid: 2fc7d74c926fd0b4ebc5596cf7903748, type: 3}
+    volume: 0.75
+  - clip: {fileID: 8300000, guid: 40037c1df1f4a3445b5e80bd4858e624, type: 3}
+    volume: 0.55206
+  pitch: 1
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4

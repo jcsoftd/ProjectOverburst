@@ -705,6 +705,7 @@ GameObject:
   - component: {fileID: 553965690525460357}
   - component: {fileID: 3990796162102520428}
   - component: {fileID: 1913198507264552252}
+  - component: {fileID: 7084992959128973708}
   m_Layer: 7
   m_Name: PF_GraveHunt_Barghest
   m_TagString: Untagged
@@ -3602,6 +3603,31 @@ MonoBehaviour:
         weightedMode: 0
         inWeight: 0
         outWeight: 0
+--- !u!114 &7084992959128973708
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4576168191458394470}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 239912c68d76420479bfdc23f8bce38a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySoundEmitter
+  attack:
+  - clip: {fileID: 8300000, guid: 5b743dde3b64d9c46963b26b7d69f0d7, type: 3}
+    volume: 0.75
+  hurt:
+  - clip: {fileID: 8300000, guid: bbaa83ac6ec69e64a877f4c85ab80642, type: 3}
+    volume: 0.75
+  - clip: {fileID: 8300000, guid: 6662875e85f60044984cf914f3385cfd, type: 3}
+    volume: 0.47601
+  death:
+  - clip: {fileID: 8300000, guid: dc68f96f135822c4ab38b1bfa95ba531, type: 3}
+    volume: 0.75
+  melee: []
+  pitch: 1
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4

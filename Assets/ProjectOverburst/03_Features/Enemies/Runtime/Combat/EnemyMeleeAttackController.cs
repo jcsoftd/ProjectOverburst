@@ -285,6 +285,7 @@ public partial class EnemyMeleeAttackController : MonoBehaviour // 적 근접 �
             return false;
 
         lastAttackIndex = selectedIndex;
+        GetComponent<EnemySoundEmitter>()?.PlayAttack();
         return true;
     }
 
