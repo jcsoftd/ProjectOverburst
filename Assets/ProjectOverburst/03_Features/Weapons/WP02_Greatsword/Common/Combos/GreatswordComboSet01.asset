@@ -141,7 +141,7 @@ MonoBehaviour:
       endNormalized: 0.85
       peakMultiplier: 1.8
     comboInputWindow:
-      startNormalizedTime: 0.85
+      startNormalizedTime: 0.75
       endNormalizedTime: 0.92
     actionCancelStartNormalized: 0.53
     movementPhases:
