@@ -6,13 +6,7 @@ public sealed class PlayerFlaskController : MonoBehaviour
 {
     public const int SlotCount = 3;
     public const int FirstKey = 4; // Legacy 4-6 layout, imported once into the shared 1-7 bar.
-    [UnityEngine.Serialization.FormerlySerializedAs("equippedIds")]
-    [SerializeField] private string[] initialEquippedIds = new string[SlotCount];
-    private string[] equippedIds
-    {
-        get => PlayerAccountInventoryService.Loadout.FlaskIds;
-        set => PlayerAccountInventoryService.Loadout.FlaskIds = value;
-    }
+    private ItemData[] slots => PlayerAccountInventoryService.Loadout.Flasks;
     private PlayerInventory inventory;
     private CombatHealth health;
     private PlayerEquipment equipment;
@@ -33,12 +27,6 @@ public sealed class PlayerFlaskController : MonoBehaviour
 
     private void OnEnable()
     {
-        var loadout = PlayerAccountInventoryService.Loadout;
-        if (!loadout.FlasksInitialized)
-        {
-            loadout.FlaskIds = initialEquippedIds != null ? (string[])initialEquippedIds.Clone() : new string[SlotCount];
-            loadout.FlasksInitialized = true;
-        }
         health = GetComponent<CombatHealth>(); equipment = GetComponent<PlayerEquipment>();
         conditions = GetComponent<PlayerStateCoordinator>();
         if (health != null) { health.OnDead += Died; health.OnReset += ResetHealth; }
@@ -76,10 +64,7 @@ public sealed class PlayerFlaskController : MonoBehaviour
 
     public ItemData GetItem(int index)
     {
-        if (index < 0 || index >= SlotCount || equippedIds == null || string.IsNullOrEmpty(equippedIds[index]) || inventory == null) return null;
-        foreach (ItemData item in inventory.Items)
-            if (item != null && item.runtimeInstanceId == equippedIds[index] && item.baseData is FlaskItemData) return item;
-        return null;
+        return index >= 0 && index < SlotCount ? slots[index] : null;
     }
 
     public bool TryEquip(int index, ItemData item, out string reason)
@@ -94,6 +79,8 @@ public sealed class PlayerFlaskController : MonoBehaviour
         reason = string.Empty;
         ResolveInventory();
         if (!CanChangeLoadout) { reason = "지금은 물약 장착을 변경할 수 없습니다."; return false; }
+        if (index >= 0 && index < SlotCount && ReferenceEquals(GetItem(index), item) && item != null) return true;
+        if (!Overburst.Persistence.AccountGameplaySession.UsesAccountStorage(inventory)) return false;
         if (index < 0 || index >= SlotCount || item == null || !(item.baseData is FlaskItemData data)
             || inventory == null || !inventory.ContainsItem(item) || FlaskRuntime.State(item) == null)
         { reason = "장착할 물약을 찾을 수 없습니다."; return false; }
@@ -103,13 +90,19 @@ public sealed class PlayerFlaskController : MonoBehaviour
             if (i != index && other != null && ((FlaskItemData)other.baseData).kind == data.kind)
             { reason = "같은 종류의 물약은 하나만 장착할 수 있습니다."; return false; }
         }
+        int sourceIndex = inventory.FindFirstMatchingItemIndex(item);
+        if (sourceIndex < 0 || sourceIndex >= inventory.UnlockedSlotCount || !ReferenceEquals(inventory.GetItemAt(sourceIndex), item))
+        { reason = "장착할 물약이 인벤토리에 없습니다."; return false; }
         ItemData previous = GetItem(index);
+        if (!inventory.TryReplaceOwnedItemAt(sourceIndex, item, previous, false))
+        { reason = "물약을 교체할 수 없습니다."; return false; }
         if (previous != null) { Overburst.Persistence.AccountGameplaySession.Notify(() => effects.Remove(previous.runtimeInstanceId)); FlaskRuntime.State(previous).equippedSlot = -1; }
-        equippedIds[index] = item.runtimeInstanceId;
+        slots[index] = item;
         equippedItems[index] = item;
         FlaskInstanceState equippedState = FlaskRuntime.State(item);
         equippedState.equippedSlot = index;
         if (WorldSessionState.IsHideout) equippedState.cooldownRemaining = 0f;
+        inventory.NotifyAccountApplied();
         Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged); return true;
     }
 
@@ -124,12 +117,19 @@ public sealed class PlayerFlaskController : MonoBehaviour
         }
         reason = string.Empty;
         if (!CanChangeLoadout) { reason = "지금은 물약 장착을 해제할 수 없습니다."; return false; }
-        if (index < 0 || index >= SlotCount) return false;
+        ResolveInventory();
+        if (index < 0 || index >= SlotCount || inventory == null
+            || !Overburst.Persistence.AccountGameplaySession.UsesAccountStorage(inventory)) return false;
         ItemData item = GetItem(index);
-        if (item != null && FlaskRuntime.State(item) != null) FlaskRuntime.State(item).equippedSlot = -1;
-        string removedId = equippedIds[index];
+        if (item == null) { reason = "물약 슬롯이 비어 있습니다."; return false; }
+        int destination = inventory.FindFirstEmptySlot();
+        if (destination < 0 || !inventory.TryReplaceOwnedItemAt(destination, null, item, false))
+        { reason = "인벤토리에 물약을 돌려놓을 빈칸이 없습니다."; return false; }
+        FlaskRuntime.State(item).equippedSlot = -1;
+        string removedId = item.runtimeInstanceId;
         Overburst.Persistence.AccountGameplaySession.Notify(() => effects.Remove(removedId));
-        equippedIds[index] = null; equippedItems[index] = null;
+        slots[index] = null; equippedItems[index] = null;
+        inventory.NotifyAccountApplied();
         Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged); return true;
     }
 
@@ -197,16 +197,7 @@ public sealed class PlayerFlaskController : MonoBehaviour
         if (inventory != null) inventory.Changed -= InventoryChanged;
         inventory = next;
         if (inventory != null) inventory.Changed += InventoryChanged;
-        if (equippedIds == null || equippedIds.Length != SlotCount) equippedIds = new string[SlotCount];
-        if (inventory != null)
-            foreach (var item in inventory.Items)
-            {
-                if (!(item?.baseData is FlaskItemData)) continue;
-                var state = FlaskRuntime.State(item);
-                if (state == null || state.equippedSlot < 0 || state.equippedSlot >= SlotCount) continue;
-                equippedIds[state.equippedSlot] = item.runtimeInstanceId;
-                equippedItems[state.equippedSlot] = item;
-            }
+        InventoryChanged();
     }
     private void InventoryChanged()
     {
@@ -218,10 +209,6 @@ public sealed class PlayerFlaskController : MonoBehaviour
             {
                 effects.Remove(previous.runtimeInstanceId);
                 if (previous.flaskState != null) previous.flaskState.equippedSlot = -1;
-            }
-            if (!string.IsNullOrEmpty(equippedIds[i]) && current == null)
-            {
-                effects.Remove(equippedIds[i]); equippedIds[i] = null;
             }
             equippedItems[i] = current;
         }

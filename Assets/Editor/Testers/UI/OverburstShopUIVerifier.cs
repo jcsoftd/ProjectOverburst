@@ -428,6 +428,7 @@ public static class OverburstShopUIPlayVerifier
             Check(Enumerable.Range(0,3).All(i=>flasks.GetItem(i)?.runtimeInstanceId==expected[i]),"Three equipped flasks survive fresh Play and ES3 restore");
             Check(bindings.GetBoundFlask(10)?.runtimeInstanceId==expected[0] && bindings.GetBoundFlask(5)?.runtimeInstanceId==expected[1]
                 && bindings.GetBoundFlask(6)?.runtimeInstanceId==expected[2],"Reassigned quick slots survive fresh Play");
+            Check(expected.All(id=>!inventory.Items.Any(item=>item?.runtimeInstanceId==id)),"Restored equipped flasks do not occupy inventory slots");
         }
         for(int i=0;i<3;i++) if(flasks.GetItem(i)!=null) Check(actions.UnequipFlask(flasks.GetItem(i)),"Clear isolated starting flask "+i);
         ItemData Flask(FlaskKind kind) => new ItemData(registry.Entries.Select(e=>e.asset).OfType<FlaskItemData>().First(d=>d.kind==kind),1,ItemGrade.Common);
@@ -440,6 +441,8 @@ public static class OverburstShopUIPlayVerifier
             Check(button.interactable,"Equip menu enabled during Run for "+item.itemName);
             button.onClick.Invoke();
             Check(!menu.IsOpen,"Equip menu completes during Run for "+item.itemName);
+            Check(!inventory.ContainsItem(item),"Equipped flask leaves inventory: "+item.itemName);
+            Check(!game.inventoryWindow.GetComponentsInChildren<SlotUI>(true).Any(s=>s.DisplayItem==item),"Inventory UI frees flask source slot: "+item.itemName);
         }
         var first=Flask(FlaskKind.Berserker); var second=Flask(FlaskKind.Giant); var third=Flask(FlaskKind.Ironclad); var replacement=Flask(FlaskKind.Berserker);
         Check(inventory.AddItem(first) && inventory.AddItem(second) && inventory.AddItem(third) && inventory.AddItem(replacement),"Four owned flask instances committed");
@@ -452,16 +455,40 @@ public static class OverburstShopUIPlayVerifier
             EquipFromMenu(first); EquipFromMenu(replacement);
             Check(flasks.GetItem(0)==replacement && flasks.GetItem(1)==null && first.flaskState.equippedSlot==-1,"Same kind replaces original slot before using empty slots");
             Check(bindings.GetBoundFlask(4)==replacement && bindings.GetFlaskKey(first)==0,"Replacement retains original quick key");
+            Check(inventory.ContainsItem(first) && !inventory.ContainsItem(replacement),"Replacement returns the old bottle and removes the new bottle");
             EquipFromMenu(second); EquipFromMenu(third);
             Check(flasks.GetItem(0)==replacement && flasks.GetItem(1)==second && flasks.GetItem(2)==third,"Three different flasks equip during Run");
             EquipFromMenu(first);
             Check(flasks.GetItem(0)==first && flasks.GetItem(1)==second && flasks.GetItem(2)==third,"Same kind replaces while all three slots are full");
+            var filler=new List<ItemData>();
+            Check(account.Execute(()=>{
+                while(inventory.FindFirstEmptySlot()>=0) {
+                    var item=Flask(FlaskKind.Life); if(!inventory.AddItem(item))return false; filler.Add(item);
+                }
+                return true;
+            }),"Fill unlocked inventory without touching equipped flasks");
+            long fullRevision=account.Revision;
+            Check(!actions.UnequipFlask(first) && account.Revision==fullRevision && flasks.GetItem(0)==first,
+                "Full inventory rejects unequip without losing or changing the equipped bottle");
+            Check(actions.EquipFlask(replacement) && inventory.ContainsItem(first) && !inventory.ContainsItem(replacement),
+                "Same-kind swap works even with full inventory");
+            Check(actions.EquipFlask(first),"Swap back while inventory remains full");
+            Check(account.Execute(()=>{foreach(var item in filler)if(!inventory.RemoveItem(item))return false;return true;}),"Remove only owned fixture filler items");
+            Check(!account.Execute(()=>flasks.TryUnequip(0,out _) && false),"Cancelled unequip rolls back the ownership exchange");
+            first=flasks.GetItem(0);
+            Check(first!=null && !inventory.ContainsItem(first),"Rollback restores equipped ownership with no inventory duplicate");
             Check(actions.BindQuickSlot(10,first) && bindings.GetBoundFlask(10)==first && bindings.GetFlaskKey(first)==10,"Quick slot reassignment allowed during Run");
             menu.Close(); game.CloseEquipment(); game.inventory.SetVisible(false);
             Check(flasks.TryUse(0,out string useReason),"Equipped flask usable during Run: "+useReason);
             float cooldown=first.flaskState.cooldownRemaining;
             Check(cooldown>0 && flasks.Effects.Contains(first.runtimeInstanceId),"Use starts actual cooldown and effect");
-            Check(actions.UnequipFlask(first) && !flasks.Effects.Contains(first.runtimeInstanceId),"Unequip during Run clears its effect");
+            game.ToggleEquipment();
+            var pointer=game.flasks[0].GetComponent<OverburstEquippedFlaskTooltip>();
+            Check(pointer!=null,"Actual equipped flask slot has an unequip pointer handler");
+            ExecuteEvents.Execute(pointer.gameObject,new PointerEventData(EventSystem.current){button=PointerEventData.InputButton.Right},ExecuteEvents.pointerClickHandler);
+            Check(flasks.GetItem(0)==null && inventory.Items.Count(item=>item?.runtimeInstanceId==first.runtimeInstanceId)==1
+                && !flasks.Effects.Contains(first.runtimeInstanceId),"Right click returns exactly one flask to inventory and clears its effect");
+            game.CloseEquipment();
             Check(actions.EquipFlask(first) && Mathf.Approximately(first.flaskState.cooldownRemaining,cooldown),"Re-equipping during Run preserves cooldown");
             Check(!flasks.TryUse(0,out _) && first.flaskState.cooldownRemaining>0,"Re-equipping cannot bypass cooldown");
             Check(actions.BindQuickSlot(10,first),"Restore selected quick key after re-equipping");
@@ -470,7 +497,12 @@ public static class OverburstShopUIPlayVerifier
             phase.Invoke(null,new object[]{WorldPhase.Run});
             Check(account.FlushPendingSave(),"Actual isolated ES3 save flushed");
             File.WriteAllText(savedIds,JsonConvert.SerializeObject(Enumerable.Range(0,3).Select(i=>flasks.GetItem(i).runtimeInstanceId).ToArray()));
-            Check(account.Read().flasks.Count(id=>!string.IsNullOrEmpty(id))==3,"Committed account contains all three flask bindings");
+            var committed=account.Read();
+            Check(committed.flasks.Count(id=>!string.IsNullOrEmpty(id))==3,"Committed account contains all three flask bindings");
+            Check(committed.flasks.All(id=>!committed.inventory.Contains(id)) && committed.flasks.All(id=>committed.items.Count(item=>item.instanceId==id)==1),
+                "Saved flask slots exclusively own all three bottles");
+            Overburst.Persistence.AccountInvariants.Validate(committed,registry);
+            Check(true,"Actual account ownership invariants accept the equipped flask container");
         }
         finally { menu.Close(); game.CloseEquipment(); game.inventory.SetVisible(false); phase.Invoke(null,new object[]{prior}); }
     }
@@ -489,22 +521,25 @@ public static class OverburstShopUIPlayVerifier
         Check(controller.TryUse(0,out string firstReason),"First actual flask use: "+firstReason);
         Check(controller.TryUse(1,out string secondReason),"Second actual flask use: "+secondReason);
         Check(controller.Effects.Contains(firstId) && controller.Effects.Contains(secondId),"Both actual effects active before removal");
-        Check(!account.Execute(()=>{inventory.RemoveItem(controller.GetItem(0));return false;}),"Failed account removal rolls back");
+        Check(!account.Execute(()=>{controller.TryUnequip(0,out _);return false;}),"Failed account removal rolls back");
         Check(controller.GetItem(0)?.runtimeInstanceId==firstId && controller.Effects.Contains(firstId) && controller.Effects.Contains(secondId),"Rollback retains binding and both active effects");
         var service=Object.FindFirstObjectByType<MerchantTradeService>();
         var merchant=AssetDatabase.FindAssets("t:MerchantDefinition",new[]{"Assets/ProjectOverburst"}).Select(g=>AssetDatabase.LoadAssetAtPath<MerchantDefinition>(AssetDatabase.GUIDToAssetPath(g))).First(m=>m.Category==ShopCategory.GeneralGoods);
         service.Open(merchant);
-        var selling=controller.GetItem(0); int slot=Enumerable.Range(0,inventory.Capacity).First(i=>inventory.GetItemAt(i)==selling);
+        var selling=controller.GetItem(0);
+        Check(controller.TryUnequip(0,out _) && inventory.ContainsItem(selling),"Return flask to inventory before offering it for sale");
+        int slot=Enumerable.Range(0,inventory.Capacity).First(i=>inventory.GetItemAt(i)==selling);
         var plan=MerchantTradeTransactionPlan.Create(new List<MerchantTradeOffer>(),new List<MerchantTradeOffer>{new MerchantTradeOffer(MerchantTradeOfferSide.Player,slot,selling)},0,1);
         var currency=Object.FindFirstObjectByType<StashCurrencyService>();
-        Check(new MerchantTradeValidator().ValidateCurrent(plan,inventory,service.MerchantInventory,currency).success,"Active flask sale preflight accepts actual stock");
+        Check(new MerchantTradeValidator().ValidateCurrent(plan,inventory,service.MerchantInventory,currency).success,"Unequipped flask sale preflight accepts actual stock");
         Check(new MerchantTradeCommitter().Commit(plan,inventory,service.MerchantInventory,currency).success,"Actual merchant commit sells active flask");
         Check(controller.GetItem(0)==null && !controller.Effects.Contains(firstId),"Committed cleared binding removes sold flask effect");
         Check(controller.GetItem(1)?.runtimeInstanceId==secondId && controller.Effects.Contains(secondId),"Other equipped flask and active effect survive sale");
         var replacement=Flask(FlaskKind.Berserker);
         Check(inventory.AddItem(replacement) && controller.TryEquip(0,replacement,out _) && controller.TryUse(0,out _),"Vacated slot supports equip and use again");
         Check(controller.TryUnequip(0,out _) && !controller.Effects.Contains(replacement.runtimeInstanceId) && controller.Effects.Contains(secondId),"Explicit unequip clears only its own effect");
-        inventory.RemoveItem(controller.GetItem(1)); inventory.RemoveItem(inventory.Items.First(i=>i?.runtimeInstanceId==replacement.runtimeInstanceId));
+        var last=controller.GetItem(1); Check(controller.TryUnequip(1,out _),"Return final equipped flask before inventory removal");
+        inventory.RemoveItem(last); inventory.RemoveItem(inventory.Items.First(i=>i?.runtimeInstanceId==replacement.runtimeInstanceId));
         Check(controller.GetItem(1)==null && controller.Effects.Count==0,"Actual inventory removal clears final active flask");
         service.Close();
     }

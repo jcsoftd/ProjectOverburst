@@ -195,8 +195,7 @@ internal sealed class PlayerAccountLoadout
     internal ItemData ElementalGem;
     internal int ActiveWeaponSlot;
     internal bool EquipmentInitialized;
-    internal string[] FlaskIds = new string[3];
-    internal bool FlasksInitialized;
+    internal ItemData[] Flasks = new ItemData[3];
     internal ItemData[] Bags = new ItemData[1];
     internal readonly ConsumableItemData[] QuickConsumables = new ConsumableItemData[10];
     internal readonly string[] QuickFlaskIds = new string[10];

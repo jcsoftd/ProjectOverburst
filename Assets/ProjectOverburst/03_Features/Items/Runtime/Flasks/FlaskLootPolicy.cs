@@ -16,7 +16,7 @@ public static class FlaskLootPolicy
     // 등급 값만 받는 굴림. 디버그 창의 드롭 모의가 EnemyRank 없이 같은 규칙을 쓴다(90C 7.5). 난수 순서는 위와 같다.
     public static ItemData Roll(EnemyGradeType gradeType, int mapLevel, ItemGrade mapGrade = ItemGrade.Common, float rareGradePercent = 0, ItemGrade maximumGrade = ItemGrade.Mythic)
     {
-        if (GameplayCatalog.Length == 0) return null;
+        if (Catalog.Length == 0) return null;
         bool boss = gradeType == EnemyGradeType.Boss;
         bool elite = gradeType != EnemyGradeType.Normal;
         float chance = CombatDebugSettings.ApplyRunLootChance(boss ? .20f : elite ? .10f : .02f);
@@ -26,7 +26,7 @@ public static class FlaskLootPolicy
         float roll = Random.value;
         ItemGrade grade = SelectGrade(roll, mapLevel, boss, elite, rareGradePercent, MapOptionPolicy.HighGradeRollBias(mapGrade), maximumGrade);
         int itemLevel = OverburstGrowthRules.ClampLevel(mapLevel);
-        return new ItemData(GameplayCatalog[Random.Range(0, GameplayCatalog.Length)],
+        return new ItemData(Catalog[Random.Range(0, Catalog.Length)],
             itemLevel, grade);
     }
 

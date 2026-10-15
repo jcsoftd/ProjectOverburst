@@ -41,7 +41,7 @@ namespace Overburst.Persistence
                     if (!items.ContainsKey(id) || !owned.Add(id)) throw new InvalidDataException("Missing or multiply owned item: " + id);
                 }
             };
-            container(state.inventory); container(state.weapons); container(state.gear); container(state.bags);
+            container(state.inventory); container(state.weapons); container(state.gear); container(state.bags); container(state.flasks);
             container(new[] { state.elementalGemInstanceId });
             if (!string.IsNullOrEmpty(state.elementalGemInstanceId) && !(registry.Resolve<BaseItemData>(items[state.elementalGemInstanceId].contentId) is ElementGemItemData))
                 throw new InvalidDataException("Non-gem in elemental gem slot.");
@@ -75,7 +75,7 @@ namespace Overburst.Persistence
                     throw new InvalidDataException("Gear does not fit equipped slot.");
             var flaskIds = new HashSet<string>();
             foreach (var id in state.flasks)
-                if (!string.IsNullOrEmpty(id) && (!state.inventory.Contains(id) || !flaskIds.Add(id) || !(registry.Resolve<BaseItemData>(items[id].contentId) is FlaskItemData)))
+                if (!string.IsNullOrEmpty(id) && (!flaskIds.Add(id) || !(registry.Resolve<BaseItemData>(items[id].contentId) is FlaskItemData)))
                     throw new InvalidDataException("Invalid equipped flask reference.");
             foreach (var quick in state.quickSlots)
             {

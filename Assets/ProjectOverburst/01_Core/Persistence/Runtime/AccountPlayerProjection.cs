@@ -41,7 +41,7 @@ namespace Overburst.Persistence
             target.bags = capture(loadout.Bags, loadout.Bags.Length);
             target.elementalGemInstanceId = capture(new[] { loadout.ElementalGem }, 1)[0];
             target.activeWeaponSlot = loadout.ActiveWeaponSlot;
-            target.flasks = new List<string>(loadout.FlaskIds);
+            target.flasks = capture(loadout.Flasks, loadout.Flasks.Length);
             target.quickSlots.Clear();
             for (int index = 0; index < loadout.QuickConsumables.Length; index++)
             {
@@ -62,14 +62,13 @@ namespace Overburst.Persistence
         {
             var loadout = PlayerAccountInventoryService.Loadout;
             inventory.SetUnlockedSlotCount(state.unlockedSlots);
-            state.flasks.CopyTo(loadout.FlaskIds);
             for (int i = 0; i < state.quickSlots.Count; i++)
             {
                 var quick = state.quickSlots[i];
                 loadout.QuickConsumables[i] = string.IsNullOrEmpty(quick.consumableContentId) ? null : registry.Resolve<ConsumableItemData>(quick.consumableContentId);
                 loadout.QuickFlaskIds[i] = quick.flaskInstanceId;
             }
-            foreach (var item in inventory.Items)
+            foreach (var item in inventory.Items.Concat(loadout.Flasks))
                 if (item?.flaskState != null) item.flaskState.equippedSlot = state.flasks.IndexOf(item.runtimeInstanceId);
         }
 
@@ -77,8 +76,6 @@ namespace Overburst.Persistence
         {
             var carried = new HashSet<string>(state.inventory.Where(id => !string.IsNullOrEmpty(id)));
             var content = new HashSet<string>(state.items.Where(item => carried.Contains(item.instanceId)).Select(item => item.contentId));
-            for (int i = 0; i < state.flasks.Count; i++)
-                if (!string.IsNullOrEmpty(state.flasks[i]) && !carried.Contains(state.flasks[i])) state.flasks[i] = null;
             foreach (var quick in state.quickSlots)
             {
                 if (!string.IsNullOrEmpty(quick.consumableContentId) && !content.Contains(quick.consumableContentId)) quick.consumableContentId = null;
@@ -98,7 +95,7 @@ namespace Overburst.Persistence
                 Weapons = resolve(source.weapons).ToArray(), Gear = resolve(source.gear).ToArray(), Bags = resolve(source.bags).ToArray(),
                 ElementalGem = string.IsNullOrEmpty(source.elementalGemInstanceId) ? null : table[source.elementalGemInstanceId],
                 ActiveWeaponSlot = source.activeWeaponSlot, EquipmentInitialized = true,
-                FlaskIds = source.flasks.ToArray(), FlasksInitialized = true, LegacyFlasksImported = true
+                Flasks = resolve(source.flasks).ToArray(), LegacyFlasksImported = true
             };
             for (int index = 0; index < next.QuickConsumables.Length; index++)
             {

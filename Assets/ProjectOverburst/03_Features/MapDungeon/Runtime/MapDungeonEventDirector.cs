@@ -194,7 +194,7 @@ public sealed class MapDungeonEventDirector : MonoBehaviour
     private static ItemData RollSpecialLoot(int level, string runId)
     {
         GearItemData[] gear = GearLootPolicy.DefinitionsForLevel(level);
-        FlaskItemData[] flasks = FlaskLootPolicy.GameplayCatalog;
+        FlaskItemData[] flasks = FlaskLootPolicy.Catalog;
         BaseItemData definition = null;
         if (gear.Length > 0 && (flasks.Length == 0 || UnityEngine.Random.value < .75f))
             definition = gear[UnityEngine.Random.Range(0, gear.Length)];

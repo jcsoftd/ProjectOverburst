@@ -112,7 +112,7 @@ public static class MapFarmingLoot
         {
             case MapFarmingKind.Weapon: data = Pick(WeaponLootPolicy.DefinitionsForLevel(level)); break;
             case MapFarmingKind.Gear: data = Pick(GearLootPolicy.DefinitionsForLevel(level)); break;
-            case MapFarmingKind.Flask: data = Pick(FlaskLootPolicy.GameplayCatalog); break;
+            case MapFarmingKind.Flask: data = Pick(FlaskLootPolicy.Catalog); break;
             case MapFarmingKind.Gem:
                 data = Pick(ElementGemLootPolicy.Catalog.Where(x => x.fixedGrade == grade
                     && ElementGemItemData.IsAllowed(x.element, x.fixedGrade)).ToArray()); break;

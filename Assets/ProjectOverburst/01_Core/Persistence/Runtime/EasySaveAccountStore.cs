@@ -107,8 +107,21 @@ namespace Overburst.Persistence
                 snapshot = upgraded;
             }
             ExpandLegacyStash(snapshot);
+            UpgradeFlaskOwnership(snapshot);
             loaded = true;
             return snapshot;
+        }
+
+        // Older saves stored equipped flasks in inventory and kept references in the loadout.
+        internal static void UpgradeFlaskOwnership(AccountSnapshot state)
+        {
+            if (state?.inventory != null && state.flasks != null)
+                for (int i = 0; i < state.inventory.Count; i++)
+                    if (!string.IsNullOrEmpty(state.inventory[i]) && state.flasks.Contains(state.inventory[i]))
+                        state.inventory[i] = null;
+            if (state?.characters != null)
+                foreach (var character in state.characters)
+                    if (character?.personal != null) UpgradeFlaskOwnership(character.personal);
         }
 
         internal static void ExpandLegacyStash(AccountSnapshot state)

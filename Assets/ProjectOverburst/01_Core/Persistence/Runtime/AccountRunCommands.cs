@@ -260,7 +260,7 @@ namespace Overburst.Persistence
         }
         private static IEnumerable<List<string>> PlayerContainers(AccountSnapshot state)
         {
-            yield return state.inventory; yield return state.weapons; yield return state.gear; yield return state.bags;
+            yield return state.inventory; yield return state.weapons; yield return state.gear; yield return state.bags; yield return state.flasks;
             yield return new List<string> { state.elementalGemInstanceId };
         }
         private static void ClearReferences(List<string> slots, HashSet<string> removed)

@@ -28,7 +28,7 @@ public sealed class FlaskItemData : ConsumableItemData
     public bool passesEnemyBodies;
 
     public bool IsElemental => kind >= FlaskKind.Fire;
-    // Enable alongside the real heavy-discharge action, not while only its calculation API exists.
+    // Legacy shop/preview selection. Loot policies use the complete thirteen-flask catalog.
     public bool AvailableForDropsAndShop => !IsElemental && kind != FlaskKind.Overcharge;
 
     public void Configure(FlaskKind value)
