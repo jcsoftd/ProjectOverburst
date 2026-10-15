@@ -14,6 +14,7 @@ public static class DesertMinimapBuilder
 {
     public const string AssetRoot = "Assets/ProjectOverburst/Resources/UI/Minimap/Desert";
     const string Key = "Overburst.DesertMinimapBuilder.";
+    const float CellSize = .25f;
     static string output;
     static List<MapTerrainCatalog.DesertCandidate> candidates;
     static readonly List<object> reports = new List<object>();
@@ -104,7 +105,7 @@ public static class DesertMinimapBuilder
                 throw new InvalidOperationException("Candidate catalog does not match the generated terrain: " + candidate.id);
             var data = AssetDatabase.LoadAssetAtPath<DesertMinimapData>(path);
             if (data && data.version == DesertMinimapData.CurrentVersion && data.sourceDependencyHash == dependency
-                && data.layoutSignature == DesertMinimapData.LayoutSignature(world))
+                && data.layoutSignature == DesertMinimapData.LayoutSignature(world) && data.cellSize <= CellSize)
             {
                 data.Validate(candidate, world); ValidateTopology(data, world);
                 return new { candidate.id, status = "CURRENT", data.width, data.height, seconds = watch.Elapsed.TotalSeconds, source = dependency };
@@ -152,9 +153,11 @@ public static class DesertMinimapBuilder
                 string coarseFailure = null;
                 for (int attempt = 0; attempt < 2; attempt++)
                 {
-                    float cell = attempt == 0 ? 1f : .5f;
+                    float cell = attempt == 0 ? CellSize : CellSize * .5f;
                     prepared.cellSize = cell; prepared.bounds = DesertMinimapData.SamplingBounds(world, cell);
                     prepared.width = Mathf.RoundToInt(prepared.bounds.width / cell); prepared.height = Mathf.RoundToInt(prepared.bounds.height / cell);
+                    if (prepared.width > 4096 || prepared.height > 4096 || (long)prepared.width * prepared.height > 4194304)
+                        throw new InvalidOperationException("사막 고해상도 베이크가 탐색 지도 크기 제한을 초과합니다: " + candidate.id);
                     prepared.cells = new byte[prepared.width * prepared.height]; prepared.connections = new byte[prepared.cells.Length];
                     Vector2 Point(int x, int z) => prepared.bounds.position + new Vector2((x + .5f) * cell, (z + .5f) * cell);
                     for (int z = 1; z < prepared.height - 1; z++) for (int x = 1; x < prepared.width - 1; x++)
@@ -181,7 +184,7 @@ public static class DesertMinimapBuilder
                 importer.textureType = TextureImporterType.Default; importer.npotScale = TextureImporterNPOTScale.None;
                 importer.isReadable = true; importer.mipmapEnabled = false; importer.alphaIsTransparency = true;
                 importer.wrapMode = TextureWrapMode.Clamp; importer.filterMode = FilterMode.Point;
-                importer.textureCompression = TextureImporterCompression.Uncompressed; importer.maxTextureSize = 2048; importer.SaveAndReimport();
+                importer.textureCompression = TextureImporterCompression.Uncompressed; importer.maxTextureSize = 4096; importer.SaveAndReimport();
                 prepared.image = AssetDatabase.LoadAssetAtPath<Texture2D>(imagePath);
                 prepared.Validate(candidate, world);
                 if (AssetDatabase.GetAssetDependencyHash(candidate.scene).ToString() != dependency)
