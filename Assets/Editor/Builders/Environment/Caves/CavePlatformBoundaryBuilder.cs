@@ -9,8 +9,8 @@ using UnityEngine.SceneManagement;
 
 public static class CavePlatformBoundaryBuilder
 {
-    const float Cell = .35f;
-    public static object DraftMissing()
+    const float Cell = .125f;
+    public static object DraftMissing(bool rebuild = false)
     {
         CavePlatformMapBuilder.Guard();
         var stage = PrefabStageUtility.GetCurrentPrefabStage()?.assetPath;
@@ -26,9 +26,9 @@ public static class CavePlatformBoundaryBuilder
                 try
                 {
                     var boundary = root.GetComponent<CavePlatformBoundary>();
-                    if (!boundary)
+                    if (!boundary || rebuild)
                     {
-                        boundary = root.AddComponent<CavePlatformBoundary>();
+                        if (!boundary) boundary = root.AddComponent<CavePlatformBoundary>();
                         boundary.loops = Trace(platform);
                         boundary.floorTriangles = platform.surfaceTriangles;
                         if (boundary.loops.Length == 0 || !boundary.ContainsLocal(platform.spawn)) throw new InvalidOperationException("Invalid draft: " + root.name);
@@ -115,7 +115,7 @@ public static class CavePlatformBoundaryBuilder
             float distance = Vector2.Distance(v, a + d * Mathf.Clamp01(Vector2.Dot(v - a, d) / Mathf.Max(d.sqrMagnitude, .00001f)));
             if (distance > maximum) { maximum = distance; split = i; }
         }
-        if (maximum <= .22f) return new List<Vector3> { p[0], p[p.Count - 1] };
+        if (maximum <= Cell * .5f) return new List<Vector3> { p[0], p[p.Count - 1] };
         var left = Simplify(p.Take(split + 1).ToList()); left.RemoveAt(left.Count - 1);
         left.AddRange(Simplify(p.Skip(split).ToList())); return left;
     }

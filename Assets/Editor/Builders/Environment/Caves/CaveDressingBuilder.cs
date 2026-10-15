@@ -132,7 +132,7 @@ public static class CaveDressingBuilder
         var library = AssetDatabase.LoadAssetAtPath<CavePlatformLibrary>(CavePlatformMapBuilder.LibraryPath);
         var hulls = world.courts.Select(c =>
         {
-            var definition = library.platforms.First(p => c.tile.name.Contains(p.source.name));
+            var definition = library.platforms.First(p => p.source.GetComponent<CavePlatformBoundary>() == c.tile.GetComponent<CavePlatformBoundary>().Data);
             return definition.hull.Select(v => XZ(c.tile.transform.TransformPoint(new Vector3(v.x, 0, v.y)))).ToArray();
         }).ToArray();
         var all = hulls.SelectMany(h => h).ToArray(); float minX = all.Min(v => v.x), maxX = all.Max(v => v.x), minZ = all.Min(v => v.y), maxZ = all.Max(v => v.y);

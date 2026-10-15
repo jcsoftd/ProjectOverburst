@@ -154,7 +154,9 @@ public class CavePlatformMapBuilder : CavePlatformLayout
         var preview = EditorSceneManager.NewPreviewScene(); var entries = new List<CavePlatformLibrary.Platform>(); var report = new List<object>();
         try
         {
-            foreach (var path in AssetDatabase.FindAssets("t:Prefab", new[] { Source }).Select(AssetDatabase.GUIDToAssetPath).OrderBy(p => p))
+            IEnumerable<string> sourcePaths = AssetDatabase.FindAssets("t:Prefab", new[] { Source }).Select(AssetDatabase.GUIDToAssetPath).OrderBy(p => p);
+            if (existing) sourcePaths = existing.platforms.Select(p => AssetDatabase.GetAssetPath(p.source)).Concat(sourcePaths).Distinct();
+            foreach (var path in sourcePaths)
             {
                 var original = AssetDatabase.LoadAssetAtPath<GameObject>(path);
                 var go = Object.Instantiate(original); go.name = original.name; SceneManager.MoveGameObjectToScene(go, preview);

@@ -133,8 +133,8 @@ public class CavePlatformLayout
         {
             var random = new System.Random(unchecked(seed + restart * 7919)); var layout = new Layout();
             var order = Enumerable.Range(0, Mathf.Max(count, library.platforms.Length)).Select(i => i % library.platforms.Length).OrderBy(i => random.Next()).ToList();
-            if (count == 3) order = new[] { "D1_19", "D1_06", "D1_01" }.Select(prefix => Array.FindIndex(library.platforms, p => p.source.name.StartsWith(prefix))).ToList();
-            int hub = count == 3 ? Array.FindIndex(library.platforms, p => p.source.name.StartsWith("D1_19")) : Array.FindIndex(library.platforms, p => p.regions.Length > 2); if (hub < 0) hub = order[0];
+            if (count == 3) order = new[] { "CAVE_SMALL_01", "CAVE_SMALL_03", "CAVE_MEDIUM_01" }.Select(name => Array.FindIndex(library.platforms, p => p.source.name == name)).ToList();
+            int hub = count == 3 ? Array.FindIndex(library.platforms, p => p.source.name == "CAVE_SMALL_01") : Array.FindIndex(library.platforms, p => p.regions.Length > 2); if (hub < 0) hub = order[0];
             order.Remove(hub); order.Insert(0, hub);
             layout.rooms.Add(new Room { platform = hub, position = new Vector3(0, 22, 0), yaw = random.Next(360), used = new bool[library.platforms[hub].regions.Length] });
             // Accepted rooms never move during this search; reuse their transformed footprints.

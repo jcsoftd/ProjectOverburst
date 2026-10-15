@@ -11,8 +11,8 @@ using UnityEngine;
 
 public static class CavePlatformEditVerifier
 {
-    static bool Excluded(string name) => name.EndsWith("Platform_06", StringComparison.Ordinal)
-        || name.EndsWith("Platform_09", StringComparison.Ordinal);
+    static bool Excluded(string name) => name == "CAVE_SMALL_02" || name == "CAVE_SMALL_03"
+        || name == "CAVE_SMALL_05";
 
     public static object VerifyData(string output)
     {
@@ -40,11 +40,11 @@ public static class CavePlatformEditVerifier
                 Check(usable > 0, p.source.name + ": usable connection fan " + r.name);
             }
         }
-        var three = library.platforms.Single(p => p.source.name.EndsWith("Platform_03", StringComparison.Ordinal));
-        var ten = library.platforms.Single(p => p.source.name.EndsWith("Platform_10", StringComparison.Ordinal));
-        Check(three.regions.Length > 4, "Platform 03 additional bridge became a connection region");
-        Check(ten.regions.Count(r => !r.stone) > 1, "Platform 10 additional bridge became a connection region");
-        Check(ten.regions.Any(r => r.stone && r.authoredStairCount >= 2 && r.maxStairCount >= 2 && r.angles.Length >= 2), "Platform 10 additional stair tier and angle retained");
+        var three = library.platforms.Single(p => p.source.name == "CAVE_LARGE_01");
+        var ten = library.platforms.Single(p => p.source.name == "CAVE_MEDIUM_02");
+        Check(three.regions.Length > 4, "CAVE_LARGE_01 additional bridge became a connection region");
+        Check(ten.regions.Count(r => !r.stone) > 1, "CAVE_MEDIUM_02 additional bridge became a connection region");
+        Check(ten.regions.Any(r => r.stone && r.authoredStairCount >= 2 && r.maxStairCount >= 2 && r.angles.Length >= 2), "CAVE_MEDIUM_02 additional stair tier and angle retained");
 
         var sourceType = typeof(MapCombatGeometry).GetNestedType("Source", BindingFlags.NonPublic);
         var constructor = typeof(MapCombatGeometry.Area).GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic).Single();
