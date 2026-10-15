@@ -272,34 +272,37 @@ public static class MapFiniteSpawnPlayVerifier
             var field = budget.Fields[area.Ground.Index];
             if (!field.InitialPlaced)
             {
-                bool found = false; Vector3 approach = point;
+                bool found = false; Vector3 approach = point; float farthestApproach = -1;
                 float range = area.Ground.Points.Max(p => Vector3.Distance(p, area.Ground.Center)) + 30;
                 var initialMembers = roster.Members.Skip(area.FirstMember).Take(area.Count).Where(m => m.Initial).ToArray();
-                for (int n = path.corners.Length - 1; n > 0 && !found; n--)
+                for (int n = path.corners.Length - 1; n > 0; n--)
                 {
                     float length = Vector3.Distance(path.corners[n], path.corners[n - 1]);
-                    for (float step = 0; step <= length && !found; step += .5f)
+                    for (float step = 0; step <= length; step += .5f)
                     {
                         var candidate = Vector3.Lerp(path.corners[n], path.corners[n - 1], length > 0 ? step / length : 0);
                         var delta = candidate - area.Ground.Center; delta.y = 0;
-                        if (delta.sqrMagnitude > range * range) continue;
+                        if (delta.sqrMagnitude > range * range || delta.sqrMagnitude <= farthestApproach) continue;
                         if (initialMembers.Any(m => { var d = m.PlannedPosition - candidate; d.y = 0; return d.sqrMagnitude < 16; })) continue;
-                        approach = candidate; found = true;
+                        approach = candidate; farthestApproach = delta.sqrMagnitude; found = true;
                     }
                 }
                 check(found, label + ": reachable pre-entry approach in area " + area.Ground.Index);
                 ActorTeleportUtility.TeleportSafely(player.transform, approach + Vector3.up * .12f, Quaternion.identity);
                 until = EditorApplication.timeSinceStartup + 20;
                 while (!field.InitialPlaced && EditorApplication.timeSinceStartup < until) { ClearNearbyOthers(area.Ground.Index); Sample(); yield return null; }
+                File.WriteAllText(Path.Combine(output, "initial-approach-" + area.Ground.Index + ".json"), JsonConvert.SerializeObject(new { area.Ground.Index, area.Ground.Name, field.InitialPlaced, field.FiniteActiveCount, farthestApproach,
+                    approach = new[] { approach.x, approach.y, approach.z }, pending = initialMembers.Count(m => m.State == MapRunRoster.Life.Pending),
+                    visiblePending = initialMembers.Count(m => m.State == MapRunRoster.Life.Pending && budget.InView(m.PlannedPosition)) }, Formatting.Indented));
             }
             ActorTeleportUtility.TeleportSafely(player.transform, point + Vector3.up * .12f, Quaternion.identity);
             until = EditorApplication.timeSinceStartup + 20;
             while ((!field.InitialPlaced || !map.IsRevealed(point)) && EditorApplication.timeSinceStartup < until) { ClearNearbyOthers(area.Ground.Index); Sample(); yield return null; }
             if (area.Count == 0)
             {
-                check((area.Ground.Index == roster.EntryAreaIndex || gate.BossArena != null && area.Ground.Index == gate.BossArena.Ground.Index)
+                check((area.Ground.Index == roster.EntryAreaIndex || !area.Ground.AllowsMonsters || gate.BossArena != null && area.Ground.Index == gate.BossArena.Ground.Index)
                     && area.InitialCount == 0 && field.InitialPlaced && field.FiniteActiveCount == 0,
-                    label + ": reserved entry or boss area has no natural population " + area.Ground.Index);
+                    label + ": entry, boss or excluded area has no natural population " + area.Ground.Index);
                 check(map.IsRevealed(point), label + ": visiting reveals reserved area " + area.Ground.Index);
                 Sample(); areas.Add(new { area.Ground.Index, area.Count, area.InitialCount, reserved = true });
                 continue;

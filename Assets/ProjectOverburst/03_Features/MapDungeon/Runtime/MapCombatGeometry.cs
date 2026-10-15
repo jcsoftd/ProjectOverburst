@@ -34,6 +34,7 @@ public static class MapCombatGeometry
         public int Band { get; }
         public float SquareMetres => Points.Count * CellSize * CellSize;
         public IReadOnlyList<Vector3> Points { get; }
+        public bool AllowsMonsters => Source == null || Source.AllowsMonsters;
         internal Source Source { get; }
         public Area(int index, string name, Vector3 center, int band, IList<Vector3> points)
             : this(index, name, center, band, points, null) { }
@@ -50,6 +51,7 @@ public static class MapCombatGeometry
     }
     internal sealed class Source
     {
+        public bool AllowsMonsters => !boundary || !boundary.Data.excludeMonsters;
         public int index, band;
         public string name;
         public Vector3 center;
@@ -181,12 +183,12 @@ public static class MapCombatGeometry
     }
     public static bool CanPlace(Area area, EnemyDefinition definition, Vector3 point, bool ignoreActors = false, bool approach = false)
     {
-        if (area?.Source == null) return false;
+        if (area?.Source == null || !area.AllowsMonsters) return false;
         return CanPlacePrepared(area, BodyFor(definition), point, null, ignoreActors, approach);
     }
     static bool CanPlacePrepared(Area area, Body body, Vector3 point, Collider[] overlaps, bool ignoreActors = false, bool approach = false)
     {
-        if (area?.Source == null) return false;
+        if (area?.Source == null || !area.AllowsMonsters) return false;
         Vector3 floor;
         if (approach && area.Source.desert)
         {
@@ -250,7 +252,7 @@ public static class MapCombatGeometry
         Collider[] overlaps, NavMeshPath path, out Vector3 point)
     {
         point = default;
-        if (source == null) return false;
+        if (source == null || !source.AllowsMonsters) return false;
         if (!approach)
         { if (!source.Floor(desired, body.Radius + .1f, out point)) return false; }
         else if (source.cave)
@@ -411,7 +413,7 @@ public static class MapCombatGeometry
                     || path.status != NavMeshPathStatus.PathComplete) continue;
                 points.Add(floor);
             }
-            if (points.Count < 6) throw new InvalidOperationException("실제 전투 가능한 바닥이 부족합니다: " + source.name + " / " + points.Count + "㎡");
+            if (source.AllowsMonsters && points.Count < 6) throw new InvalidOperationException("실제 전투 가능한 바닥이 부족합니다: " + source.name + " / " + points.Count + "㎡");
             areas.Add(new Area(source.index, source.name, source.center, source.band, points, source));
         }
         if (desert) gate.BossArena = MapBossArena.Prepare(areas, entry);

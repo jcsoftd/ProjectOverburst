@@ -251,6 +251,7 @@ public class CavePlatformMapBuilder : CavePlatformLayout
                 finally { Object.DestroyImmediate(go); }
             }
             var library = existing ? existing : ScriptableObject.CreateInstance<CavePlatformLibrary>(); library.platforms = entries.ToArray();
+            library.spawnBakeSignature = null;
             library.timber = MeasureConnector(entries.SelectMany(p => p.regions).First(r => !r.stone).template, false, preview);
             library.singleStair = MeasureConnector(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ThirdParty/04_환경맵/TopDownCaves/Prefabs/Stairs_el01A.prefab"), true, preview);
             library.doubleStair = MeasureConnector(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ThirdParty/04_환경맵/TopDownCaves/Prefabs/Stairs_el01B.prefab"), true, preview);

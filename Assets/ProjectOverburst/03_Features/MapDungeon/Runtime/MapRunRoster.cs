@@ -107,10 +107,10 @@ public sealed class MapRunRoster
         var areas = new List<Area>(); var counts = new int[ground.Count, 3];
         for (int i = 0; i < ground.Count; i++)
         {
-            if (ground[i] == null || ground[i].Index != i || ground[i].Points.Count < 6)
+            if (ground[i] == null || ground[i].Index != i || ground[i].AllowsMonsters && ground[i].Points.Count < 6)
                 throw new InvalidOperationException("전투 구역의 안전한 배치 공간이 부족합니다.");
             float density = .9f + (float)random.NextDouble() * .2f;
-            int count = i == bossArea || i == entryArea ? 0 : BasePopulation(map.terrain, ground[i].SquareMetres, density);
+            int count = i == bossArea || i == entryArea || !ground[i].AllowsMonsters ? 0 : BasePopulation(map.terrain, ground[i].SquareMetres, density);
             int band = ground[i].Band;
             int[] weights = band == 0 ? new[] { 85, 13, 2 } : band == 1 ? new[] { 80, 16, 4 } : new[] { 75, 19, 6 };
             var portions = Allocate(count, weights);
@@ -133,7 +133,7 @@ public sealed class MapRunRoster
         for (int a = 0; a < areas.Count; a++)
         {
             var area = areas[a];
-            if (a == bossArea || a == entryArea) { area.FirstMember = members.Count; continue; }
+            if (a == bossArea || a == entryArea || !area.Ground.AllowsMonsters) { area.FirstMember = members.Count; continue; }
             // Retain the existing fixed-count affix until its G05 migration; it does not replace small enemies.
             if (MapOptionPolicy.Value(map, MapOptionPolicy.MoreMediumElite) > 0)
             { counts[a, 1]++; if (area.Ground.Band > 0) counts[a, 2]++; }

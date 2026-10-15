@@ -39,6 +39,8 @@ public static class CavePlatformSpawnVerifier
             for (int index = 0; index < library.platforms.Length; index++)
             {
                 var platform = library.platforms[index]; var points = platform.spawnPoints;
+                if (platform.source.GetComponent<CavePlatformBoundary>().excludeMonsters)
+                { require(points.Length == 0, "Excluded platform has spawn candidates: " + platform.prefab.name); continue; }
                 require(points.Length > 0, "Empty platform: " + platform.prefab.name);
                 require(points.Select(p => p.position).Distinct().Count() == points.Length, "Duplicate local position: " + platform.prefab.name);
                 for (int body = 0; body < expected.Length; body++) require(points.Any(p => (p.bodyMask & (1L << body)) != 0), "No candidate for body " + body);

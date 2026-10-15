@@ -204,6 +204,12 @@ public static class CavePlatformSpawnBuilder
         for (int i = 0; i < library.platforms.Length; i++)
         {
             var platform = library.platforms[i]; var points = new List<CavePlatformLibrary.SpawnPoint>();
+            if (platform.source.GetComponent<CavePlatformBoundary>().excludeMonsters)
+            {
+                placements.Add(Array.Empty<CavePlatformLibrary.SpawnPoint>());
+                results.Add(new { name = platform.prefab.name, excluded = true, points = 0 });
+                continue;
+            }
             var watch = System.Diagnostics.Stopwatch.StartNew(); int tested = 0;
             using (var probe = new Probe(platform))
             {

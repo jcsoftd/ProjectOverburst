@@ -29,9 +29,9 @@ public static class CaveBakedSpawnIntegrationVerifier
         var preview = EditorSceneManager.NewPreviewScene();
         try
         {
-            Check(library.platforms.Length == 9 && library.platforms.Sum(p => p.spawnPoints.Length) == 4323, "Approved platform bank retained.");
-            Check(library.spawnBodies.Length == 48 && library.spawnBodies.Sum(b => b.definitions.Length) == 62, "Approved body bank retained.");
-            var p = library.platforms[0]; Set("spawnLibrary", library); Set("spawnPlatform", p); Set("boundary", p.source.GetComponent<CavePlatformBoundary>());
+            Check(library.platforms.Length == 9 && library.platforms.All(p => p.source.GetComponent<CavePlatformBoundary>().excludeMonsters ? p.spawnPoints.Length == 0 : p.spawnPoints.Length > 0), "Current combat and no-spawn platform banks retained.");
+            Check(library.spawnBakeSignature == CavePlatformSpawnBuilder.Signature(library, CavePlatformSpawnBuilder.Bodies()), "Current platform and body bank retained.");
+            var p = library.platforms.First(p => p.spawnPoints.Length > 0); Set("spawnLibrary", library); Set("spawnPlatform", p); Set("boundary", p.source.GetComponent<CavePlatformBoundary>());
             for (int i = 0; i < library.spawnBodies.Length; i++)
                 foreach (var definition in library.spawnBodies[i].definitions)
                 {
@@ -44,7 +44,7 @@ public static class CaveBakedSpawnIntegrationVerifier
             var root = new GameObject("Owned scaled spawn binding fixture"); SceneManager.MoveGameObjectToScene(root, preview);
             var boundary = root.AddComponent<CavePlatformBoundary>(); root.transform.localScale = Vector3.one * 2; Set("boundary", boundary);
             Check(BodyIndex(source, first, normal) == -1, "Scaled platform retains live measured-grid path.");
-            var result = new { status = "PASS", checks, points = 4323, profiles = 48, definitions = 62 };
+            var result = new { status = "PASS", checks, points = library.platforms.Sum(p => p.spawnPoints.Length), profiles = library.spawnBodies.Length, definitions = library.spawnBodies.Sum(b => b.definitions.Length) };
             File.WriteAllText(Path.Combine(output, "native-binding.json"), JsonConvert.SerializeObject(result, Formatting.Indented)); return result;
         }
         finally { EditorSceneManager.ClosePreviewScene(preview); }
@@ -58,6 +58,8 @@ public static class CaveBakedSpawnIntegrationVerifier
         {
             var source = Source(area.Ground); var platform = Field<CavePlatformLibrary.Platform>(source, "spawnPlatform");
             var boundary = Field<CavePlatformBoundary>(source, "boundary");
+            if (!area.Ground.AllowsMonsters)
+            { check(area.Count == 0 && area.InitialCount == 0, "Excluded cave platform has no roster population."); continue; }
             check(platform != null && Field<CavePlatformLibrary>(source, "spawnLibrary") == library, "Baked cave " + area.Ground.Index + ": runtime bound to reviewed platform library.");
             foreach (var member in roster.Members.Skip(area.FirstMember).Take(area.Count))
             {

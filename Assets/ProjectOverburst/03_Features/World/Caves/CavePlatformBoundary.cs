@@ -10,6 +10,7 @@ namespace Overburst.Caves
         [Serializable] public sealed class Loop { public Vector3[] points; }
         [Tooltip("Generated copies read the boundary saved on the edited source prefab.")]
         public CavePlatformBoundary definition;
+        public bool excludeMonsters;
         public Loop[] loops = Array.Empty<Loop>();
         [HideInInspector] public Vector3[] floorTriangles = Array.Empty<Vector3>();
         [HideInInspector] public CavePlatformLibrary.Region[] ports = Array.Empty<CavePlatformLibrary.Region>();

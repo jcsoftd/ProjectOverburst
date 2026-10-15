@@ -31,10 +31,10 @@ public static class CavePlatformBoundaryBuilder
                         boundary = root.AddComponent<CavePlatformBoundary>();
                         boundary.loops = Trace(platform);
                         boundary.floorTriangles = platform.surfaceTriangles;
-                        boundary.ports = platform.regions;
                         if (boundary.loops.Length == 0 || !boundary.ContainsLocal(platform.spawn)) throw new InvalidOperationException("Invalid draft: " + root.name);
-                        PrefabUtility.SaveAsPrefabAsset(root, sourcePath);
                     }
+                    boundary.ports = platform.regions;
+                    PrefabUtility.SaveAsPrefabAsset(root, sourcePath);
                     results.Add(new { name = root.name, loops = boundary.loops.Length, vertices = boundary.loops.Sum(l => l.points.Length) });
                 }
                 finally { PrefabUtility.UnloadPrefabContents(root); }

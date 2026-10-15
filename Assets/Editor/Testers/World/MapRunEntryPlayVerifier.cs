@@ -312,7 +312,7 @@ public static class MapRunEntryPlayVerifier
             var gate = scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<RunWorldGate>()).Single();
             Check(gate.IsReady && gate.EntryPoint && Vector3.Distance(PlayerContext.Instance.CurrentActor.transform.position, gate.EntryPoint.position) < 2, label + ": player placed at prepared entry");
             var roster = gate.Roster;
-            Check(roster != null && roster.PlacementReady && roster.Total >= (MapGenerationPolicy.EffectiveAreaCount(item.map) - (item.map.terrain == MapTerrainKind.Desert ? 2 : 1)) * (item.map.terrain == MapTerrainKind.Cave ? 30 : 40), label + ": entry-excluded finite population and physical placements prepared before consumption");
+            Check(roster != null && roster.PlacementReady && roster.Total >= roster.Areas.Count(a => a.Ground.AllowsMonsters && a.Ground.Index != roster.EntryAreaIndex && (gate.BossArena == null || a.Ground.Index != gate.BossArena.Ground.Index)) * (item.map.terrain == MapTerrainKind.Cave ? 30 : 40), label + ": entry-excluded finite population and physical placements prepared before consumption");
             DesertMovementBoundaryVerifier.VerifyEntry(gate, Check);
             Check(roster.ThemeId == item.map.monsterThemeId && roster.Areas.Count == MapGenerationPolicy.EffectiveAreaCount(item.map)
                 && roster.Kills == 0 && roster.Active == gate.SpawnBudget.InitialPreparedCount && gate.SpawnBudget.InitialReady
@@ -401,6 +401,7 @@ public static class MapRunEntryPlayVerifier
             else if (SessionState.GetBool(Key + "speciesGroupsOnly", false)) yield return SpeciesSpawnGroupVerifier.VerifyMap(gate, output, Check);
             else if (caveCount == 0) yield return MapFiniteSpawnPlayVerifier.Verify(gate, output, Check);
             yield return Frames(12);
+            if (gate.GetComponent<Overburst.Caves.CaveWorld>()) CavePlatformEditVerifier.VerifyPlay(gate, Check, output);
             flow.GetComponent<RunLifetimeDriver>().RequestAbandon();
             yield return Wait(() => !flow.IsSwitching && WorldSessionState.IsHideout, label + ": abandon returns to hub");
             Check(account.ReadRun().phase == RunPhase.Failed, label + ": existing abandon settlement maintained");
