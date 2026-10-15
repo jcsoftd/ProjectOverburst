@@ -92,14 +92,26 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
         using (OriginMarker.Auto()) dropOrigin = GetDropOriginPosition(); // 드랍 기준점
         if (encounter.IsOutdoor)
         {
-            var definition = Resources.Load<MapItemData>("Items/Maps/Map_Diamond01");
-            var registry = Resources.Load<Overburst.Persistence.AccountContentRegistry>(Overburst.Persistence.AccountContentRegistry.ResourcePath);
-            var table = Resources.Load<EnemyThemeTable>("Enemies/Themes/Tables/GraveHunt");
-            var enemy = GetComponent<EnemyActor>();
+            MapItemData definition;
+            Overburst.Persistence.AccountContentRegistry registry;
             var tier = EnemyThemeTier.Small;
-            if (table && enemy)
-                foreach (var entry in table.Entries) if (entry.definition == enemy.Definition) { tier = entry.tier; break; }
-            DropFarmingItem(MapDropPolicy.Roll(definition, registry, encounter.MapLevel, tier, null, outdoor: true), dropOrigin + dropOffset + Vector3.forward * .7f);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            using (Overburst.DebugTools.Performance.CombatSpawnQualityTrace.LootLookup.Auto())
+#endif
+            {
+                definition = Resources.Load<MapItemData>("Items/Maps/Map_Diamond01");
+                registry = Resources.Load<Overburst.Persistence.AccountContentRegistry>(Overburst.Persistence.AccountContentRegistry.ResourcePath);
+                var table = Resources.Load<EnemyThemeTable>("Enemies/Themes/Tables/GraveHunt");
+                var enemy = GetComponent<EnemyActor>();
+                if (table && enemy)
+                    foreach (var entry in table.Entries) if (entry.definition == enemy.Definition) { tier = entry.tier; break; }
+            }
+            ItemData mapDrop;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            using (Overburst.DebugTools.Performance.CombatSpawnQualityTrace.LootMapRoll.Auto())
+#endif
+                mapDrop = MapDropPolicy.Roll(definition, registry, encounter.MapLevel, tier, null, outdoor: true);
+            DropFarmingItem(mapDrop, dropOrigin + dropOffset + Vector3.forward * .7f);
         }
         if (MapFarmingLoot.Applies(encounter.Map))
         {
@@ -113,13 +125,38 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
         else if (encounter.IsRun || encounter.IsOutdoor)
         {
             EnemyRank rank = GetComponent<EnemyRank>();
-            float rarePercent = BagQuality.EquippedBonus(BagStat.RareGradeWeight);
+            float rarePercent;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            using (Overburst.DebugTools.Performance.CombatSpawnQualityTrace.LootRareBonus.Auto())
+#endif
+                rarePercent = BagQuality.EquippedBonus(BagStat.RareGradeWeight);
             var maximum = encounter.IsOutdoor ? ItemGrade.Legendary : ItemGrade.Cursed;
-            DropFarmingItem(FlaskLootPolicy.Roll(rank, encounter.MapLevel, encounter.MapGrade, rarePercent, maximum), dropOrigin + dropOffset);
-            DropFarmingItem(ElementGemLootPolicy.Roll(rank, encounter.MapLevel, encounter.MapGrade, rarePercent, maximum), dropOrigin + dropOffset + Vector3.forward * .35f);
-            DropFarmingItem(GearLootPolicy.Roll(rank, encounter.MapLevel, encounter.MapGrade, rarePercent, maximum), dropOrigin + dropOffset + Vector3.right * .35f);
-            DropFarmingItem(BagFarmingLoot.RollBag(rank, encounter.MapLevel, encounter.MapGrade, rarePercent, maximum), dropOrigin + dropOffset + Vector3.left * .35f);
-            DropFarmingItem(WeaponLootPolicy.Roll(rank, encounter.MapLevel, encounter.MapGrade, rarePercent, maximum), dropOrigin + dropOffset + Vector3.back * .35f);
+            ItemData farmingDrop;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            using (Overburst.DebugTools.Performance.CombatSpawnQualityTrace.LootFlaskRoll.Auto())
+#endif
+                farmingDrop = FlaskLootPolicy.Roll(rank, encounter.MapLevel, encounter.MapGrade, rarePercent, maximum);
+            DropFarmingItem(farmingDrop, dropOrigin + dropOffset);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            using (Overburst.DebugTools.Performance.CombatSpawnQualityTrace.LootGemRoll.Auto())
+#endif
+                farmingDrop = ElementGemLootPolicy.Roll(rank, encounter.MapLevel, encounter.MapGrade, rarePercent, maximum);
+            DropFarmingItem(farmingDrop, dropOrigin + dropOffset + Vector3.forward * .35f);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            using (Overburst.DebugTools.Performance.CombatSpawnQualityTrace.LootGearRoll.Auto())
+#endif
+                farmingDrop = GearLootPolicy.Roll(rank, encounter.MapLevel, encounter.MapGrade, rarePercent, maximum);
+            DropFarmingItem(farmingDrop, dropOrigin + dropOffset + Vector3.right * .35f);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            using (Overburst.DebugTools.Performance.CombatSpawnQualityTrace.LootBagRoll.Auto())
+#endif
+                farmingDrop = BagFarmingLoot.RollBag(rank, encounter.MapLevel, encounter.MapGrade, rarePercent, maximum);
+            DropFarmingItem(farmingDrop, dropOrigin + dropOffset + Vector3.left * .35f);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            using (Overburst.DebugTools.Performance.CombatSpawnQualityTrace.LootWeaponRoll.Auto())
+#endif
+                farmingDrop = WeaponLootPolicy.Roll(rank, encounter.MapLevel, encounter.MapGrade, rarePercent, maximum);
+            DropFarmingItem(farmingDrop, dropOrigin + dropOffset + Vector3.back * .35f);
         }
 
         if (dropTable == null)

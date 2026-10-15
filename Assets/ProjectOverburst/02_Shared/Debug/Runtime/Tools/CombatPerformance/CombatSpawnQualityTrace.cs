@@ -17,6 +17,22 @@ namespace Overburst.DebugTools.Performance
         public static readonly Unity.Profiling.ProfilerMarker QuestDrain = new Unity.Profiling.ProfilerMarker(QuestDrainName);
         public const string LootTotalName = "OVERBURST.CSP.Loot.Total";
         public static readonly Unity.Profiling.ProfilerMarker LootTotal = new Unity.Profiling.ProfilerMarker(LootTotalName);
+        public const string LootLookupName = "OVERBURST.CSP.Loot.Lookup";
+        public static readonly Unity.Profiling.ProfilerMarker LootLookup = new Unity.Profiling.ProfilerMarker(LootLookupName);
+        public const string LootMapRollName = "OVERBURST.CSP.Loot.MapRoll";
+        public static readonly Unity.Profiling.ProfilerMarker LootMapRoll = new Unity.Profiling.ProfilerMarker(LootMapRollName);
+        public const string LootRareBonusName = "OVERBURST.CSP.Loot.RareBonus";
+        public static readonly Unity.Profiling.ProfilerMarker LootRareBonus = new Unity.Profiling.ProfilerMarker(LootRareBonusName);
+        public const string LootFlaskRollName = "OVERBURST.CSP.Loot.FlaskRoll";
+        public static readonly Unity.Profiling.ProfilerMarker LootFlaskRoll = new Unity.Profiling.ProfilerMarker(LootFlaskRollName);
+        public const string LootGemRollName = "OVERBURST.CSP.Loot.GemRoll";
+        public static readonly Unity.Profiling.ProfilerMarker LootGemRoll = new Unity.Profiling.ProfilerMarker(LootGemRollName);
+        public const string LootGearRollName = "OVERBURST.CSP.Loot.GearRoll";
+        public static readonly Unity.Profiling.ProfilerMarker LootGearRoll = new Unity.Profiling.ProfilerMarker(LootGearRollName);
+        public const string LootBagRollName = "OVERBURST.CSP.Loot.BagRoll";
+        public static readonly Unity.Profiling.ProfilerMarker LootBagRoll = new Unity.Profiling.ProfilerMarker(LootBagRollName);
+        public const string LootWeaponRollName = "OVERBURST.CSP.Loot.WeaponRoll";
+        public static readonly Unity.Profiling.ProfilerMarker LootWeaponRoll = new Unity.Profiling.ProfilerMarker(LootWeaponRollName);
         public const string LootTableRollName = "OVERBURST.CSP.Loot.TableRoll";
         public static readonly Unity.Profiling.ProfilerMarker LootTableRoll = new Unity.Profiling.ProfilerMarker(LootTableRollName);
         public const string PickupCreateName = "OVERBURST.CSP.Pickup.Create";
@@ -31,7 +47,7 @@ namespace Overburst.DebugTools.Performance
         public static readonly Unity.Profiling.ProfilerMarker VfxNaturalCheck = new Unity.Profiling.ProfilerMarker(VfxNaturalCheckName);
         public const string VfxMaintenanceName = "OVERBURST.CSP.Vfx.Maintenance";
         public static readonly Unity.Profiling.ProfilerMarker VfxMaintenance = new Unity.Profiling.ProfilerMarker(VfxMaintenanceName);
-        public static readonly string[] DetailedMetricNames = { TraceObserverName, QuestRecordKillName, QuestDrainName, LootTotalName, LootTableRollName, PickupCreateName, PickupInstantiateName, CorpsePrepareName, NameplateMeasureName, VfxNaturalCheckName, VfxMaintenanceName };
+        public static readonly string[] DetailedMetricNames = { TraceObserverName, QuestRecordKillName, QuestDrainName, LootTotalName, LootLookupName, LootMapRollName, LootRareBonusName, LootFlaskRollName, LootGemRollName, LootGearRollName, LootBagRollName, LootWeaponRollName, LootTableRollName, PickupCreateName, PickupInstantiateName, CorpsePrepareName, NameplateMeasureName, VfxNaturalCheckName, VfxMaintenanceName };
 
         public struct Entry
         {
