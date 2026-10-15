@@ -14,6 +14,8 @@ using UnityEngine.SceneManagement;
 
 public static class DesertMovementBoundaryVerifier
 {
+    static float MovementRadius(float radius) => (float)typeof(DesertRunWorld).GetMethod("BoundaryRadius", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, new object[] { radius });
+
     public static void VerifyEntry(RunWorldGate gate, Action<bool, string> check)
     {
         var roster = gate.Roster; int entry = roster.EntryAreaIndex;
@@ -62,7 +64,7 @@ public static class DesertMovementBoundaryVerifier
         var movement = actor.GetComponent<PlayerMovement>(); var cc = motor.Controller;
         var position = actor.transform.position; var rotation = actor.transform.rotation;
         int excluded = cc.excludeLayers.value; bool enabled = movement.enabled;
-        float radius = cc.radius + .05f, foot = cc.center.y - cc.height * .5f;
+        float radius = MovementRadius(cc.radius), foot = cc.center.y - cc.height * .5f;
         var probes = new List<(Vector3 start, Vector3 direction)>(); var records = new List<object>(); bool passed = false;
         var data = world.MinimapData; int[] dx = { 1, -1, 0, 0 }, dz = { 0, 0, 1, -1 }; byte[] flags = { 1, 2, 4, 8 };
         for (int z = 1; z < data.height - 1; z++) for (int x = 1; x < data.width - 1; x++)
@@ -80,7 +82,7 @@ public static class DesertMovementBoundaryVerifier
                 probes.Add((ground + Vector3.up * (.04f - foot), new Vector3(outward.x, 0, outward.y)));
             }
         }
-        check(probes.Count >= 8, "The real map has reachable full-footprint boundary probes.");
+        check(probes.Count >= 8, "The real map has reachable configured-clearance boundary probes.");
         actor.Health.SetDamageDeathPrevention(world, true);
         try
         {
@@ -144,7 +146,7 @@ public static class DesertMovementBoundaryVerifier
             var oldPosition = enemyMotor.Position; var oldRotation = enemyMotor.Rotation;
             bool aiEnabled = enemyActor.AI.enabled, moveEnabled = enemyActor.Movement.enabled, kinematic = body.isKinematic;
             var velocityBefore = body.linearVelocity; var angularBefore = body.angularVelocity;
-            float enemyRadius = Mathf.Max(capsule.bounds.extents.x, capsule.bounds.extents.z) + .05f;
+            float enemyRadius = MovementRadius(Mathf.Max(capsule.bounds.extents.x, capsule.bounds.extents.z));
             float enemyFoot = enemyActor.transform.position.y - capsule.bounds.min.y;
             try
             {
@@ -160,15 +162,15 @@ public static class DesertMovementBoundaryVerifier
                     Physics.SyncTransforms();
                     enemyMotor.enabled = true;
                     enemyMotor.MoveToPosition(enemyMotor.Position + item.direction * 100);
-                    check(stand(new Vector2(enemyMotor.Position.x, enemyMotor.Position.z), enemyRadius), "Actual pooled enemy forced movement respects the full footprint boundary " + visited);
+                    check(stand(new Vector2(enemyMotor.Position.x, enemyMotor.Position.z), enemyRadius), "Actual pooled enemy forced movement respects the configured clearance boundary " + visited);
                     body.isKinematic = false; body.linearVelocity = item.direction * 100;
                     for (int frame = 0; frame < 4; frame++) yield return null;
                     var finish = enemyMotor.Position;
                     float currentRadius = Mathf.Max(capsule.bounds.extents.x, capsule.bounds.extents.z);
-                    // Rigidbody contacts have a 1 mm correction deadband; the 5 cm skin protects the actual body.
-                    bool inside = stand(new Vector2(finish.x, finish.z), currentRadius);
+                    // Rigidbody contacts have a 1 mm correction deadband at the configured movement clearance.
+                    bool inside = stand(new Vector2(finish.x, finish.z), MovementRadius(currentRadius) - .002f);
                     File.WriteAllText(Path.Combine(output, "enemy-boundary-" + visited + ".json"), JsonConvert.SerializeObject(new { inside, active = enemyActor.gameObject.activeInHierarchy,
-                        motorEnabled = enemyMotor.enabled, body.isKinematic, radius = enemyRadius, currentRadius, skinPreserved = stand(new Vector2(finish.x, finish.z), currentRadius + .048f),
+                        motorEnabled = enemyMotor.enabled, body.isKinematic, radius = enemyRadius, currentRadius, skinPreserved = stand(new Vector2(finish.x, finish.z), MovementRadius(currentRadius) - .002f),
                         position = new[] { finish.x, finish.y, finish.z }, streamReturns = gate.SpawnBudget.StreamReturns, recoveries = gate.SpawnBudget.BoundaryRecoveries }, Formatting.Indented));
                     check(inside, "Actual enemy physics and LateUpdate correction retain the boundary " + visited);
                     body.isKinematic = true; visited++;

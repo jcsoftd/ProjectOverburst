@@ -9,6 +9,8 @@ namespace Overburst.Mojave
     public sealed partial class DesertRunWorld
     {
         const float BoundarySkin = .05f;
+        // The minimap bake already excludes obstacle clearance; loosen the invisible guard by 50 cm.
+        internal static float BoundaryRadius(float radius) => Mathf.Max(BoundarySkin, radius + BoundarySkin - .50f);
         static DesertRunWorld activeBoundary;
         WalkBoundary boundary;
         Vector3 boundaryEntry;
@@ -39,7 +41,7 @@ namespace Overburst.Mojave
                 var current = BoundaryWorld;
                 if (!current) { this = default; return target; }
                 if (!Active) { world = current; grid = current.boundary; hasSafe = false; }
-                float margin = Mathf.Max(0, radius) + BoundarySkin;
+                float margin = BoundaryRadius(radius);
                 var start = new Vector2(from.x, from.z); var goal = new Vector2(target.x, target.z);
                 if (!hasSafe || safeRadius != margin)
                 {
