@@ -74,6 +74,8 @@ public static class MonsterV3ThemeActivationBuilder
                 var definition = AssetDatabase.LoadAssetAtPath<EnemyDefinition>((string)row["definitionPath"]);
                 if (definition?.IsValid != true || definition.DisplayName != (string)row["koreanDisplayName"])
                     throw new InvalidOperationException("Saved ready actor/name mismatch: " + row["cardKey"]);
+                if (definition.Grade.GradeType != EnemyGradeType.Normal && Tier(row) != EnemyThemeTier.Elite)
+                    throw new InvalidOperationException("Saved elite requires a current elite roster plan: " + definition.EnemyId);
                 definitions.Add((string)row["cardKey"], definition);
             }
             if (Enum.GetValues(typeof(EnemyThemeTier)).Cast<EnemyThemeTier>().Any(tier => !ready.Any(r => Tier(r) == tier)))

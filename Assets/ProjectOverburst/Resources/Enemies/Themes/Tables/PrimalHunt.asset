@@ -28,7 +28,7 @@ MonoBehaviour:
     tier: 1
     weight: 1
   - definition: {fileID: 11400000, guid: 6b8e26b8de7290b4c8ae4da20e176db4, type: 2}
-    tier: 1
+    tier: 2
     weight: 1
   - definition: {fileID: 11400000, guid: 0d033d46224c756448dc9efd99b44b5e, type: 2}
     tier: 2

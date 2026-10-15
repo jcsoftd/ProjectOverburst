@@ -200,7 +200,8 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
             energy.BindWeapon(equipment.CurrentWeaponItem.runtimeInstanceId,equipment.ActiveElement,equipment.EquippedElementGem?.runtimeInstanceId,equipment.GemRevision);
             amount.SetValue(energy,energy.BaseMaximum);
             ParryRequire(energy.Normalized>=.8f,"Perfect-parry fixture charge did not reach the product threshold");
-            ParryRequire(melee.TryStartHeavyAttack(enemy.transform.position-player.transform.position)==WeaponActionResult.Accepted,"Actual heavy input rejected");
+            var heavyResult=melee.TryStartHeavyAttack(enemy.transform.position-player.transform.position);
+            ParryRequire(heavyResult==WeaponActionResult.Accepted,"Actual heavy input rejected: "+heavyResult);
             controller=player.GetComponent<PlayerParryController>();ParryRequire(controller!=null,"Player parry controller missing");
             ParryRequire(controller.ActionGrade==ParryGrade.Perfect,"Accepted heavy did not lock perfect-parry grade");
             float parryDeadline=Time.unscaledTime+1;

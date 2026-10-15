@@ -14,15 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
   enemyId: V3_Serpenopod
   displayName: "\uC138\uBC1C \uAE34\uD131\uB8E1"
-  referenceHealthCoefficient: 6.04
+  referenceHealthCoefficient: 18.8
   species: {fileID: 11400000, guid: 09541b4d20c25814e972e6a663e290af, type: 2}
-  grade: {fileID: 11400000, guid: 12163e6029e08ec428dab0d3ac0a53c1, type: 2}
-  variant: {fileID: 11400000, guid: 1c5e357903268aa43abf18bc53262d8a, type: 2}
+  grade: {fileID: 11400000, guid: a31d741b009cc2b4c8677c617e319108, type: 2}
+  variant: {fileID: 11400000, guid: 7088f534f345bd84988df3e650a70821, type: 2}
   actorPrefab: {fileID: 4313756042126405, guid: e1eb84e442ce5f34eb3e3e925417fda9, type: 3}
   animationProfile: {fileID: 11400000, guid: b57a1eeff8d21474089a4f7bbcbc7162, type: 2}
   abilitySet: {fileID: 11400000, guid: 54d1117ecd150b5418392b5602040c75, type: 2}
   behaviorProfile: {fileID: 11400000, guid: 8acf495cb04e23f49b129e8c7fb7cd1f, type: 2}
   movementProfile: {fileID: 11400000, guid: cbb67253831571f42a88b0abfdacda0d, type: 2}
   aiPreset: {fileID: 11400000, guid: 8674eb3e0a9410d4fa2059d594058a82, type: 2}
-  squadParticipationMode: 0
+  squadParticipationMode: 1
   tacticalProfile: {fileID: 11400000, guid: 31134124a5ffbe54d9c4b1326104327c, type: 2}

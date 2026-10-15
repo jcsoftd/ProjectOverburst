@@ -122,6 +122,7 @@ public static partial class MonsterPresentationCalibrationBuilder
             if(factor!=1||offset!=0){
                 foreach(var ability in Enumerable.Range(0,d.AbilitySet.Count).Select(d.AbilitySet.GetAbility)){
                     if(ability.WeakAttackExecution!=null)TransformContact(ability.WeakAttackExecution,factor,offset);
+                    if(ability.HasAttackCue){Backup(ability);ability.ConfigureAttackCue(ability.ParryCueBonePath,ability.ParryCueLocalPosition*factor+Vector3.up*offset,ability.ParryCueScale*factor);Save(ability);}
                     if(factor!=1&&EnemyAbilityDefinition.IsWeakMeleeExecution(ability.ExecutionMode)&&transformedAbilities.Add(AssetDatabase.GetAssetPath(ability))){Backup(ability);var ab=new SerializedObject(ability);foreach(string f in new[]{"minimumRange","range","hitRadius","verticalTolerance"})ScaleFloat(ab,f,factor);if(ability.WeakAttackExecution!=null)ab.FindProperty("range").floatValue=ability.WeakAttackExecution.ApproachStartRange;ab.ApplyModifiedPropertiesWithoutUndo();Save(ability);}
                 }
                 string footPath="Assets/ProjectOverburst/Resources/Enemies/Themes/Footfalls/"+d.EnemyId+".asset";var foot=AssetDatabase.LoadAssetAtPath<EnemyFootfallProfile>(footPath);

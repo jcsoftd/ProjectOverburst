@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60651cde8dc5c034aaaddeacf94d3750, type: 3}
+  m_Name: V3_Serpenopod
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyFootfallProfile
+  enemyId: V3_Serpenopod
+  locomotionClip: {fileID: 1827226128182048838, guid: 9c647eafc6edcb9458898b972b0eb440, type: 3}
+  contactPhases:
+  - 0.475
+  - 0.9916667
+  runClip: {fileID: 1827226128182048838, guid: 6d4fb215a5480714599c05a1e9c3322a, type: 3}
+  visualWeight: 2
+  groundStepTier: 2
+  walkContacts:
+  - phase: 0.475
+    localPosition: {x: -1.3097235, y: 0.06056207, z: -0.7010403}
+  - phase: 0.9916667
+    localPosition: {x: 1.3198534, y: 0.04749197, z: -0.38650912}
+  runContacts:
+  - phase: 0.31666666
+    localPosition: {x: -1.5771585, y: 0.054339334, z: 0.037766773}
+  - phase: 0.475
+    localPosition: {x: 1.5716715, y: 0.05348866, z: 0.08825083}
