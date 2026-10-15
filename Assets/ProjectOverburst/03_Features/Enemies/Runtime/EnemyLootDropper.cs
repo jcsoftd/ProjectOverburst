@@ -24,6 +24,34 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
     private static readonly ProfilerMarker ResolveMarker = new ProfilerMarker("Overburst.Loot.Resolve");
     private static readonly ProfilerMarker OriginMarker = new ProfilerMarker("Overburst.Loot.Origin");
     private static readonly ProfilerMarker ItemsMarker = new ProfilerMarker("Overburst.Loot.Items");
+    private static MapItemData outdoorMapDefinition;
+    private static Overburst.Persistence.AccountContentRegistry outdoorRegistry;
+    private static EnemyThemeTable outdoorThemeTable;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetOutdoorLootResources()
+    {
+        outdoorMapDefinition = null;
+        outdoorRegistry = null;
+        outdoorThemeTable = null;
+    }
+
+    private static void ResolveOutdoorLootResources(out MapItemData definition,
+        out Overburst.Persistence.AccountContentRegistry registry, out EnemyThemeTable table)
+    {
+        // Player Resources.Load traverses dependencies even for an already loaded asset.
+        // Keep the same assets; do not repeat that traversal for every defeated enemy.
+        if (outdoorMapDefinition == null)
+            outdoorMapDefinition = Resources.Load<MapItemData>("Items/Maps/Map_Diamond01");
+        if (outdoorRegistry == null)
+            outdoorRegistry = Resources.Load<Overburst.Persistence.AccountContentRegistry>(Overburst.Persistence.AccountContentRegistry.ResourcePath);
+        if (outdoorThemeTable == null)
+            outdoorThemeTable = Resources.Load<EnemyThemeTable>("Enemies/Themes/Tables/GraveHunt");
+        definition = outdoorMapDefinition;
+        registry = outdoorRegistry;
+        table = outdoorThemeTable;
+    }
+
     private bool dropped; // 중복 드랍 방지
     private EncounterContext encounter = EncounterContext.Test;
     public void ConfigureEncounter(EncounterContext context) => encounter = context ?? EncounterContext.Test;
@@ -99,9 +127,7 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
             using (Overburst.DebugTools.Performance.CombatSpawnQualityTrace.LootLookup.Auto())
 #endif
             {
-                definition = Resources.Load<MapItemData>("Items/Maps/Map_Diamond01");
-                registry = Resources.Load<Overburst.Persistence.AccountContentRegistry>(Overburst.Persistence.AccountContentRegistry.ResourcePath);
-                var table = Resources.Load<EnemyThemeTable>("Enemies/Themes/Tables/GraveHunt");
+                ResolveOutdoorLootResources(out definition, out registry, out var table);
                 var enemy = GetComponent<EnemyActor>();
                 if (table && enemy)
                     foreach (var entry in table.Entries) if (entry.definition == enemy.Definition) { tier = entry.tier; break; }
