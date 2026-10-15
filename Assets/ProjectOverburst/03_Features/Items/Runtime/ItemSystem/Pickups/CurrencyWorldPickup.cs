@@ -200,6 +200,7 @@ public class CurrencyWorldPickup : MonoBehaviour
             return;
         }
         pickedUp = true;
+        ItemDropSfxService.PlayPickup();
         using (FeedbackMarker.Auto()) ShowPickupText();
         runtimeCurrencyItem = null;
         using (ReturnMarker.Auto())

@@ -118,12 +118,15 @@ public class StashUI : MonoBehaviour // 창고 UI
 
         slotBridge?.RefreshSlots(); // 슬롯 갱신
         currencySummaryUI?.Refresh(); // 재화 합산 갱신
+        ItemDropSfxService.PlayStash(true);
     }
 
     public void Close()
     {
         if (!isOpen && (stashPanel == null || !stashPanel.activeSelf))
             return;
+
+        bool wasVisible = stashPanel != null && stashPanel.activeSelf;
 
         SlotUI dragOrigin = DragSlot.OriginSlot;
         if (OwnsDragOrigin(dragOrigin))
@@ -145,6 +148,8 @@ public class StashUI : MonoBehaviour // 창고 UI
             if (!inventoryWasOpenBeforeStash)
                 inventoryUI.SetVisible(false); // 원래 숨김
         }
+
+        if (wasVisible) ItemDropSfxService.PlayStash(false);
     }
 
     // EventSystem의 드래그 완료가 Update보다 먼저 실행되어도 닫기 입력을 먼저 반영한다.

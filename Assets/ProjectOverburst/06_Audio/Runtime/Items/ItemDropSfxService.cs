@@ -1,10 +1,10 @@
 using UnityEngine;
 
-// 월드 아이템 드랍 소리 재생기. 카탈로그는 Resources에서 한 번만 읽는다.
+// 아이템 착지·획득과 창고 소리 재생기. 카탈로그는 Resources에서 한 번만 읽는다.
 public sealed class ItemDropSfxService : MonoBehaviour
 {
     private const int VoiceLimit = 8;
-    private const int CueSlots = 16; // 종류 7 + 등급 여유
+    private const int CueSlots = 19; // 종류·등급 16 + 획득·창고 3
 
     private static ItemDropSfxService instance;
     private static ItemDropSfxCatalog catalog;
@@ -41,6 +41,22 @@ public sealed class ItemDropSfxService : MonoBehaviour
         AudioClip clip = Pick(source.GetDropClips(kind));
         return clip != null && EnsureInstance()
             && instance.Play(clip, (int)kind, position, source.dropVolume, source);
+    }
+
+    public static bool PlayPickup()
+    {
+        ItemDropSfxCatalog source = ResolveCatalog();
+        return source != null && source.pickup != null && EnsureInstance()
+            && instance.Play(source.pickup, 16, Vector3.zero, source.dropVolume, source, false);
+    }
+
+    public static bool PlayStash(bool open)
+    {
+        ItemDropSfxCatalog source = ResolveCatalog();
+        AudioClip clip = source != null ? (open ? source.stashOpen : source.stashClose) : null;
+        return clip != null && EnsureInstance()
+            && instance.Play(clip, open ? 17 : 18, Vector3.zero,
+                source.dropVolume * OverburstGameSettings.UiVolume, source, false, false);
     }
 
     public static ItemDropSfxKind Classify(BaseItemData data)
@@ -92,11 +108,12 @@ public sealed class ItemDropSfxService : MonoBehaviour
         return instance != null;
     }
 
-    private bool Play(AudioClip clip, int cueSlot, Vector3 position, float volume, ItemDropSfxCatalog settings)
+    private bool Play(AudioClip clip, int cueSlot, Vector3 position, float volume, ItemDropSfxCatalog settings,
+        bool spatial = true, bool limitSameCue = true)
     {
         float now = Time.unscaledTime;
         cueSlot = Mathf.Clamp(cueSlot, 0, CueSlots - 1);
-        if (now < nextAllowedTime[cueSlot]) return false;
+        if (limitSameCue && now < nextAllowedTime[cueSlot]) return false;
 
         AudioSource source = null;
         for (int i = 0; i < voiceCount; i++)
@@ -125,13 +142,13 @@ public sealed class ItemDropSfxService : MonoBehaviour
         source.pitch = 1f;
         source.volume = Mathf.Clamp01(volume);
         source.priority = 120;
-        source.spatialBlend = settings.spatialBlend;
+        source.spatialBlend = spatial ? settings.spatialBlend : 0f;
         source.rolloffMode = AudioRolloffMode.Logarithmic;
         source.minDistance = settings.minDistance;
         source.maxDistance = Mathf.Max(settings.minDistance + 0.1f, settings.maxDistance);
         source.dopplerLevel = 0f;
         source.Play();
-        nextAllowedTime[cueSlot] = now + settings.sameCueCooldown;
+        if (limitSameCue) nextAllowedTime[cueSlot] = now + settings.sameCueCooldown;
         return true;
     }
 

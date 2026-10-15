@@ -300,8 +300,8 @@ public sealed class ElementalReactionSfxCatalogEditorProvider : SerializedAudioC
 
 public sealed class ItemDropSfxCatalogEditorProvider : SerializedAudioCatalogEditorProvider<ItemDropSfxCatalog>
 {
-    private static readonly string[] Fields = { "weapon", "armor", "accessory", "potion", "gold", "map", "bag", "legendary", "artifact", "mythic" };
-    private static readonly string[] Labels = { "무기", "방어구", "장신구", "물약", "골드", "지도", "가방·기타", "전설 등장", "유물 등장", "신화 등장" };
+    private static readonly string[] Fields = { "weapon", "armor", "accessory", "potion", "gold", "map", "bag", "legendary", "artifact", "mythic", "pickup", "stashOpen", "stashClose" };
+    private static readonly string[] Labels = { "무기", "방어구", "장신구", "물약", "골드", "지도", "가방·기타", "전설 등장", "유물 등장", "신화 등장", "아이템 획득", "창고 열기", "창고 닫기" };
     public override string DisplayName => "아이템 드롭 효과음";
     public override string AssetPath => "Assets/ProjectOverburst/Resources/" + ItemDropSfxCatalog.ResourcePath + ".asset";
     public override int ReadElementCount() => catalog == null ? 0 : Fields.Length;

@@ -47,6 +47,9 @@ MonoBehaviour:
   artifact: {fileID: 8300000, guid: 39044d675b17a43c8b895248f2baf8cc, type: 3}
   mythic: {fileID: 8300000, guid: 30a533dc87b434e4b9e1054c2834bfd5, type: 3}
   revealVolume: 0.8
+  pickup: {fileID: 8300000, guid: 81e31fdf5a6dfdf41b89271d55fd9eab, type: 3}
+  stashOpen: {fileID: 8300000, guid: 3ba2a3aa0e3bd8948b0b38db081230ae, type: 3}
+  stashClose: {fileID: 8300000, guid: 3558a4fc609714a459aa574d94e6dc41, type: 3}
   spatialBlend: 0.6
   minDistance: 3
   maxDistance: 30

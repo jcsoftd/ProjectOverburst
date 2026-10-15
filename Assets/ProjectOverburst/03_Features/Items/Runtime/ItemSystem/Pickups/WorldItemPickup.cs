@@ -165,6 +165,7 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
 
         InventoryUI.NotifyWorldPickupAdded(runtimeItem); // 닫힌 인벤토리 신규 표시
         pickedUp = true; // 중복 획득 방지
+        ItemDropSfxService.PlayPickup();
         Destroy(gameObject); // 획득 성공 시 VFX 포함 제거
         return true;
     }

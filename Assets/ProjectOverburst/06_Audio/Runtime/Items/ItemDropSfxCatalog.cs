@@ -12,7 +12,7 @@ public enum ItemDropSfxKind
     Bag
 }
 
-// 월드 아이템 착지 소리: 종류별 드랍음 + 등급 효과 등장음(전설 이상). 재생은 ItemDropSfxService.
+// 월드 아이템 착지·획득과 창고 여닫기 소리. 재생은 ItemDropSfxService.
 [CreateAssetMenu(fileName = "ItemDropSfxCatalog", menuName = "OVERBURST/Items/Item Drop SFX Catalog")]
 public sealed class ItemDropSfxCatalog : ScriptableObject
 {
@@ -35,6 +35,11 @@ public sealed class ItemDropSfxCatalog : ScriptableObject
     public AudioClip artifact;
     public AudioClip mythic;
     [Range(0f, 1f)] public float revealVolume = 0.8f;
+
+    [Header("획득·창고 — 2D, 드랍 볼륨 공용")]
+    public AudioClip pickup;
+    public AudioClip stashOpen;
+    public AudioClip stashClose;
 
     [Header("공간·중복")]
     [Range(0f, 1f)] public float spatialBlend = 0.6f;
