@@ -132,14 +132,19 @@ public class ActionSlotHudUI : MonoBehaviour
 
     private void BindSlots(string groupName, int firstKey, ActionSlotHudSlotUI[] targetSlots)
     {
-        Transform group = transform.Find(groupName);
-        if (group == null || targetSlots == null)
+        if (targetSlots == null)
             return;
 
+        Transform group = null;
         for (int i = 0; i < targetSlots.Length; i++)
         {
             if (targetSlots[i] != null)
                 continue;
+
+            if (group == null)
+                group = transform.Find(groupName);
+            if (group == null)
+                return;
 
             Transform slot = group.Find("ActionSlot_" + (firstKey + i));
             targetSlots[i] = slot != null ? slot.GetComponentInChildren<ActionSlotHudSlotUI>(true) : null;

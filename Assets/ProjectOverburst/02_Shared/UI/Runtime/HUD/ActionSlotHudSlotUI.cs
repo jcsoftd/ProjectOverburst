@@ -165,11 +165,20 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
         {
             // Show either active time or individual cooldown in the slot.
             RectTransform durationRect = cooldownText.rectTransform;
-            durationRect.anchorMin = useVendorSlotVisual ? Vector2.zero : new Vector2(0f, 1f);
-            durationRect.anchorMax = Vector2.one;
-            durationRect.pivot = useVendorSlotVisual ? new Vector2(.5f, .5f) : new Vector2(.5f, 1f);
-            durationRect.offsetMin = useVendorSlotVisual ? new Vector2(8f, 8f) : new Vector2(4f, -24f);
-            durationRect.offsetMax = useVendorSlotVisual ? new Vector2(-8f, -8f) : new Vector2(-4f, -4f);
+            Vector2 anchorMin = useVendorSlotVisual ? Vector2.zero : new Vector2(0f, 1f);
+            if (!durationRect.anchorMin.Equals(anchorMin))
+                durationRect.anchorMin = anchorMin;
+            if (!durationRect.anchorMax.Equals(Vector2.one))
+                durationRect.anchorMax = Vector2.one;
+            Vector2 pivot = useVendorSlotVisual ? new Vector2(.5f, .5f) : new Vector2(.5f, 1f);
+            if (!durationRect.pivot.Equals(pivot))
+                durationRect.pivot = pivot;
+            Vector2 offsetMin = useVendorSlotVisual ? new Vector2(8f, 8f) : new Vector2(4f, -24f);
+            if (!durationRect.offsetMin.Equals(offsetMin))
+                durationRect.offsetMin = offsetMin;
+            Vector2 offsetMax = useVendorSlotVisual ? new Vector2(-8f, -8f) : new Vector2(-4f, -4f);
+            if (!durationRect.offsetMax.Equals(offsetMax))
+                durationRect.offsetMax = offsetMax;
             cooldownText.alignment = TextAlignmentOptions.Center;
             cooldownText.fontSize = useVendorSlotVisual ? 28f : 14f;
         }
@@ -465,10 +474,10 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
         RectTransform rect = keyText.rectTransform;
         if (rect != null)
         {
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = new Vector2(4f, 2f);
-            rect.offsetMax = new Vector2(-5f, -3f);
+            if (!rect.anchorMin.Equals(Vector2.zero)) rect.anchorMin = Vector2.zero;
+            if (!rect.anchorMax.Equals(Vector2.one)) rect.anchorMax = Vector2.one;
+            if (!rect.offsetMin.Equals(new Vector2(4f, 2f))) rect.offsetMin = new Vector2(4f, 2f);
+            if (!rect.offsetMax.Equals(new Vector2(-5f, -3f))) rect.offsetMax = new Vector2(-5f, -3f);
         }
 
         keyText.alignment = TextAlignmentOptions.BottomRight;
@@ -503,10 +512,12 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
         if (rect == null)
             return;
 
-        rect.anchorMin = Vector2.zero;
-        rect.anchorMax = Vector2.one;
-        rect.offsetMin = new Vector2(CooldownOverlayInset, CooldownOverlayInset);
-        rect.offsetMax = new Vector2(-CooldownOverlayInset, -CooldownOverlayInset);
+        if (!rect.anchorMin.Equals(Vector2.zero)) rect.anchorMin = Vector2.zero;
+        if (!rect.anchorMax.Equals(Vector2.one)) rect.anchorMax = Vector2.one;
+        if (!rect.offsetMin.Equals(new Vector2(CooldownOverlayInset, CooldownOverlayInset)))
+            rect.offsetMin = new Vector2(CooldownOverlayInset, CooldownOverlayInset);
+        if (!rect.offsetMax.Equals(new Vector2(-CooldownOverlayInset, -CooldownOverlayInset)))
+            rect.offsetMax = new Vector2(-CooldownOverlayInset, -CooldownOverlayInset);
     }
 
     private TextMeshProUGUI CreateCooldownText()
