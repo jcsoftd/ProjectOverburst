@@ -12,7 +12,7 @@ using Object=UnityEngine.Object;
 // Supplier clips, actor scale/grounding, combat/parry, and common sound assets remain unchanged.
 public static class MonsterGroundedGaitBuilder
 {
-    static readonly string[] Ids={"V3_Anglerox","V3_Hideoplast","V3_Deinodonte","V3_Perderos"};
+    static readonly string[] Ids={"V3_Anglerox","V3_Hideoplast","V3_Perderos"};
     static string Output=>Path.GetFullPath(Path.Combine(Application.dataPath,"../../개인파일/코덱스산출/Monsters/20261006_SevenThemeImprovement/GOAL_01/GaitApply"));
     static string Hash(string path){using(var sha=SHA256.Create())return BitConverter.ToString(sha.ComputeHash(File.ReadAllBytes(path))).Replace("-","").ToLowerInvariant();}
     static string Disk(string path)=>Path.GetFullPath(Path.Combine(Application.dataPath,"..",path));

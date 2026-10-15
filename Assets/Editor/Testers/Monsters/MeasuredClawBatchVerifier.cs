@@ -10,7 +10,7 @@ using Object = UnityEngine.Object;
 
 public static class MeasuredClawBatchVerifier
 {
-    const string Source = "Assets/ProjectOverburst/Resources/Enemies/Themes/Abilities/V3_Deinodonte_2HitComboClawsAttack.asset";
+    const string Source = "Assets/ProjectOverburst/Resources/Enemies/Themes/Abilities/V3_Hideoplast_2HitComboClawsAttack.asset";
     static string Hash(string path)
     {
         using (var hash = SHA256.Create()) using (var input = File.OpenRead(path))

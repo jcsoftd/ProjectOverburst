@@ -43,10 +43,6 @@ MonoBehaviour:
     tier: 2
     weight: 1
     minimumOutdoorWorldLevel: 0
-  - definition: {fileID: 11400000, guid: 70d8f91881506da4dae0fdef7e923df2, type: 2}
-    tier: 0
-    weight: 1
-    minimumOutdoorWorldLevel: 0
   - definition: {fileID: 11400000, guid: cb131aa83cd877b41948e69782272f66, type: 2}
     tier: 1
     weight: 3

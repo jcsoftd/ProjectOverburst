@@ -81,7 +81,7 @@ public static partial class SevenThemeFollowupFlowVerifier
     static float begin;
     static int lastFrame=-1;
     static bool running;
-    static readonly HashSet<string> RecordIds=new HashSet<string>{"SpiderBrood_Formickarce","V3_Hideoplast","V3_Skorpmare","V3_Anglerox","V3_Gasterodonte","V3_Deinodonte","V3_Perderos"};
+    static readonly HashSet<string> RecordIds=new HashSet<string>{"SpiderBrood_Formickarce","V3_Hideoplast","V3_Skorpmare","V3_Anglerox","V3_Gasterodonte","V3_Perderos"};
     static JArray V(Vector3 p)=>new JArray(p.x,p.y,p.z);
     static JArray Scenes(){var a=new JArray();for(int i=0;i<SceneManager.sceneCount;i++){var s=SceneManager.GetSceneAt(i);a.Add(new JObject{["path"]=s.path,["dirty"]=s.isDirty,["roots"]=s.rootCount});}return a;}
     static bool Same(string p)=>string.Equals(p,Account,StringComparison.OrdinalIgnoreCase);
@@ -166,7 +166,7 @@ public static partial class SevenThemeFollowupFlowVerifier
         if(Mode.StartsWith("VisualDeath",StringComparison.Ordinal)){yield return DeathComparison(catalog,health);yield break;}
         if(Mode.StartsWith("ParryGeometry",StringComparison.Ordinal)){yield return ParryGeometry(catalog,health,capsule,combat);yield break;}
         if(Mode.StartsWith("Near",StringComparison.Ordinal)){yield return NearProbe(catalog,health,capsule);yield break;}
-        string[] ids=new[]{"V3_Anglerox","V3_Hideoplast","V3_Deinodonte","V3_Perderos","SpiderBrood_Formickarce","DeathHarvest_RakeBrute","DeathHarvest_Reaper","V3_Skorpmare","V3_darkKnight2","V3_Gasterodonte","V3_Kapeloproboskid","V3_Onyscidus"};
+        string[] ids=new[]{"V3_Anglerox","V3_Hideoplast","V3_Perderos","SpiderBrood_Formickarce","DeathHarvest_RakeBrute","DeathHarvest_Reaper","V3_Skorpmare","V3_darkKnight2","V3_Gasterodonte","V3_Kapeloproboskid","V3_Onyscidus"};
         var defs=ids.Select(id=>{if(!catalog.TryGet(id,out var definition))throw new InvalidOperationException("Saved catalog ID missing: "+id);return definition;}).ToArray();
         foreach(var d in defs)
         {
