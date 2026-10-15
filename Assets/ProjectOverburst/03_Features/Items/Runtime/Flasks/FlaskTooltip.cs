@@ -71,7 +71,6 @@ public static class FlaskTooltip
         if (current != null)
         {
             AppendWeaponLimit(text, current, data, stats);
-            AppendEquippedComparison(text, current, item, data, stats);
         }
         return text.ToString().TrimEnd();
     }
@@ -124,25 +123,6 @@ public static class FlaskTooltip
                 + EffectValue(data.secondaryEffect, secondaryApplied));
     }
 
-    private static void AppendEquippedComparison(StringBuilder text, PlayerFlaskController current,
-        ItemData item, FlaskItemData data, FlaskStats stats)
-    {
-        for (int i = 0; i < PlayerFlaskController.SlotCount; i++)
-        {
-            ItemData equipped = current.GetItem(i);
-            if (equipped == null || equipped == item || !(equipped.baseData is FlaskItemData old)
-                || old.kind != data.kind) continue;
-            FlaskStats previous = FlaskRuntime.Stats(equipped);
-            text.Append("\n<color=").Append(MutedColor).AppendLine(">장착품 대비</color>");
-            text.Append("주효과 ").Append(EffectDelta(data.primaryEffect, stats.primary - previous.primary))
-                .Append("  ·  보조 ").Append(EffectDelta(data.secondaryEffect, stats.secondary - previous.secondary))
-                .AppendLine();
-            text.Append("지속 ").Append(Delta(stats.duration - previous.duration)).Append("초")
-                .Append("  ·  대기 ").Append(Delta(stats.cooldown - previous.cooldown)).Append("초");
-            return;
-        }
-    }
-
     private static string RequiredElementName(FlaskKind kind)
     {
         switch (kind)
@@ -189,25 +169,19 @@ public static class FlaskTooltip
         }
     }
 
-    public static string EffectValue(FlaskEffect effect, float value)
-    {
-        bool reduction = effect == FlaskEffect.DirectDamageReduction
+    public static bool IsReduction(FlaskEffect effect)
+        => effect == FlaskEffect.DirectDamageReduction
             || effect == FlaskEffect.DotDamageReduction
             || effect == FlaskEffect.IncomingImpactReduction
             || effect == FlaskEffect.SlowResistance;
-        bool points = effect == FlaskEffect.AttackSpeed || effect == FlaskEffect.AttackRadius
-            || effect == FlaskEffect.CritChance || effect == FlaskEffect.CritDamage;
-        string suffix = points ? "%p" : effect == FlaskEffect.HealPerSecond ? "%/초" : "%";
-        return (reduction ? "-" : "+") + Number(value * 100f) + suffix;
-    }
 
-    private static string EffectDelta(FlaskEffect effect, float value)
+    public static string EffectValue(FlaskEffect effect, float value)
     {
         bool points = effect == FlaskEffect.AttackSpeed || effect == FlaskEffect.AttackRadius
             || effect == FlaskEffect.CritChance || effect == FlaskEffect.CritDamage;
-        return Delta(value * 100f) + (points ? "%p" : "%");
+        string suffix = points ? "%p" : effect == FlaskEffect.HealPerSecond ? "%/초" : "%";
+        return (IsReduction(effect) ? "-" : "+") + Number(value * 100f) + suffix;
     }
 
     private static string Number(float value) => value.ToString("0.#", CultureInfo.InvariantCulture);
-    private static string Delta(float value) => value.ToString("+0.#;-0.#;0", CultureInfo.InvariantCulture);
 }

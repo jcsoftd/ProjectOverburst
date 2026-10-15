@@ -21,18 +21,15 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
     private const float ValueColumnWidth = 160f;
     private const float MarksColumnX = 244f;
     private const float MarksColumnWidth = 136f;
-    // 2026-10-01 장착 무기 비교: 폭은 그대로 두고, 다른 무기와 비교할 때만 값 칸을 줄여 값과 품질 각인 사이에 "장착 대비" 열을 넣는다.
-    private const float CompareValueWidth = 122f;
-    private const float CompareColumnX = 196f;
-    private const float CompareColumnWidth = 54f;
+    // 소수 둘째 자리 %p까지 같은 글자 크기로 표시하고, 각인 칸과 12px 간격을 둔다.
+    private const float CompareValueWidth = 90f;
+    private const float CompareLabelWidth = 82f;
+    private const float CompareValueColumnX = 86f;
+    private const float CompareColumnX = 164f;
+    private const float CompareColumnWidth = 80f;
     private const float CompareMarksColumnX = 256f;
     private const float CompareMarksColumnWidth = 124f;
-    private const float SecondaryCompareWidth = 56f;
-    // 방어구·장신구는 소수 둘째 자리 %p까지 보여 장착 대비가 더 길고, 각인이 6개까지 차 각인 칸이 꽉 찬다.
-    // 값 칸을 줄이고 장착 대비 열을 넓혀 왼쪽으로 옮겨, 각인과 12px 이상 떨어뜨린다(열 오른쪽 끝 244, 제목도 같은 끝).
-    private const float GearCompareValueWidth = 102f;
-    private const float GearCompareColumnX = 176f;
-    private const float GearCompareColumnWidth = 68f;
+    private const float SecondaryCompareWidth = CompareColumnWidth;
     private const string LostStatColor = "#8C857C";
     private static readonly Regex Tags = new Regex("<[^>]+>", RegexOptions.Compiled);
     private static readonly Regex NumericRow = new Regex(@"^(.{1,14}?)\s*:?\s+([(+\-−]?\d.*)$", RegexOptions.Compiled);
@@ -97,10 +94,9 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
         if (item == null || !item.baseData || !Resolve())
             return false;
 
-        comparison = compareReady && (item.baseData is ElementGemItemData || item.baseData is WeaponItemData || item.baseData is GearItemData)
-            ? EquippedWeaponComparison.Compare(item, CompareMode) : null;
+        comparison = compareReady ? EquippedWeaponComparison.Compare(item, CompareMode) : null;
         compareColumns = comparison != null && comparison.IsComparable;
-        if (equippedTag) equippedTag.SetActive(comparison != null && comparison.IsEquippedItem);
+        if (equippedTag) equippedTag.SetActive(CompareMode == TooltipCompareMode.EquippedReference || comparison != null && comparison.IsEquippedItem);
 
         Color rarity = TooltipTone(item.grade);
         glow.color = new Color(rarity.r, rarity.g, rarity.b, .18f);
@@ -141,7 +137,6 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
             {
                 foreach(var row in ElementGemTooltip.Rows(item)) stats.Add(new Stat { label=row.Label,value=row.Formatted,marks=row.Fixed?string.Empty:ConvertMarks(row.Marks) });
                 notes=ElementGemTooltip.Notes(item);
-                if(compareColumns) foreach(var lost in comparison.Lost) stats.Add(new Stat {label=lost.Label,value="없음",marks=string.Empty,compare=lost.Text});
             }
             else if (item.baseData is BagItemData)
             {
@@ -152,20 +147,19 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
             else if (item.baseData is GearItemData)
             {
                 CollectGearStats(item, rawLines, stats);
-                // 바꿔 끼면 빠지는 능력치: 보조능력치 끝에 흐린 행으로 붙이고 장착 대비에 ▼를 보인다.
-                if (compareColumns && stats.Count > 0)
-                    foreach (EquippedWeaponComparison.StatDelta lost in comparison.Lost)
-                        stats.Add(new Stat
-                        {
-                            label = "<color=" + LostStatColor + ">" + lost.Label + "</color>",
-                            value = "<color=" + LostStatColor + ">없음</color>",
-                            delta = string.Empty, marks = string.Empty, compare = lost.Text
-                        });
             }
             else if (isFlask)
                 CollectFlaskStats(item, rawLines, stats, out notes);
             else
                 CollectWeaponStats(item, rawLines, stats);
+
+            if (compareColumns)
+                foreach (var lost in comparison.Lost)
+                    stats.Add(new Stat {
+                        label = "<color=" + LostStatColor + ">" + lost.Label + "</color>",
+                        value = "<color=" + LostStatColor + ">없음</color>",
+                        marks = string.Empty, compare = lost.Text
+                    });
 
             if (stats.Count > 0 && stats.Count <= RowCapacity)
             {
@@ -312,7 +306,7 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
         if (compareColumns)
         {
             compareHeading.text = "장착 대비";
-            float headingRight = isGear ? GearCompareColumnX + GearCompareColumnWidth : CompareColumnX + CompareColumnWidth;
+            float headingRight = CompareColumnX + CompareColumnWidth;
             SetRect(compareHeading.rectTransform, 26f + headingRight - 70f, y, 70f, 24f);
             compareHeading.gameObject.SetActive(true);
         }
@@ -379,7 +373,6 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
         float height = baseHeight + (markLines - 1) * ExtraMarkLineHeight;
         view.root.gameObject.SetActive(true);
         SetRect(view.root, 26f, y, ContentWidth, height);
-        view.label.text = stat.label;
         view.value.text = stat.value;
         bool hasDelta = !string.IsNullOrEmpty(stat.delta) && stat.delta != "—";
         if (hasDelta)
@@ -391,14 +384,18 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
         // 모든 행: 이름·값·장착 대비·품질 각인을 행 높이의 가운데에 맞춘다(두 줄 행은 최소 40).
         // 각인이 두 줄로 넘어가 행이 높아지면 그 높이의 가운데에 모두 맞춘다.
         float lineBox = twoLine ? Mathf.Max(40f, height) : height;
-        SetRect(view.label.rectTransform, 0f, 0f, 140f, lineBox);
+        bool compact = compareColumns && !rightAligned;
+        view.label.text = compact ? "<nobr>" + stat.label.Replace(" ", "</nobr> <nobr>") + "</nobr>" : stat.label;
+        view.label.textWrappingMode = compact ? TextWrappingModes.Normal : TextWrappingModes.NoWrap;
+        SetRect(view.label.rectTransform, 0f, 0f, compact ? CompareLabelWidth : 140f, lineBox);
         // 무기 보조 성능은 품질 각인 칸이 없으므로 값과 장착 대비를 오른쪽 끝(가치 줄과 같은 끝)에 붙인다.
-        float compareX = rightAligned ? ContentWidth - SecondaryCompareWidth : isGear ? GearCompareColumnX : CompareColumnX;
-        float compareWidth = rightAligned ? SecondaryCompareWidth : isGear ? GearCompareColumnWidth : CompareColumnWidth;
+        float compareX = rightAligned ? ContentWidth - SecondaryCompareWidth : CompareColumnX;
+        float compareWidth = rightAligned ? SecondaryCompareWidth : CompareColumnWidth;
         float valueRight = rightAligned
             ? (compareColumns ? compareX - 4f : ContentWidth)
-            : ValueColumnX + (!compareColumns ? ValueColumnWidth : isGear ? GearCompareValueWidth : CompareValueWidth);
-        SetRect(view.value.rectTransform, ValueColumnX, 0f, valueRight - ValueColumnX, lineBox);
+            : ValueColumnX + (compareColumns ? CompareValueWidth : ValueColumnWidth);
+        float valueX = compact ? CompareValueColumnX : ValueColumnX;
+        SetRect(view.value.rectTransform, valueX, 0f, valueRight - valueX, lineBox);
         view.value.fontSize = 15f;
         if (isFlask)
         {

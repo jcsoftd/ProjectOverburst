@@ -113,7 +113,7 @@ public static class EquippedWeaponComparison
         return equipment != null ? equipment.CurrentWeaponItem : null;
     }
 
-    // Alt 나란히 보기 대상. 같은 아이템이거나 비교할 장착품이 없으면 false.
+    // 나란히 보기 대상. 같은 아이템이거나 비교할 장착품이 없으면 false.
     public static bool TryGetComparableEquipped(ItemData candidate, out ItemData equipped)
     {
         equipped = null;
@@ -122,7 +122,25 @@ public static class EquippedWeaponComparison
         {
             var eq = PlayerContext.Instance?.CurrentActorEquipment; TrackEquipment(eq);
             equipped = eq?.EquippedElementGem;
-            return equipped != null && !IsSame(candidate, equipped) && ((ElementGemItemData)equipped.baseData).element == ((ElementGemItemData)candidate.baseData).element;
+            return equipped?.baseData is ElementGemItemData && !IsSame(candidate, equipped);
+        }
+        if (candidate.baseData is FlaskItemData flask)
+        {
+            var controller = PlayerFlaskController.Current;
+            if (controller == null) return false;
+            for (int i = 0; i < PlayerFlaskController.SlotCount; i++)
+            {
+                var item = controller.GetItem(i);
+                if (!(item?.baseData is FlaskItemData other) || other.kind != flask.kind) continue;
+                equipped = item;
+                return !IsSame(candidate, equipped);
+            }
+            return false;
+        }
+        if (candidate.baseData is BagItemData)
+        {
+            equipped = PlayerAccountInventoryService.EquippedBag;
+            return equipped?.baseData is BagItemData && !IsSame(candidate, equipped);
         }
         if (candidate.baseData is GearItemData gear)
         {
@@ -154,6 +172,8 @@ public static class EquippedWeaponComparison
     public static Result Compare(ItemData candidate, TooltipCompareMode mode)
     {
         if (!Enabled || candidate == null) return null;
+        if (candidate.baseData is FlaskItemData flask) return CompareFlask(candidate, flask, mode);
+        if (candidate.baseData is BagItemData) return CompareBag(candidate, mode);
         if (candidate.baseData is ElementGemItemData) return CompareGem(candidate, mode);
         if (candidate.baseData is GearItemData gear) return CompareGear(candidate, gear, mode);
         if (!(candidate.baseData is WeaponItemData)) return null;
@@ -174,11 +194,11 @@ public static class EquippedWeaponComparison
         result.IsComparable = true;
         result.Verdict = VerdictOf(Ratio(a.Dps, b.Dps));
         // 라벨은 SimpleItemTooltipBuilder가 쓰는 행 이름 그대로다(툴팁 행을 라벨로 찾는다).
-        Add(result, "데미지", a.Damage, b.Damage, 0, string.Empty);
-        Add(result, "공격속도", a.AttackSpeed, b.AttackSpeed, 0, "%p");
-        Add(result, "공격 범위", a.Range, b.Range, 1, "m");
-        Add(result, "치명타확률", a.CritChance, b.CritChance, 0, "%p");
-        Add(result, "치명타피해", a.CritDamage, b.CritDamage, 0, "%p");
+        Add(result, "데미지", a.Damage, b.Damage, 2, string.Empty);
+        Add(result, "공격속도", a.AttackSpeed, b.AttackSpeed, 2, "%p");
+        Add(result, "공격 범위", a.Range, b.Range, 2, "m");
+        Add(result, "치명타확률", a.CritChance, b.CritChance, 2, "%p");
+        Add(result, "치명타피해", a.CritDamage, b.CritDamage, 2, "%p");
         Add(result, "넉백", a.Knockback, b.Knockback, 0, string.Empty);
         Add(result, "단일 DPS", a.Dps, b.Dps, 1, string.Empty);
         Add(result, "강공 방출", a.Discharge, b.Discharge, 1, string.Empty);
@@ -192,21 +212,63 @@ public static class EquippedWeaponComparison
         return keyboard != null && (keyboard.leftAltKey.isPressed || keyboard.rightAltKey.isPressed);
     }
 
-    private static void Add(Result result, string label, float candidate, float equipped, int decimals, string unit)
-        => result.Stats[label] = Delta(label, candidate, equipped, decimals, unit);
+    private static void Add(Result result, string label, float candidate, float equipped, int decimals, string unit, bool lowerIsBetter = false)
+        => result.Stats[label] = Delta(label, candidate, equipped, decimals, unit, lowerIsBetter);
 
-    private static StatDelta Delta(string label, float candidate, float equipped, int decimals, string unit)
+    private static StatDelta Delta(string label, float candidate, float equipped, int decimals, string unit, bool lowerIsBetter = false)
     {
         float scale = decimals == 0 ? 1f : Mathf.Pow(10f, decimals);
         // 툴팁 값("0.##")과 같게 .5는 올린다. Mathf.Round는 짝수 쪽으로 반올림해 1.625가 1.62가 된다.
-        double a = Math.Round(candidate, decimals, MidpointRounding.AwayFromZero);
-        double b = Math.Round(equipped, decimals, MidpointRounding.AwayFromZero);
+        decimal a = Math.Round((decimal)candidate, decimals, MidpointRounding.AwayFromZero);
+        decimal b = Math.Round((decimal)equipped, decimals, MidpointRounding.AwayFromZero);
         float delta = (float)(a - b);
-        var stat = new StatDelta { Label = label, Equal = Mathf.Abs(delta) < .5f / scale, Improved = delta > 0f };
+        var stat = new StatDelta { Label = label, Equal = Mathf.Abs(delta) < .5f / scale, Improved = lowerIsBetter ? delta < 0f : delta > 0f };
         stat.Text = stat.Equal
             ? "<color=" + SimilarColor + ">–</color>"
-            : "<color=" + (stat.Improved ? BetterColor : WorseColor) + ">" + (stat.Improved ? "▲" : "▼") + Format(Mathf.Abs(delta), decimals) + unit + "</color>";
+            : "<color=" + (stat.Improved ? BetterColor : WorseColor) + ">" + (delta > 0f ? "▲" : "▼") + Format(Mathf.Abs(delta), decimals) + unit + "</color>";
         return stat;
+    }
+
+    private static Result CompareFlask(ItemData candidate, FlaskItemData data, TooltipCompareMode mode)
+    {
+        bool comparable = TryGetComparableEquipped(candidate, out ItemData equipped);
+        var result = new Result { Candidate = candidate, Equipped = equipped };
+        if (mode == TooltipCompareMode.EquippedReference || equipped != null && IsSame(candidate, equipped))
+        { result.IsEquippedItem = true; return result; }
+        if (!comparable) return null;
+        FlaskStats current = FlaskRuntime.Stats(candidate), previous = FlaskRuntime.Stats(equipped);
+        result.IsComparable = true;
+        void Effect(FlaskEffect effect, float value, float old)
+        {
+            bool reduction = FlaskTooltip.IsReduction(effect);
+            float scale = reduction ? -100f : 100f;
+            Add(result, FlaskTooltip.Label(effect), value * scale, old * scale, 2, "%p", reduction);
+        }
+        Effect(data.primaryEffect, current.primary, previous.primary);
+        Effect(data.secondaryEffect, current.secondary, previous.secondary);
+        Add(result, "지속 시간", current.duration, previous.duration, 2, "초");
+        Add(result, "재사용 대기", current.cooldown, previous.cooldown, 2, "초", true);
+        return result;
+    }
+
+    private static Result CompareBag(ItemData candidate, TooltipCompareMode mode)
+    {
+        bool comparable = TryGetComparableEquipped(candidate, out ItemData equipped);
+        var result = new Result { Candidate = candidate, Equipped = equipped };
+        if (mode == TooltipCompareMode.EquippedReference || equipped != null && IsSame(candidate, equipped))
+        { result.IsEquippedItem = true; return result; }
+        if (!comparable || !BagQuality.IsValid(candidate.bagState, candidate.grade) || !BagQuality.IsValid(equipped.bagState, equipped.grade)) return null;
+        result.IsComparable = true;
+        foreach (var row in candidate.bagState.rows)
+        {
+            var old = equipped.bagState.rows.Find(x => x.stat == row.stat);
+            bool slots = row.stat == BagStat.InventorySlots;
+            Add(result, BagTooltip.Label(row.stat), BagQuality.Value(candidate.level, row), old != null ? BagQuality.Value(equipped.level, old) : 0f, slots ? 0 : 2, slots ? "칸" : "%p");
+        }
+        foreach (var row in equipped.bagState.rows)
+            if (!candidate.bagState.rows.Exists(x => x.stat == row.stat))
+                result.Lost.Add(Delta(BagTooltip.Label(row.stat), 0f, BagQuality.Value(equipped.level, row), 2, "%p"));
+        return result;
     }
 
     // 방어구·장신구: 행마다 같은 능력치끼리 비교한다. 장착 장비에 없는 능력치는 0에서 오른 것으로,
@@ -224,12 +286,20 @@ public static class EquippedWeaponComparison
         foreach (var row in current)
         {
             previous.TryGetValue(row.Label,out var old);
-            bool ratio=row.Unit == ElementGemUnit.RatioBps;
-            result.Stats[row.Label]=Delta(row.Label,ratio?row.Value/100f:row.Value,old!=null?(ratio?old.Value/100f:old.Value):0,ratio||row.Unit==ElementGemUnit.PercentagePoints?2:0,ratio||row.Unit==ElementGemUnit.PercentagePoints?"%p":"");
+            result.Stats[row.Label] = GemDelta(row, row.Value, old != null ? old.Value : 0f);
         }
         foreach (var row in previous.Values) if(!current.Exists(x=>x.Label==row.Label))
-            result.Lost.Add(Delta(row.Label,0,row.Unit==ElementGemUnit.RatioBps?row.Value/100f:row.Value,2,row.Unit==ElementGemUnit.RatioBps?"%p":""));
+            result.Lost.Add(GemDelta(row, 0f, row.Value));
         return result;
+    }
+
+    private static StatDelta GemDelta(ElementGemTooltip.Row row, float value, float previous)
+    {
+        bool percent = row.Unit == ElementGemUnit.RatioBps || row.Unit == ElementGemUnit.PercentagePoints;
+        bool reduction = row.Unit == ElementGemUnit.ThresholdReduction;
+        bool count = reduction || row.Unit == ElementGemUnit.Count;
+        float scale = row.Unit == ElementGemUnit.RatioBps ? .01f : reduction ? -1f : 1f;
+        return Delta(row.Label, value * scale, previous * scale, count ? 0 : 2, percent ? "%p" : reduction ? "중첩" : string.Empty, reduction);
     }
 
     private static Result CompareGear(ItemData candidate, GearItemData gear, TooltipCompareMode mode)
