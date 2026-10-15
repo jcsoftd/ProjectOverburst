@@ -284,14 +284,40 @@ public static class MapFiniteSpawnPlayVerifier
                 { enemy.Health.TakeDamage(new DamageInfo(1000000, enemy.transform.position, player.gameObject, suppressDefaultHitVfx: true)); deaths.Add(member.Index); }
             check(roster.Kills == before + initial.Length && (initial.Length > 0 || deaths.Any(i => roster.Members[i].AreaIndex == area.Ground.Index && roster.Members[i].Initial)), label + ": initial kills recorded once in area " + area.Ground.Index);
             Write(output, label, gate);
+            // Small terminal courts can be entirely visible, with no populated neighbour.
+            // Keep the no-pop-in contract and let the player retreat along the entry path.
+            double retreatAt = EditorApplication.timeSinceStartup + 3;
+            bool retreated = false;
             until = EditorApplication.timeSinceStartup + 60;
             while (!roster.Members.Skip(area.FirstMember).Take(area.Count).Any(m => !m.Initial && m.State == MapRunRoster.Life.Active)
-                && EditorApplication.timeSinceStartup < until) { ClearNearbyOthers(area.Ground.Index); Sample(); yield return null; }
+                && EditorApplication.timeSinceStartup < until)
+            {
+                if (!retreated && EditorApplication.timeSinceStartup >= retreatAt)
+                {
+                    Vector3 retreat = point; float farthest = 0;
+                    float wakeRange = area.Ground.Points.Max(p => Vector3.Distance(p, area.Ground.Center)) + 30;
+                    for (int n = 1; n < path.corners.Length; n++)
+                    {
+                        float length = Vector3.Distance(path.corners[n - 1], path.corners[n]);
+                        for (float step = 0; step <= length; step += .5f)
+                        {
+                            var candidate = Vector3.Lerp(path.corners[n - 1], path.corners[n], length > 0 ? step / length : 0);
+                            var delta = candidate - area.Ground.Center; delta.y = 0;
+                            if (delta.sqrMagnitude <= farthest || delta.sqrMagnitude > wakeRange * wakeRange) continue;
+                            retreat = candidate; farthest = delta.sqrMagnitude;
+                        }
+                    }
+                    check(farthest > 16, label + ": connected retreat keeps reinforcement in wake range " + area.Ground.Index);
+                    ActorTeleportUtility.TeleportSafely(player.transform, retreat + Vector3.up * .12f, Quaternion.identity);
+                    retreated = true;
+                }
+                ClearNearbyOthers(area.Ground.Index); Sample(); yield return null;
+            }
             var reserve = roster.Members.Skip(area.FirstMember).Take(area.Count).FirstOrDefault(m => !m.Initial && m.State == MapRunRoster.Life.Active);
             check(reserve != null && field.ReinforcementReleased > 0, label + ": actual reinforcement in area " + area.Ground.Index);
             if (saved == null && reserve != null && field.TryGetActor(reserve.Index, out var living))
             { saved = reserve; savedLease = reserve.Lease; savedPoint = point; living.Health.RestoreLivingHealth(living.Health.MaxHp * .6f); }
-            areas.Add(new { area.Ground.Index, area.Count, area.InitialCount, initialKilled = initial.Length, field.ReinforcementReleased, field.FiniteActiveCount, field.NeighbourSpawnedCount });
+            areas.Add(new { area.Ground.Index, area.Count, area.InitialCount, initialKilled = initial.Length, retreated, field.ReinforcementReleased, field.FiniteActiveCount, field.NeighbourSpawnedCount });
             Write(output, label, gate);
         }
         ActorTeleportUtility.TeleportSafely(player.transform, savedPoint + Vector3.up * .12f, Quaternion.identity);

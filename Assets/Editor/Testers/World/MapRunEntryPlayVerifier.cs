@@ -454,7 +454,9 @@ public static class MapRunEntryPlayVerifier
             if (!observed.All(m => owner.TryGetActor(m.Index, out _)))
             {
                 var path = new UnityEngine.AI.NavMeshPath();
-                Check(UnityEngine.AI.NavMesh.CalculatePath(original, observed[0].PlannedPosition, UnityEngine.AI.NavMesh.AllAreas, path)
+                // The preceding zero-population activation probe may already be inside 24m.
+                // Search the whole entry route, including the safe section behind that probe.
+                Check(UnityEngine.AI.NavMesh.CalculatePath(gate.EntryPoint.position, observed[0].PlannedPosition, UnityEngine.AI.NavMesh.AllAreas, path)
                     && path.status == UnityEngine.AI.NavMeshPathStatus.PathComplete, "Desert road: player can approach the road pack");
                 bool found = false; Vector3 approach = original;
                 for (int i = 1; i < path.corners.Length && !found; i++)
