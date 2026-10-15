@@ -28,7 +28,7 @@ MonoBehaviour:
   referencePatternDamagePercent: 22
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
-  preparationDuration: 0.46666667
+  preparationDuration: 0.7
   releaseDuration: 0.35
   recoveryDuration: 0.70000005
   preparationEndNormalized: 0.35
