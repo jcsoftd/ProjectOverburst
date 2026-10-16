@@ -127,9 +127,9 @@ public static class NaturalLootVerifier
         return failure == null ? "PASS: " + checks.Count + " native checks" : "FAIL: " + failure;
     }
 
-    public static void BeginPlay(string output, bool mapLoot = false, bool mapOptions = false)
+    public static void BeginPlay(string output, bool mapLoot = false, bool mapOptions = false, bool testerSupport = false)
     {
-        mapLoot |= mapOptions;
+        mapLoot |= mapOptions || testerSupport;
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
             || !string.IsNullOrEmpty(SessionState.GetString(Key + "output", ""))
             || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable))
@@ -148,6 +148,7 @@ public static class NaturalLootVerifier
         executed = false;
         SessionState.SetBool(Key + "mapLoot", mapLoot);
         SessionState.SetBool(Key + "mapOptions", mapOptions);
+        SessionState.SetBool(Key + "testerSupport", testerSupport);
         if (mapLoot)
         {
             var registry = Resources.Load<AccountContentRegistry>(AccountContentRegistry.ResourcePath);
@@ -202,6 +203,7 @@ public static class NaturalLootVerifier
             foreach (string suffix in new[] { "output", "start", "sceneSetup", "account" }) SessionState.EraseString(Key + suffix);
             SessionState.EraseBool(Key + "mapLoot");
             SessionState.EraseBool(Key + "mapOptions"); SessionState.EraseFloat(Key + "captureUntil");
+            SessionState.EraseBool(Key + "testerSupport");
             SessionState.EraseBool(Key + "background"); SessionState.EraseInt(Key + "titleStep"); SessionState.EraseFloat(Key + "titleAt");
             SessionState.EraseFloat(Key + "deadline"); SessionState.EraseBool(Key + "return"); SessionState.EraseBool(Key + "started");
             executed = false;
@@ -241,7 +243,8 @@ public static class NaturalLootVerifier
         {
             Require(AccountBootstrap.Ready && !timedOut, "isolated account and Hideout boot");
             Require(AccountBootstrap.SaveDirectory == SessionState.GetString(Key + "account", ""), "owned isolated account selected");
-            if (SessionState.GetBool(Key + "mapOptions", false)) MapOptionBagVerifier.VerifyPlay(Require);
+            if (SessionState.GetBool(Key + "testerSupport", false)) TesterSupportItemVerifier.VerifyPlay(Require);
+            else if (SessionState.GetBool(Key + "mapOptions", false)) MapOptionBagVerifier.VerifyPlay(Require);
             else if (SessionState.GetBool(Key + "mapLoot", false)) MapFarmingLootVerifier.VerifyPlay(Require);
             else VerifyPlay();
         }

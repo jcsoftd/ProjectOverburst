@@ -24,7 +24,7 @@ public static class MapDropPolicy
         MapInstanceState map, EnemyThemeTier tier, string runId)
     {
         if (!MapFarmingLoot.Applies(map)) return Roll(definition, registry, map.level, tier, runId);
-        float chance = Mathf.Clamp01(ChanceForMap(tier, map) * (1f + MapRunBuffs.Bonus(MapBuffKind.ItemDrop)));
+        float chance = TesterSupportItemData.ApplyDropChance(ChanceForMap(tier, map) * (1f + MapRunBuffs.Bonus(MapBuffKind.ItemDrop)));
         if (definition == null || registry == null || string.IsNullOrEmpty(runId)
             || chance <= 0 || (chance < 1 && Random.value >= chance)) return null;
         int level = Random.Range(MinimumLevel(map.level, tier), MaximumLevel(map.level, tier) + 1);
@@ -36,7 +36,7 @@ public static class MapDropPolicy
         int dungeonLevel, EnemyThemeTier tier, string runId, bool outdoor = false)
     {
         if (definition == null || registry == null || (!outdoor && string.IsNullOrEmpty(runId))
-            || Random.value >= Mathf.Min(1f, Chance(tier) * (1f + MapRunBuffs.Bonus(MapBuffKind.ItemDrop)))) return null;
+            || Random.value >= TesterSupportItemData.ApplyDropChance(Chance(tier) * (1f + MapRunBuffs.Bonus(MapBuffKind.ItemDrop)))) return null;
         int level = Random.Range(MinimumLevel(dungeonLevel, tier), MaximumLevel(dungeonLevel, tier) + 1);
         ItemGrade grade = ItemGradeAvailabilityPolicy.RollWeightedGrade();
         if (outdoor && grade > ItemGrade.Legendary) grade = ItemGrade.Legendary;

@@ -116,6 +116,7 @@ namespace Overburst.Persistence
             target.appearance = source.appearance; target.skillTree = source.skillTree; target.run = source.run;
             target.elementalGemInstanceId = source.elementalGemInstanceId; target.bossClearCount = source.bossClearCount;
             target.quests = source.quests; target.trackedQuestId = source.trackedQuestId;
+            target.testerSupportGranted = source.testerSupportGranted;
         }
 
         public static void Validate(AccountSnapshot state, AccountContentRegistry registry)

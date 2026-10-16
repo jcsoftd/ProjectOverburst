@@ -89,7 +89,7 @@ public static class MapFarmingLoot
 
     public static ItemData Roll(MapFarmingKind kind, EnemyGradeType rank, MapInstanceState map, float rarePercent)
     {
-        float chance = Mathf.Clamp01(CombatDebugSettings.ApplyRunLootChance(Chance(kind, rank, map))
+        float chance = TesterSupportItemData.ApplyDropChance(CombatDebugSettings.ApplyRunLootChance(Chance(kind, rank, map))
             * (1f + MapRunBuffs.Bonus(MapBuffKind.ItemDrop)));
         if (chance <= 0 || (chance < 1 && Random.value >= chance)) return null;
         ItemGrade grade = SelectGrade(Random.value, map.grade, rank, rarePercent);

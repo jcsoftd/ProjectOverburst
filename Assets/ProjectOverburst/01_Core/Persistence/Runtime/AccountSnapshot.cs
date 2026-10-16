@@ -41,6 +41,7 @@ namespace Overburst.Persistence
         public CharacterAppearanceSnapshot appearance;
         public string activeCharacterId;
         public string tutorialFirstCharacterId;
+        public bool testerSupportGranted;
         public List<AccountCharacterSnapshot> characters;
 
         internal AccountSnapshot WithCurrencyInventory(List<string> slots, List<ItemSnapshot> values, long nextOrder)

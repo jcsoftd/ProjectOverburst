@@ -117,7 +117,7 @@ internal static class PlayerDebugModule
         if (progression.Level >= OverburstGrowthRules.MaximumLevel)
             return DebugResult.Fail("최대 레벨이에요");
         progression.AddExperience(amount);
-        return DebugResult.Ok($"+{amount}");
+        return DebugResult.Ok($"+{checked(amount * TesterSupportItemData.CurrentMultiplier)}");
     }
 
     private static DebugResult ToNextLevel()
@@ -126,7 +126,9 @@ internal static class PlayerDebugModule
         if (progression == null)
             return DebugResult.Fail("플레이어가 없어요");
         int need = progression.ExperienceToNext - progression.Experience;
-        return need > 0 ? AddExperience(need) : DebugResult.Fail("최대 레벨이에요");
+        if (need <= 0) return DebugResult.Fail("최대 레벨이에요");
+        progression.AddExperience(need, applyRewardMultiplier: false);
+        return DebugResult.Ok($"+{need}");
     }
 
     /// <summary>레벨을 직접 정하는 함수가 없어 필요한 경험치를 계산해 넣는다(계정 세션 중에는 계정 거래로 들어간다).</summary>
@@ -143,7 +145,7 @@ internal static class PlayerDebugModule
             total += OverburstGrowthRules.ExperienceToNext(level);
         if (total > int.MaxValue)
             return DebugResult.Fail("필요 경험치가 너무 커요");
-        progression.AddExperience((int)total);
+        progression.AddExperience((int)total, applyRewardMultiplier: false);
         return DebugResult.Ok($"경험치 +{total} → Lv.{target}");
     }
 

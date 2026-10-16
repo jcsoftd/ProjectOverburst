@@ -35,8 +35,30 @@ namespace Overburst.Persistence
             var gemSnapshot = ItemSnapshotCodec.Capture(gem, registry);
             state.items.Add(gemSnapshot); state.elementalGemInstanceId = gemSnapshot.instanceId;
             state.nextAcquisitionOrder = checked(Math.Max(snapshot.acquisitionOrder, gemSnapshot.acquisitionOrder) + 1);
+            GrantTesterSupport(state, registry);
             AccountInvariants.Validate(state, registry);
             return state;
+        }
+
+        public static bool CanGrantTesterSupport(AccountSnapshot state)
+        {
+            if (state.testerSupportGranted) return false;
+            for (int i = 0; i < state.unlockedSlots; i++)
+                if (string.IsNullOrEmpty(state.inventory[i])) return true;
+            return false;
+        }
+
+        public static void GrantTesterSupport(AccountSnapshot state, AccountContentRegistry registry)
+        {
+            if (!CanGrantTesterSupport(state)) return;
+            var item = new ItemData(registry.Resolve<TesterSupportItemData>(TesterSupportItemData.ContentId), 1, ItemGrade.Common);
+            item.EnsureAcquisitionOrder();
+            var snapshot = ItemSnapshotCodec.Capture(item, registry);
+            snapshot.acquisitionOrder = state.nextAcquisitionOrder++;
+            int slot = state.inventory.FindIndex(0, state.unlockedSlots, string.IsNullOrEmpty);
+            state.items.Add(snapshot);
+            state.inventory[slot] = snapshot.instanceId;
+            state.testerSupportGranted = true;
         }
     }
 }

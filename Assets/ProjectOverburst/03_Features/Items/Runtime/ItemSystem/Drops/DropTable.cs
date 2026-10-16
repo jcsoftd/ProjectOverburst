@@ -16,7 +16,7 @@ public class DropTableEntry
 
     public bool ShouldDrop()
     {
-        return itemData != null && Random.value <= Mathf.Clamp01(dropChance); // 데이터와 확률 확인
+        return itemData != null && Random.value <= TesterSupportItemData.ApplyDropChance(dropChance); // 데이터와 확률 확인
     }
 
     public ItemData CreateItem(float rareGradePercent = 0)

@@ -97,6 +97,7 @@ public sealed class PlayerProgression : MonoBehaviour
         if (amount <= 0 || Level >= OverburstGrowthRules.MaximumLevel) return;
         long totalUnits = CalculateKillExperienceUnits(amount, baseMultiplier, additionalPercent,
             BagQuality.EquippedBonus(BagStat.KillExperience));
+        totalUnits = checked(totalUnits * TesterSupportItemData.CurrentMultiplier);
         amount = checked((int)(totalUnits / BagQuality.RewardScale));
         long units = totalUnits % BagQuality.RewardScale;
         if (totalUnits == 0) return;
@@ -108,10 +109,16 @@ public sealed class PlayerProgression : MonoBehaviour
         }
         int rewarded = BagQuality.ApplyReward(amount, units, localBagExperienceCarry, out int carry);
         localBagExperienceCarry = carry;
-        AddExperience(rewarded);
+        AddExperienceCore(rewarded);
     }
 
-    public void AddExperience(int amount)
+    public void AddExperience(int amount, bool applyRewardMultiplier = true)
+    {
+        if (amount <= 0 || Level >= OverburstGrowthRules.MaximumLevel) return;
+        AddExperienceCore(checked(amount * (applyRewardMultiplier ? TesterSupportItemData.CurrentMultiplier : 1)));
+    }
+
+    private void AddExperienceCore(int amount)
     {
         if (amount <= 0 || Level >= OverburstGrowthRules.MaximumLevel) return;
         if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
