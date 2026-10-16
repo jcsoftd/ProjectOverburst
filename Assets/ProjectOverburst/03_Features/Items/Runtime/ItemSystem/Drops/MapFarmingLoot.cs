@@ -27,16 +27,16 @@ public static class MapFarmingLoot
         new[] { 1f, 7f, 32f, 38f, 18f, 3.5f, 0.5f },
         new[] { 0f, 2f, 20f, 42f, 28f, 7f, 1f }
     };
-    // Next-map rarity keeps its existing progression independently of farming-item rarity.
+    // Next-map rarity is tuned independently of farming-item rarity.
     private static readonly float[][] MapGradeWeights =
     {
-        new[] { 50f, 30f, 15f, 4.5f, .5f, 0f, 0f },
-        new[] { 40f, 32f, 20f, 7f, 1f, 0f, 0f },
-        new[] { 30f, 32f, 25f, 10f, 2.9f, .1f, 0f },
-        new[] { 20f, 28f, 32f, 15f, 4.7f, .3f, 0f },
-        new[] { 10f, 20f, 37f, 24f, 8f, .95f, .05f },
-        new[] { 5f, 12f, 33f, 32f, 15f, 2.8f, .2f },
-        new[] { 0f, 5f, 25f, 40f, 24f, 5.5f, .5f }
+        new[] { 47f, 30f, 17f, 5.3f, 0.7f, 0f, 0f },
+        new[] { 37f, 32f, 21.5f, 8.2f, 1.3f, 0f, 0f },
+        new[] { 27f, 32f, 26f, 11.2f, 3.65f, 0.15f, 0f },
+        new[] { 17f, 28f, 33f, 16.3f, 5.3f, 0.4f, 0f },
+        new[] { 8f, 19f, 38f, 25.2f, 8.6f, 1.13f, 0.07f },
+        new[] { 3f, 11f, 34f, 33f, 15.5f, 3.2f, 0.3f },
+        new[] { 0f, 3f, 25f, 41f, 24.5f, 5.9f, 0.6f },
     };
     private static readonly float[] EliteWeights = { .5f, .8f, 1.1f, 1.3f, 1.5f, 1.5f, 1.5f };
     private static readonly float[] BossWeights = { 0f, 0f, 1f, 1.5f, 2f, 2f, 2f };

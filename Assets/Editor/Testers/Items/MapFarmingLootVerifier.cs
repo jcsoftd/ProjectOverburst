@@ -79,9 +79,13 @@ public static class MapFarmingLootVerifier
                 new[] { 1d, 7d, 32d, 38d, 18d, 3.5d, 0.5d },
                 new[] { 0d, 2d, 20d, 42d, 28d, 7d, 1d } };
             double[][] mapGrades = {
-                new[] {50d,30,15,4.5,.5,0,0}, new[] {40d,32,20,7,1,0,0}, new[] {30d,32,25,10,2.9,.1,0},
-                new[] {20d,28,32,15,4.7,.3,0}, new[] {10d,20,37,24,8,.95,.05},
-                new[] {5d,12,33,32,15,2.8,.2}, new[] {0d,5,25,40,24,5.5,.5} };
+                new[] { 47d, 30d, 17d, 5.3d, 0.7d, 0d, 0d },
+                new[] { 37d, 32d, 21.5d, 8.2d, 1.3d, 0d, 0d },
+                new[] { 27d, 32d, 26d, 11.2d, 3.65d, 0.15d, 0d },
+                new[] { 17d, 28d, 33d, 16.3d, 5.3d, 0.4d, 0d },
+                new[] { 8d, 19d, 38d, 25.2d, 8.6d, 1.13d, 0.07d },
+                new[] { 3d, 11d, 34d, 33d, 15.5d, 3.2d, 0.3d },
+                new[] { 0d, 3d, 25d, 41d, 24.5d, 5.9d, 0.6d } };
             for (int g = 0; g < 7; g++)
             {
                 map.grade = (ItemGrade)g; double lower = 0;
