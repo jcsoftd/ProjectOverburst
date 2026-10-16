@@ -121,17 +121,41 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
                             && warning.ParrySignalCount == 1 && cueDelay >= -.001f && cueDelay <= .08f
                             && Mathf.Abs(actual - expected) <= .085f && eligibilityValid && parrySeen && coupled
                             && fullWindowOpen && eligibleSamples > 0 && reused;
+                        int originalCueCount = warning.ParrySignalCount;
+                        JObject cooldownProof = null;
+                        if ((bool?)batch["verifyMediumStrongCooldown"] == true)
+                        {
+                            cooldownProof = new JObject();
+                            yield return VerifyMediumStrongCooldownAfterAttack(actor, ability, targetRoot.transform, distance, cooldownProof);
+                            pass &= (bool)cooldownProof["pass"];
+                        }
+                        JObject rangeProof = null;
+                        if ((bool?)batch["verifyStrongBalanceBoundary"] == true)
+                        {
+                            rangeProof = MonsterStrongBalanceVerifier.CheckBoundary(actor, ability, target);
+                            pass &= (bool)rangeProof["pass"];
+                        }
+                        JObject liveBoundary = null;
+                        if ((bool?)batch["verifyLiveStrongBoundaryDamage"] == true)
+                        {
+                            health.OnDamageResolved -= observer;
+                            liveBoundary = new JObject();
+                            yield return VerifyLiveStrongBoundaryDamage(actor, ability, target, distance, speed, liveBoundary);
+                            pass &= (bool)liveBoundary["pass"];
+                        }
                         previous = actor; controller.Cancel(); service.Release(actor);
                         yield return null; yield return new WaitForFixedUpdate();
                         bool reset = !actor.IsLeased && !actor.gameObject.activeSelf && !warning.FinalSignal
-                            && EnemyStrongAttackWarning.ActiveThreatSignalCount == 0 && pool.LeasedCount == 0 && pool.PendingReturnCount == 0;
+                            && EnemyStrongAttackWarning.ActiveThreatSignalCount == 0 && pool.LeasedCount == 0 && pool.PendingReturnCount == 0
+                            && controller.GetRemainingCooldown(ability) == 0;
                         cases.Add(new JObject { ["id"] = definition.EnemyId, ["growth"] = growth, ["pass"] = pass && reset,
                             ["strongWarningTiming"] = true, ["expectedCueToHpLoss"] = expected, ["actualCueToHpLoss"] = actual,
                             ["cuePhase"] = cuePhase, ["selectedWarningPhase"] = window.x,
                             ["cueTimelineDelay"] = cueDelay, ["parryWindowMatchesCue"] = coupled,
                             ["parryOpenForAllPreImpactSamples"] = fullWindowOpen, ["preImpactEligibleSamples"] = eligibleSamples,
-                            ["parryClosesOutsideWindow"] = eligibilityValid, ["cueCount"] = warning.ParrySignalCount,
-                            ["damageEvents"] = damage, ["poolReuse"] = reused, ["poolReset"] = reset, ["animationSpeed"] = speed });
+                            ["parryClosesOutsideWindow"] = eligibilityValid, ["cueCount"] = originalCueCount, ["mediumStrongCooldown"] = cooldownProof,
+                            ["damageEvents"] = damage, ["rangeBoundary"] = rangeProof, ["liveBoundaryDamage"] = liveBoundary,
+                            ["poolReuse"] = reused, ["poolReset"] = reset, ["animationSpeed"] = speed });
                         WriteResult("RUNNING");
                         if (!pass || !reset) throw new Exception("Strong warning timing failed: " + definition.EnemyId + "/" + growth);
                     }

@@ -429,6 +429,7 @@ public sealed partial class EnemyAbilityController : MonoBehaviour // 선택·�
 
     public bool IsCooldownReady(EnemyAbilityDefinition ability)
     {
+        ObserveAttackCompletion();
         return ability != null
             && (!readyTimeByAbility.TryGetValue(ability, out float readyTime)
                 || Time.time >= readyTime);
@@ -436,6 +437,7 @@ public sealed partial class EnemyAbilityController : MonoBehaviour // 선택·�
 
     public float GetRemainingCooldown(EnemyAbilityDefinition ability)
     {
+        ObserveAttackCompletion();
         if (ability == null
             || !readyTimeByAbility.TryGetValue(ability, out float readyTime))
         {

@@ -87,6 +87,8 @@ public partial class EnemyMeleeAttackController : MonoBehaviour // 적 근접 �
     {
         if (ability == null || target == null || attackPoint == null
             || !CombatTargetFilter.CanDamage(combatTarget, target)) return false;
+        if (EnemyAttackThreatGeometry.UsesStandardStrongBodyGeometry(actor, ability))
+            return WouldStrongAreaHitTarget(ability, target);
         if (ability.HasWeakAttackExecution && ability.WeakAttackExecution.HasContactGeometry)
             return WouldContactGeometryHit(ability,target);
         Vector3 center = EnemyAttackThreatGeometry.ResolveImpactCenter(actor, ability, attackPoint.position);
@@ -854,6 +856,11 @@ public partial class EnemyMeleeAttackController : MonoBehaviour // 적 근접 �
         float resolvedAngle,
         EnemyAbilityDefinition ability)
     {
+        if (EnemyAttackThreatGeometry.UsesStandardStrongBodyGeometry(actor, ability))
+        {
+            ResolveStandardStrongAreaHit(resolvedDamage, ability);
+            return;
+        }
         damagedTargets.Clear();
         bool weakExecution = activeWeakExecution != null;
         int executionSequence = attackSequenceId, executionPhase = attackPhaseIndex;

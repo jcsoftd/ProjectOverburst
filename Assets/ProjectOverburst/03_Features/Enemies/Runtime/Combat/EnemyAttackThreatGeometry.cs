@@ -5,8 +5,8 @@ public static partial class EnemyAttackThreatGeometry
 {
     // 2026-09-30 패링 타격감: 강공만 더 넓고 넓은 각도로 친다. 일반 예고 공격은 기존 추가량 유지.
     private const float EliteExtra = 1.10f, StandardExtra = .75f;
-    // 2026-10-10 실제 타격 범위 보강: 중형 +0.15m, 정예 +0.20m.
-    private const float EliteStrongExtra = 2.70f, StandardStrongExtra = 2.05f;
+    // 2026-10-16 중형 강공 반경 -0.35m. 피해·장판·패링이 같은 반경을 사용한다.
+    private const float EliteStrongExtra = 2.70f, StandardStrongExtra = 1.70f;
     private const float StrongArcAngle = 150f;
 
     public const float ChargeHalfWidth = .4f;

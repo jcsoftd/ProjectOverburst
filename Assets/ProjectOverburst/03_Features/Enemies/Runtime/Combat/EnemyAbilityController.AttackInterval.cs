@@ -21,5 +21,9 @@ public sealed partial class EnemyAbilityController
         if (!committedAttackRunning || ResolveIsExecuting()) return;
         committedAttackRunning = false;
         nextAttackAllowedAt = Time.time + attackInterval;
+        // Medium strong attacks must leave their full cooldown after execution,
+        // including interruption; long combos must not consume it while playing.
+        if (UsesMediumAttackMix && lastCommittedAbility != null && lastCommittedAbility.IsTelegraphedStrongAttack)
+            readyTimeByAbility[lastCommittedAbility] = Time.time + lastCommittedAbility.Cooldown;
     }
 }
