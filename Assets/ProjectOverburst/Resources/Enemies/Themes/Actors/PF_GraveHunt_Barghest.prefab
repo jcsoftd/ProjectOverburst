@@ -1122,10 +1122,6 @@ MonoBehaviour:
   dropOffset: {x: 0, y: 0.2, z: 0}
   scatterRadius: 0.45
   maxDroppedItemCount: -1
-  dropGoldCurrency: 1
-  goldCurrencyItem: {fileID: 0}
-  minGoldAmount: 1
-  maxGoldAmount: 50
   useWeightedDropCount: 0
   zeroDropChance: 0.5
   oneDropChance: 0.4

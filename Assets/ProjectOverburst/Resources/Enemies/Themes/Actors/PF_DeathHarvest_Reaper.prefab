@@ -555,10 +555,6 @@ MonoBehaviour:
   dropOffset: {x: 0, y: 0.2, z: 0}
   scatterRadius: 0.45
   maxDroppedItemCount: -1
-  dropGoldCurrency: 1
-  goldCurrencyItem: {fileID: 0}
-  minGoldAmount: 1
-  maxGoldAmount: 50
   useWeightedDropCount: 0
   zeroDropChance: 0.5
   oneDropChance: 0.4
@@ -1286,6 +1282,8 @@ MonoBehaviour:
     - bone: {fileID: 7567548265593514703}
       localPoint: {x: -0.40813556, y: 0.08886424, z: 0.00000012449955}
       weight: 0.0015797771
+  statusAuraAnchor: {fileID: 0}
+  statusAuraLocalCenter: {x: 0, y: 0, z: 0}
   burnOffset: {x: 0, y: 0.3, z: 0.35}
   burnScale: 1.3
   shockOffset: {x: 0, y: 0, z: 0}
