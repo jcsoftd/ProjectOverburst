@@ -18,7 +18,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: 0.23173414, y: 1.4257796, z: 0.9954714}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.3142857, y: 0.5142857}
+  - {x: 0.22857141, y: 0.5142857}
   firstStrikeOnlyParry: 1
   abilityId: V3_Lacodon_BiteAttack
   weakAttackExecution: {fileID: 0}

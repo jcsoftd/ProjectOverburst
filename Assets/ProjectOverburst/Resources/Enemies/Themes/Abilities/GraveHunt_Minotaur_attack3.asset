@@ -18,7 +18,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: 0.49236727, y: 2.1670263, z: 1.1525705}
   parryCueScale: 0.65
   parryMotionWindows:
-  - {x: 0.375, y: 0.475}
+  - {x: 0.30499998, y: 0.475}
   firstStrikeOnlyParry: 1
   abilityId: GraveHunt_Minotaur_attack3
   weakAttackExecution: {fileID: 0}

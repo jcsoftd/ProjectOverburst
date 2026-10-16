@@ -18,7 +18,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: 1.1454189, y: 2.9810297, z: 1.1509356}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.10999999, y: 0.16}
+  - {x: 0.08722668, y: 0.16}
   firstStrikeOnlyParry: 1
   abilityId: DeathHarvest_Reaper_3_scythe3HitCombo
   weakAttackExecution: {fileID: 0}
@@ -43,7 +43,7 @@ MonoBehaviour:
   hitAngle: 130
   verticalTolerance: 1.5
   requireLineOfSight: 1
-  cooldown: 6.00961563
+  cooldown: 6.0096154
   hitDelay: 0.53333336
   hitNormalizedTime: 0.16
   attackAnimationDuration: 3.3333335

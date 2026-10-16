@@ -18,7 +18,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: -0.08650339, y: 2.92785, z: 2.4123967}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.32, y: 0.42}
+  - {x: 0.24, y: 0.42}
   firstStrikeOnlyParry: 1
   abilityId: V3_Crassorrid_SmashAttack
   weakAttackExecution: {fileID: 0}

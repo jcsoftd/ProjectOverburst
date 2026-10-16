@@ -16,7 +16,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: -0.065207005, y: 1.9426078, z: 1.8520404}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.35, y: 0.55}
+  - {x: 0.2409091, y: 0.55}
   firstStrikeOnlyParry: 1
   abilityId: V3_Gasterodonte_AllTentaclesAttack
   weakAttackExecution: {fileID: 0}

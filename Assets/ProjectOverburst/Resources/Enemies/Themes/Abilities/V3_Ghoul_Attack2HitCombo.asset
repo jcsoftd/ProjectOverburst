@@ -18,7 +18,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: -0.69918877, y: 1.7272632, z: 0.79071486}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.12, y: 0.21999998}
+  - {x: 0.08, y: 0.21999998}
   firstStrikeOnlyParry: 1
   abilityId: V3_Ghoul_Attack2HitCombo
   weakAttackExecution: {fileID: 0}

@@ -16,7 +16,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: 0.6441472, y: 1.6111324, z: 2.5924122}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.23076922, y: 0.3}
+  - {x: 0.15384614, y: 0.3}
   firstStrikeOnlyParry: 1
   abilityId: VenomBrood_Kupolobrach_Tint_Orange_2HitComboClawsAttack
   weakAttackExecution: {fileID: 0}

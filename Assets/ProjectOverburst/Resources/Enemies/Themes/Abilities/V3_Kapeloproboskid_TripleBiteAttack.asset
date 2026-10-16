@@ -16,7 +16,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: 0.010796336, y: 2.1501586, z: 0.91223454}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.1375, y: 0.24999999}
+  - {x: 0.1, y: 0.24999999}
   firstStrikeOnlyParry: 1
   abilityId: V3_Kapeloproboskid_TripleBiteAttack
   weakAttackExecution: {fileID: 0}

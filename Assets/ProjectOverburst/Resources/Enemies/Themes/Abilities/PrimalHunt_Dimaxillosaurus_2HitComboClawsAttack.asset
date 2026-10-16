@@ -19,7 +19,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: 1.1808996, y: 2.3133483, z: 1.2573489}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.16363636, y: 0.29090908}
+  - {x: 0.13752064, y: 0.29090908}
   firstStrikeOnlyParry: 1
   abilityId: PrimalHunt_Dimaxillosaurus_2HitComboClawsAttack
   weakAttackExecution: {fileID: 0}

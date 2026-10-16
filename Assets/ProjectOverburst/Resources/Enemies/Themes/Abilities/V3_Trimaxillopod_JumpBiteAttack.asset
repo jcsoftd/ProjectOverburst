@@ -16,7 +16,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: -0.000024828045, y: 2.0163713, z: 0.31748736}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.3, y: 0.56666666}
+  - {x: 0.26666668, y: 0.56666666}
   firstStrikeOnlyParry: 1
   abilityId: V3_Trimaxillopod_JumpBiteAttack
   weakAttackExecution: {fileID: 0}

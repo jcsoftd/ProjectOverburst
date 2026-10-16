@@ -16,7 +16,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: 0.13609912, y: 3.7139125, z: 0.41710794}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.33999997, y: 0.55999994}
+  - {x: 0.29999998, y: 0.55999994}
   firstStrikeOnlyParry: 1
   abilityId: SpiderBrood_Rostrokarck_DoubleClawsAttack
   weakAttackExecution: {fileID: 0}

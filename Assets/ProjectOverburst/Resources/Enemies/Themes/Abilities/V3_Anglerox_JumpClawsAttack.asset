@@ -18,7 +18,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: 2.0007489, y: 4.712739, z: 0.85450333}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.39999998, y: 0.55999994}
+  - {x: 0.35999998, y: 0.55999994}
   firstStrikeOnlyParry: 1
   abilityId: V3_Anglerox_JumpClawsAttack
   weakAttackExecution: {fileID: 0}

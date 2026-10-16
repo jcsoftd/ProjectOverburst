@@ -16,7 +16,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: -1.1249559, y: 2.033833, z: 0.61365306}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.325, y: 0.525}
+  - {x: 0.29389277, y: 0.525}
   firstStrikeOnlyParry: 1
   abilityId: SpiderBrood_Formickarce_ClawAttackLeft
   weakAttackExecution: {fileID: 0}

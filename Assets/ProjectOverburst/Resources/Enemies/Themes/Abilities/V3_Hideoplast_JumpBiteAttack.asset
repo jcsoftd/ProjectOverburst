@@ -17,7 +17,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: 0.14481173, y: 1.9747086, z: 1.1204755}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.36666667, y: 0.6333333}
+  - {x: 0.35405183, y: 0.6333333}
   firstStrikeOnlyParry: 1
   abilityId: V3_Hideoplast_JumpBiteAttack
   weakAttackExecution: {fileID: 0}

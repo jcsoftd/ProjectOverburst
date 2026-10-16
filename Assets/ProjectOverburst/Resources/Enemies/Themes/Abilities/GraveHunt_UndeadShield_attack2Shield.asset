@@ -16,7 +16,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: 0.18574707, y: 1.4340694, z: 0.57916117}
   parryCueScale: 0.65
   parryMotionWindows:
-  - {x: 0.22857141, y: 0.3142857}
+  - {x: 0.15281631, y: 0.3142857}
   firstStrikeOnlyParry: 1
   abilityId: GraveHunt_UndeadShield_attack2Shield
   weakAttackExecution: {fileID: 0}

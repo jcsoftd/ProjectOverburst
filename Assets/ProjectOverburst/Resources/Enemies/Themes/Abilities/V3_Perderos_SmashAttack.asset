@@ -18,7 +18,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: -0.00000918, y: 4.585072, z: 2.4485397}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.37777776, y: 0.5333333}
+  - {x: 0.3022222, y: 0.5333333}
   firstStrikeOnlyParry: 1
   abilityId: V3_Perderos_SmashAttack
   weakAttackExecution: {fileID: 0}

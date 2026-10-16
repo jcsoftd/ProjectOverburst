@@ -16,7 +16,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: -0.02979257, y: 2.2058136, z: 1.6643927}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.39999998, y: 0.5368421}
+  - {x: 0.36842105, y: 0.5368421}
   firstStrikeOnlyParry: 1
   abilityId: V3_Clypeosaurus_SmashAttack
   weakAttackExecution: {fileID: 0}

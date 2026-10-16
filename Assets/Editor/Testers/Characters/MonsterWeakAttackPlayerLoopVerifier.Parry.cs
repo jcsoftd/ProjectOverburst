@@ -182,9 +182,24 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
                     capture.BeginTake(output,player.transform,enemy.transform);
                 if(strong!=null&&strong.IsTelegraphedStrongAttack&&enemy.AbilityController.IsExecuting
                     &&enemy.AbilityController.IsParryThreatTo(target)
-                    &&enemy.AnimationBridge.TryGetAttackNormalizedTime(strong.AnimatorTrigger,out originalAttackTime)&&originalAttackTime>=.05f)break;
+                    &&enemy.AnimationBridge.TryGetAttackNormalizedTime(strong.AnimatorTrigger,out originalAttackTime)&&originalAttackTime>=.05f
+                    &&enemy.GetComponent<EnemyStrongAttackWarning>().FinalSignal)break;
                 ParryRequire(Time.time<attackDeadline,"AI did not produce an animated, parryable strong attack");yield return null;
             }
+            float requestedWindowFraction = Mathf.Clamp((float?)request?["parryWindowFractions"]?[definition.EnemyId] ?? 0f, 0f, .9f);
+            if (requestedWindowFraction > 0f && strong.TryGetParryMotionWindow(0, out var inputWindow))
+            {
+                float speed = enemy.Melee.AbilityAnimationSpeed;
+                float inputTime = Mathf.Lerp(strong.ResolvePacedTime(inputWindow.x, speed), strong.ResolvePacedTime(inputWindow.y, speed), requestedWindowFraction);
+                float inputDeadline = Time.time + 2;
+                while (enemy.AnimationBridge.TryGetAttackNormalizedTime(strong.AnimatorTrigger, out originalAttackTime)
+                    && strong.ResolvePacedTime(originalAttackTime, speed) < inputTime)
+                { ParryRequire(Time.time < inputDeadline && enemy.AbilityController.IsExecuting, "Parry window input position expired"); yield return null; }
+            }
+            bool warningAtInput = enemy.GetComponent<EnemyStrongAttackWarning>().FinalSignal;
+            ParryRequire(warningAtInput && enemy.AbilityController.IsParryThreatTo(target), "Requested pre-impact input is not signalled and parryable");
+            float inputLead = strong.ResolvePacedTime(strong.GetHitNormalizedTime(0), enemy.Melee.AbilityAnimationSpeed)
+                - strong.ResolvePacedTime(originalAttackTime, enemy.Melee.AbilityAnimationSpeed);
             // The saved full ability set and AI choose the strong; actual player heavy input performs the parry.
             var controller=player.GetComponent<PlayerParryController>();int before=controller!=null?controller.SuccessCount:0;
             float health=playerActor.Health.CurrentHp;
@@ -228,7 +243,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
             float resume=Time.time+10;bool resumed=false;
             while(Time.time<resume)
             {
-                if(enemy.AbilityController.IsExecuting){resumed=true;break;}
+                if(enemy.AbilityController.IsExecuting && enemy.AbilityController.LastCommittedAbility!=null){resumed=true;break;}
                 Vector3 direction=player.transform.position-enemy.transform.position;direction.y=0;
                 trace.Add(new JObject{["phase"]="resume",["gameSeconds"]=Time.time-started,
                     ["ai"]=enemy.AI.CurrentStateName,["distance"]=enemy.AI.TargetDistance,["engagementRange"]=enemy.AI.AttackEnterRange,
@@ -250,6 +265,8 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
             bool reset=!enemy.IsLeased&&!enemy.gameObject.activeSelf&&!enemy.AnimationBridge.IsParryStunAnimating&&!enemy.GetComponent<EnemyMovementReaction>().IsParryStunned&&!enemy.AbilityController.IsExecuting;
             ParryRequire(reset,"Parry state leaked into the pool");
             cases.Add(new JObject{["pass"]=recorded,["id"]=definition.EnemyId,["actualPlayerHeavyParry"]=true,["parrySuccessDelta"]=controller.SuccessCount-before,
+                ["requestedParryWindowFraction"]=requestedWindowFraction,["warningActiveAtParryInput"]=warningAtInput,
+                ["parryInputNormalized"]=originalAttackTime,["preImpactLeadAtParryInput"]=inputLead,
                 ["parryGrade"]=controller.ActionGrade.ToString(),["fixtureVersion"]=PerfectParryFixtureVersion,
                 ["fixturePreventsLethalDamage"]=true,["captureSurvivalLeaseReturned"]=true,
                 ["captureRangeRepositions"]=captureRangeRepositions,

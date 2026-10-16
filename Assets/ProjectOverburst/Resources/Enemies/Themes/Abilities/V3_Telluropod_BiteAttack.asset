@@ -16,7 +16,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: -0.000000017000831, y: 0.9806415, z: 0.299515}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.29999998, y: 0.475}
+  - {x: 0.2839, y: 0.475}
   firstStrikeOnlyParry: 1
   abilityId: V3_Telluropod_BiteAttack
   weakAttackExecution: {fileID: 0}

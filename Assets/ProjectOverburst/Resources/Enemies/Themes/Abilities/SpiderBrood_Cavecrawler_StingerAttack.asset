@@ -16,7 +16,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: 0.00000025858043, y: 1.2722635, z: -0.14052778}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.26666668, y: 0.4}
+  - {x: 0.21666667, y: 0.4}
   firstStrikeOnlyParry: 1
   abilityId: SpiderBrood_Cavecrawler_StingerAttack
   weakAttackExecution: {fileID: 0}

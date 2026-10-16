@@ -18,7 +18,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: -0.34809545, y: 3.663982, z: 1.1514349}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.3125, y: 0.44}
+  - {x: 0.29375, y: 0.44}
   firstStrikeOnlyParry: 1
   abilityId: CavernMutants_Ursacetus_2HandsSmashAttack
   weakAttackExecution: {fileID: 0}

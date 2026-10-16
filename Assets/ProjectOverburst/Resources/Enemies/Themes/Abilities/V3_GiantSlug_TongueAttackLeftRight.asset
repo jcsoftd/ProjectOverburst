@@ -16,7 +16,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: 0.8970232, y: 0.26955134, z: 1.9020526}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.24210526, y: 0.35789472}
+  - {x: 0.23157895, y: 0.35789472}
   firstStrikeOnlyParry: 1
   abilityId: V3_GiantSlug_TongueAttackLeftRight
   weakAttackExecution: {fileID: 0}

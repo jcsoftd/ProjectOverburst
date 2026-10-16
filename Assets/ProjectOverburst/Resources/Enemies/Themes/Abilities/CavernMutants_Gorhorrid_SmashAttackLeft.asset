@@ -18,7 +18,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: -0.605449, y: 1.7478029, z: 1.121348}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.26666665, y: 0.41}
+  - {x: 0.19999999, y: 0.41}
   firstStrikeOnlyParry: 1
   abilityId: CavernMutants_Gorhorrid_SmashAttackLeft
   weakAttackExecution: {fileID: 0}

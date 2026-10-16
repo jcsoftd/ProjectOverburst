@@ -215,6 +215,8 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
     static Vector3 Vector(JToken value)=>new Vector3((float)value[0],(float)value[1],(float)value[2]);
     static IEnumerator RunCases()
     {
+        if (!string.IsNullOrEmpty(plan.attackBatch) && (bool?)JObject.Parse(File.ReadAllText(plan.attackBatch))["verifyStrongWarningTiming"] == true)
+        { yield return RunStrongWarningTimingCases(); yield break; }
         if (!string.IsNullOrEmpty(plan.attackBatch) && (bool?)JObject.Parse(File.ReadAllText(plan.attackBatch))["verifyAttackPolicy"] == true)
         { yield return RunAttackPolicyCases(); yield break; }
         if(!string.IsNullOrEmpty(plan.themeActivationPath)){yield return RunActualThemeCases();yield break;}

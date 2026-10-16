@@ -18,7 +18,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: -0.0000027044998, y: 2.4656713, z: 1.6368123}
   parryCueScale: 0.8249999
   parryMotionWindows:
-  - {x: 0.34285712, y: 0.45714283}
+  - {x: 0.26962963, y: 0.45714283}
   firstStrikeOnlyParry: 1
   abilityId: V3_Serpenopod_DoubleClawsAttackForward
   weakAttackExecution: {fileID: 0}
