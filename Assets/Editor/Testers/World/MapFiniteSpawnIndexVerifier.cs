@@ -49,6 +49,243 @@ public static class MapFiniteSpawnIndexVerifier
             && reserves.Distinct().Count() == reserves.Count, prefix + "unreleased reserve membership preserved");
     }
 
+    static Func<Vector3, float> OuterDistance(MapCombatGeometry.Area area)
+    {
+        var source = Get(area, "<Source>k__BackingField");
+        var boundary = (Overburst.Caves.CavePlatformBoundary)Get(source, "boundary");
+        if (!boundary)
+        {
+            var place = (Overburst.Mojave.MojavePlace)Get(source, "place");
+            return p => Mathf.Abs(place.Distance(new Vector2(p.x, p.z)));
+        }
+        bool Inside(Vector3 p, Vector3[] loop)
+        {
+            bool inside = false;
+            for (int i = 0, j = loop.Length - 1; i < loop.Length; j = i++)
+                if ((loop[i].z > p.z) != (loop[j].z > p.z)
+                    && p.x < (loop[j].x - loop[i].x) * (p.z - loop[i].z) / (loop[j].z - loop[i].z) + loop[i].x) inside = !inside;
+            return inside;
+        }
+        var loops = boundary.Data.loops; var segments = new List<(Vector2 a, Vector2 b)>();
+        foreach (var loop in loops)
+        {
+            int depth = loops.Count(other => other != loop && Inside(loop.points[0], other.points));
+            if (depth % 2 != 0) continue;
+            for (int i = 0; i < loop.points.Length; i++)
+            {
+                var a = boundary.transform.TransformPoint(loop.points[i]); var b = boundary.transform.TransformPoint(loop.points[(i + 1) % loop.points.Length]);
+                segments.Add((new Vector2(a.x,a.z),new Vector2(b.x,b.z)));
+            }
+        }
+        return point =>
+        {
+            float best = float.PositiveInfinity; var p = new Vector2(point.x,point.z);
+            foreach (var edge in segments)
+            {
+                var d = edge.b - edge.a; float t = Mathf.Clamp01(Vector2.Dot(p - edge.a,d) / Mathf.Max(.00001f,d.sqrMagnitude));
+                best = Mathf.Min(best,Vector2.Distance(p,edge.a + d * t));
+            }
+            return best;
+        };
+    }
+    public static void VerifyOuterCache(MapSpawnBudget budget, Action<bool, string> check, string output)
+    {
+        var evidence = new List<object>();
+        foreach (var field in budget.Fields)
+        {
+            var area = field.FiniteArea; if (area.Count == 0) continue;
+            var distance = OuterDistance(area.Ground); var cached = (List<Vector3>)Get(field,"edgePoints");
+            float maximum = cached.Count > 0 ? cached.Max(distance) : float.PositiveInfinity;
+            var cells = new HashSet<Vector2Int>(area.Ground.Points.Select(p => new Vector2Int(Mathf.FloorToInt(p.x),Mathf.FloorToInt(p.z))));
+            int rejectedInterior = area.Ground.Points.Count(p =>
+            {
+                var c = new Vector2Int(Mathf.FloorToInt(p.x),Mathf.FloorToInt(p.z));
+                return (!cells.Contains(c + Vector2Int.right) || !cells.Contains(c + Vector2Int.left)
+                    || !cells.Contains(c + Vector2Int.up) || !cells.Contains(c + Vector2Int.down)) && distance(p) > MapCombatGeometry.CellSize * 1.5f;
+            });
+            evidence.Add(new { area.Ground.Index, area.Ground.Name, cached = cached.Count, maximumOuterDistance = maximum, legacyInteriorCandidates = rejectedInterior });
+            File.WriteAllText(Path.Combine(output,"outer-cache.json"),JsonConvert.SerializeObject(evidence,Formatting.Indented));
+            check(cached.Count > 0 && maximum <= MapCombatGeometry.CellSize * 1.5f,
+                "Outer cache follows the authored platform rim, excluding internal passability holes: " + area.Ground.Index);
+        }
+    }
+    public static void VerifyVisiblePositions(MapMonsterField field, Action<bool, string> check, string output)
+    {
+        var distance = OuterDistance(field.FiniteArea.Ground); var evidence = new List<object>(); bool valid = true;
+        foreach (var slot in List(field,"slots"))
+        {
+            var member = Member(slot); if (member.Initial || member.State != MapRunRoster.Life.Active || !field.TryGetActor(member.Index,out var actor)) continue;
+            float radius = (float)Get(slot,"Radius"), rim = distance(actor.transform.position);
+            valid &= rim <= MapCombatGeometry.CellSize * 1.5f + radius + .6f;
+            var position = actor.transform.position;
+            evidence.Add(new { member.Id, rimDistance = rim, radius, position = new { position.x, position.y, position.z } });
+        }
+        File.WriteAllText(Path.Combine(output,"visible-outer-positions.json"),JsonConvert.SerializeObject(evidence,Formatting.Indented));
+        check(valid && evidence.Count > 0,"Camera-visible actual reserve actors stay at the true outer rim with body inset");
+    }
+
+    public static void VerifyDeferredBoundary(MapMonsterField field, int memberIndex, Vector3 player, Action<bool, string> check, string output)
+    {
+        var slot = List(field, "slots").Single(s => Member(s).Index == memberIndex);
+        // Reproduce the state immediately after the last offscreen candidate consumed the frame budget.
+        Set(slot, "SearchRemaining", 0);
+        if ((int)Get(slot, "Cursor") == 0) Set(slot, "Cursor", 1);
+        int cursor = (int)Get(slot, "Cursor");
+        var args = new object[] { slot, player, false, System.Diagnostics.Stopwatch.GetTimestamp() - System.Diagnostics.Stopwatch.Frequency, Vector3.zero };
+        bool found = (bool)Call(field, "TryFinitePositionWithinBudget", args);
+        var result = new { found, deferred = (bool)Get(slot, "PositionDeferred"), remaining = (int)Get(slot, "SearchRemaining"),
+            cursorBefore = cursor, cursorAfter = (int)Get(slot, "Cursor") };
+        File.WriteAllText(Path.Combine(output, "budget-boundary-" + memberIndex + ".json"), JsonConvert.SerializeObject(result, Formatting.Indented));
+        check(!result.found && result.deferred && result.remaining == 0 && result.cursorBefore == result.cursorAfter,
+            "Completed offscreen pass survives an exhausted budget without restarting the floor scan");
+    }
+    public static object RunEdgeGeometry(string directory)
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
+            || IsolatedSavePlayGuard.RequiresAccountChoice || !string.IsNullOrEmpty(IsolatedSavePlayGuard.ActiveDirectory))
+            throw new InvalidOperationException("Use unguarded idle EditMode.");
+        string output = CombatPerformancePaths.RequireOutput(Path.GetFullPath(directory)); Directory.CreateDirectory(output);
+        var checks = new List<string>(); var evidence = new List<object>();
+        void Check(bool value, string label) { if (!value) throw new InvalidOperationException(label); checks.Add(label); }
+        var scene = EditorSceneManager.NewPreviewScene();
+        try
+        {
+            for (int shape = 0; shape < 3; shape++)
+            {
+                var root = new GameObject("Owned outer-rim fixture"); UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(root, scene);
+                var boundary = root.AddComponent<Overburst.Caves.CavePlatformBoundary>();
+                var outer = shape == 2 ? new[] { new Vector3(0,0,0),new Vector3(25,0,0),new Vector3(25,0,13),new Vector3(13,0,13),new Vector3(13,0,25),new Vector3(0,0,25) }
+                    : new[] { Vector3.zero,new Vector3(25,0,0),new Vector3(25,0,25),new Vector3(0,0,25) };
+                boundary.loops = shape == 1 ? new[] { new Overburst.Caves.CavePlatformBoundary.Loop { points = outer },
+                    new Overburst.Caves.CavePlatformBoundary.Loop { points = new[] { new Vector3(11,0,11),new Vector3(14,0,11),new Vector3(14,0,14),new Vector3(11,0,14) } } }
+                    : new[] { new Overburst.Caves.CavePlatformBoundary.Loop { points = outer } };
+                var points = new List<Vector3>();
+                for (int z = 0; z < 25; z++) for (int x = 0; x < 25; x++)
+                {
+                    if (shape < 2 && (x >= 11 && x <= 13 && z >= 11 && z <= 13 || x == 12 && z <= 10)) continue;
+                    if (shape == 2 && (x >= 13 && z >= 13 || x >= 5 && x <= 7 && z >= 5 && z <= 7)) continue;
+                    points.Add(new Vector3(x + .5f,0,z + .5f));
+                }
+                var area = new MapCombatGeometry.Area(0,"Outer-rim fixture",new Vector3(12.5f,0,12.5f),0,points);
+                var sourceType = typeof(MapCombatGeometry).GetNestedType("Source",BindingFlags.NonPublic);
+                var source = Activator.CreateInstance(sourceType,true); Set(source,"boundary",boundary);
+                Set(source,"bounds",new Bounds(area.Center,new Vector3(25,0,25))); Set(area,"<Source>k__BackingField",source);
+                var watch = System.Diagnostics.Stopwatch.StartNew(); var edge = MapCombatGeometry.EdgePoints(area); watch.Stop();
+                int internalCandidates = shape < 2 ? edge.Count(p => p.x > .5f && p.x < 24.5f && p.z > .5f && p.z < 24.5f)
+                    : edge.Count(p => p.x > 3 && p.x < 10 && p.z > 3 && p.z < 10);
+                evidence.Add(new { shape, candidates = edge.Count, internalCandidates, buildMilliseconds = watch.Elapsed.TotalMilliseconds });
+                File.WriteAllText(Path.Combine(output,"geometry-probe.json"),JsonConvert.SerializeObject(evidence,Formatting.Indented));
+                Check(edge.Count > 0 && internalCandidates == 0,"Outer rim excludes internal obstacles, open obstacle corridors and enclosed floor holes: " + shape);
+                if (shape == 2) Check(edge.Contains(new Vector3(12.5f,0,18.5f)),"Concave outer boundary remains a valid rim");
+            }
+            var result = new { status="PASS", checks, evidence }; File.WriteAllText(Path.Combine(output,"result.json"),JsonConvert.SerializeObject(result,Formatting.Indented)); return result;
+        }
+        finally { EditorSceneManager.ClosePreviewScene(scene); }
+    }
+
+    public static object RunContinuationNative(string directory)
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
+            || IsolatedSavePlayGuard.RequiresAccountChoice || !string.IsNullOrEmpty(IsolatedSavePlayGuard.ActiveDirectory))
+            throw new InvalidOperationException("Use unguarded idle EditMode.");
+        string output = CombatPerformancePaths.RequireOutput(Path.GetFullPath(directory)); Directory.CreateDirectory(output);
+        var checks = new List<object>();
+        void Check(bool passed, string label) { checks.Add(new { passed, label }); }
+        var scene = EditorSceneManager.NewPreviewScene();
+        try
+        {
+            var theme = MapThemeCatalog.Resolve("PrimalHunt"); var map = new MapInstanceState { monsterThemeId = theme.ThemeId };
+            MapGenerationPolicy.Initialize(map,"continuation-test"); map.terrain = MapTerrainKind.Cave; map.areaCount = 4; map.seed = 48310;
+            map.width = map.depth = 0; map.desertCandidateId = null;
+            var areas = Enumerable.Range(0,4).Select(i => new MapCombatGeometry.Area(i,"Continuation fixture",Vector3.zero,0,
+                Enumerable.Repeat(Vector3.zero,1000).ToList())).ToList();
+            var sourceType = typeof(MapCombatGeometry).GetNestedType("Source",BindingFlags.NonPublic);
+            foreach (var area in areas) Set(area,"<Source>k__BackingField",Activator.CreateInstance(sourceType,true));
+            var roster = MapRunRoster.Build("continuation",map,areas);
+            var root = new GameObject("Owned continuation fixture"); UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(root,scene);
+            var budget = root.AddComponent<MapSpawnBudget>(); var field = root.AddComponent<MapMonsterField>();
+            Call(field,"ConfigureFinite",roster,roster.Areas[0],budget);
+            Set(field,"edgePoints",Enumerable.Repeat(Vector3.zero,8).ToList());
+            var slot = List(field,"slots").First(s => !Member(s).Initial);
+            Set(slot,"Radius",.01f); Set(slot,"Height",.1f);
+            void Optional(string name, object value) { slot.GetType().GetField(name,Fields)?.SetValue(slot,value); }
+            var groupType = typeof(MapMonsterField).GetNestedType("SpawnGroup",BindingFlags.NonPublic);
+            var group = Activator.CreateInstance(groupType,true); Set(group,"Ground",areas[0]); Set(group,"Point",Vector3.zero);
+            Set(slot,"Group",group); Set(slot,"GroupCursor",23); Optional("GroupRemaining",1);
+            Set(slot,"Cursor",1); Set(slot,"SearchRemaining",-1); Set(slot,"EverSpawned",false);
+            var expired = new object[] { slot,Vector3.zero,false,System.Diagnostics.Stopwatch.GetTimestamp()-System.Diagnostics.Stopwatch.Frequency,Vector3.zero };
+            Call(field,"TryFinitePositionWithinBudget",expired);
+            Check((int)Get(slot,"GroupCursor")==23 && (bool)Get(slot,"PositionDeferred"),"Expired group continuation consumes no candidate");
+            Call(field,"TryFinitePositionWithinBudget",slot,Vector3.zero,false,0L,Vector3.zero);
+            int groupAfter=(int)Get(slot,"GroupCursor");
+            Check(groupAfter==24,"Only the last outstanding group candidate is retried before floor/edge fallback");
+            Set(slot,"Group",null); Set(slot,"EverSpawned",true); Set(slot,"SearchRemaining",0); Set(slot,"EdgeCursor",7); Optional("EdgeRemaining",1);
+            Call(field,"TryFinitePositionWithinBudget",expired);
+            Check((int)Get(slot,"EdgeCursor")==7 && (int)Get(slot,"SearchRemaining")==0,"Expired edge continuation consumes no candidate or completed floor pass");
+            Call(field,"TryFinitePositionWithinBudget",slot,Vector3.zero,false,0L,Vector3.zero);
+            int edgeAfter=(int)Get(slot,"EdgeCursor");
+            Check(edgeAfter==8 && (int)Get(slot,"SearchRemaining")==-1,"Last invalid edge candidate completes the deferred pass and reopens offscreen search");
+            Set(field,"approaches",Enumerable.Repeat(Vector3.zero,8).ToList());
+            int Scan(object candidate, bool returned)
+            {
+                Set(candidate,"EverSpawned",returned); Set(candidate,"Cursor",1); Set(candidate,"SearchRemaining",-1); Set(candidate,"Group",null);
+                Call(field,"TryFinitePositionWithinBudget",candidate,Vector3.zero,true,0L,Vector3.zero);
+                return (int)Get(candidate,"Cursor")-1;
+            }
+            int freshCount=Scan(slot,false), returnedCount=Scan(slot,true);
+            var initialSlot=List(field,"slots").First(s=>Member(s).Initial); Set(initialSlot,"Radius",.01f); Set(initialSlot,"Height",.1f);
+            int initialCount=Scan(initialSlot,false);
+            Check(freshCount==1000,"New reserves never scan connection approaches");
+            Check(returnedCount==1008,"Living returns retain connection approaches");
+            Check(initialCount==1008,"Initial road packs retain connection approaches");
+            bool passed=checks.All(c=>(bool)c.GetType().GetProperty("passed").GetValue(c));
+            var result=new {status=passed?"PASS":"FAIL",checks,groupAfter,edgeAfter,freshCount,returnedCount,initialCount};
+            File.WriteAllText(Path.Combine(output,"result.json"),JsonConvert.SerializeObject(result,Formatting.Indented));
+            if (!passed) throw new InvalidOperationException("Continuation regression failed; inspect result.json.");
+            return result;
+        }
+        finally { EditorSceneManager.ClosePreviewScene(scene); }
+    }
+
+    public static void VerifyReserveFloor(MapSpawnBudget budget, Action<bool,string> check, string output)
+    {
+        foreach (var field in budget.Fields.Where(f=>f.FiniteArea.Count>f.FiniteArea.InitialCount))
+        {
+            var area=field.FiniteArea.Ground;
+            var member=budget.GetComponentInParent<RunWorldGate>().Roster.Members.Where(m=>m.AreaIndex==area.Index && !m.Initial)
+                .OrderBy(m=>MapCombatGeometry.BodyFor(m.Definition).Radius).First();
+            var body=MapCombatGeometry.BodyFor(member.Definition); var player=PlayerContext.Instance.CurrentActor.transform.position;
+            var path=new UnityEngine.AI.NavMeshPath(); var overlaps=new Collider[32];
+            foreach (var point in field.FiniteApproaches)
+            {
+                if (Vector3.Distance(point,player)<MapCombatGeometry.EntrySafety+body.Radius+1
+                    || budget.Fields.Any(f=>MapCombatGeometry.Contains(f.FiniteArea.Ground,point))
+                    || !MapCombatGeometry.TryRuntimePoint(area,member.Definition,point,true,overlaps,path,out var road)
+                    || !(bool)Call(budget,"IsSeparated",road,body.Radius)) continue;
+                var original=Get(field,"approaches");
+                try
+                {
+                    Set(field,"approaches",new List<Vector3>{point});
+                    var slot=Activator.CreateInstance(typeof(MapMonsterField).GetNestedType("Slot",BindingFlags.NonPublic),true);
+                    Set(slot,"Member",member); Set(slot,"Radius",body.Radius); Set(slot,"Height",body.Height);
+                    int total=area.Points.Count+1, cursor=(area.Points.Count-member.Index*17%total+total)%total;
+                    Set(slot,"Cursor",cursor); Set(slot,"EverSpawned",true);
+                    var args=new object[]{slot,player,true,Vector3.zero}; bool restored=(bool)Call(field,"TryFinitePosition",args);
+                    bool restoredOnRoad=restored && !MapCombatGeometry.Contains(area,(Vector3)args[3]);
+                    Set(slot,"Cursor",cursor); Set(slot,"SearchRemaining",-1); Set(slot,"EverSpawned",false);
+                    args[3]=Vector3.zero; bool fresh=(bool)Call(field,"TryFinitePosition",args);
+                    bool freshOnFloor=!fresh || MapCombatGeometry.Contains(area,(Vector3)args[3]);
+                    File.WriteAllText(Path.Combine(output,"reserve-floor.json"),JsonConvert.SerializeObject(new { area.Index,restoredOnRoad,fresh,freshOnFloor },Formatting.Indented));
+                    check(restoredOnRoad,"Real connected road remains available to a living return");
+                    check(freshOnFloor,"A new reserve rejects that same real connection and stays on its own platform");
+                    return;
+                }
+                finally { Set(field,"approaches",original); }
+            }
+        }
+        check(false,"A physically valid connection midpoint is required for the reserve-floor regression");
+    }
+
     public static object RunNative(string directory)
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
@@ -102,6 +339,13 @@ public static class MapFiniteSpawnIndexVerifier
             Check(!(bool)Call(field, "TryFinitePositionWithinBudget", args) && (bool)Get(first, "PositionDeferred")
                 && (int)Get(first, "Cursor") == cursor, "Expired budget defers without consuming a placement candidate");
             Check(roster.Kills == 0 && List(field, "spawnSlots").Count == pending, "Budget deferral preserves logical state and retry queue");
+            Set(first, "EverSpawned", true);
+            Set(field, "edgePoints", Enumerable.Range(0, 8).Select(i => Vector3.right * (i * .1f)).ToList());
+            VerifyDeferredBoundary(field, Member(first).Index, Vector3.zero, Check, output);
+            int completedCursor = (int)Get(first, "Cursor");
+            Call(field, "TryFinitePositionWithinBudget", first, Vector3.zero, false, 0L, Vector3.zero);
+            Check((int)Get(first, "Cursor") == completedCursor && (int)Get(first, "EdgeCursor") > 0,
+                "Next budget resumes edge candidates without repeating completed floor candidates");
             // Compile invocations once; reflection/boxing stays outside the measured hot path.
             var expressionField = System.Linq.Expressions.Expression.Constant(field);
             var expressionSlot = System.Linq.Expressions.Expression.Constant(first, first.GetType());

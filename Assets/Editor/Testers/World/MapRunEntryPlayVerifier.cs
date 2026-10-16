@@ -106,8 +106,11 @@ public static class MapRunEntryPlayVerifier
                 map.options.Add(new MapOptionRoll { optionId = MapOptionPolicy.MoreElite, value = .4f });
             }
             var value = ItemSnapshotCodec.Capture(item, registry); value.acquisitionOrder = state.nextAcquisitionOrder++;
-            state.items.Add(value); state.inventory[i] = value.instanceId;
+            int slot = state.inventory.FindIndex(0, state.unlockedSlots, string.IsNullOrEmpty);
+            if (slot < 0) throw new InvalidOperationException("The owned map fixture needs a free inventory slot.");
+            state.items.Add(value); state.inventory[slot] = value.instanceId;
         }
+        AccountInvariants.Validate(state, registry);
         new EasySaveAccountStore(Path.Combine(output, "Account")).Save(state, "map-entry-fixture");
         Write("fixture.json", state.items.Where(i => i.map != null));
         SessionState.SetString(Key + "pending", output); SessionState.SetString(Key + "return", output);
@@ -152,6 +155,12 @@ public static class MapRunEntryPlayVerifier
         if (output == "") { EditorApplication.update -= Begin; return; }
         if (EditorApplication.timeSinceStartup > SessionState.GetFloat(Key + "deadline", 0)) { Finish(new Exception("Boot timeout")); return; }
         if (!EditorApplication.isPlaying || !OwnPlay || !TitleCharacterPanel.Instance) return;
+        try
+        {
+            EditorApplication.LockReloadAssemblies(); SessionState.SetBool(Key + "reloadOwned", true);
+            AssetDatabase.DisallowAutoRefresh(); SessionState.SetBool(Key + "refreshOwned", true);
+        }
+        catch (Exception error) { Finish(error); return; }
         EditorApplication.update -= Begin; SessionState.EraseString(Key + "pending");
         checks.Clear(); observations.Clear(); work.Clear(); Application.runInBackground = true;
         deadline = EditorApplication.timeSinceStartup + (SessionState.GetString(Key + "desertPerformanceProfile", "") != "" ? 7200 : SessionState.GetBool(Key + "minimapCycles", false) || SessionState.GetInt(Key + "completionCases", 0) + SessionState.GetInt(Key + "bossCases", 0) + SessionState.GetInt(Key + "escapeCases", 0) > 0 ? 1200 : 600); lastFrame = -1; work.Push(Verify()); EditorApplication.update += Tick;
@@ -521,8 +530,22 @@ public static class MapRunEntryPlayVerifier
             throw new InvalidOperationException("This folder does not own a desert performance session.");
         Finish(new OperationCanceledException("Desert performance cancelled by user"));
     }
+    static void ReleaseImportLocks()
+    {
+        try
+        {
+            if (SessionState.GetBool(Key + "reloadOwned", false))
+            { SessionState.EraseBool(Key + "reloadOwned"); EditorApplication.UnlockReloadAssemblies(); }
+        }
+        finally
+        {
+            if (SessionState.GetBool(Key + "refreshOwned", false))
+            { SessionState.EraseBool(Key + "refreshOwned"); AssetDatabase.AllowAutoRefresh(); }
+        }
+    }
     static void State(PlayModeStateChange state)
     {
+        if (state == PlayModeStateChange.ExitingPlayMode || state == PlayModeStateChange.EnteredEditMode) ReleaseImportLocks();
         if (state == PlayModeStateChange.EnteredEditMode && SessionState.GetString(Key + "return", "") != "")
         { EditorApplication.update -= Return; EditorApplication.update += Return; }
     }
@@ -530,6 +553,7 @@ public static class MapRunEntryPlayVerifier
     {
         output = SessionState.GetString(Key + "return", "");
         if (output == "") { EditorApplication.update -= Return; return; }
+        if (!EditorApplication.isPlayingOrWillChangePlaymode) ReleaseImportLocks();
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating || IsolatedSavePlayGuard.ActiveDirectory != "") return;
         string scene = SessionState.GetString(Key + "start", "");
         EditorSceneManager.playModeStartScene = scene == "" ? null : AssetDatabase.LoadAssetAtPath<SceneAsset>(scene);

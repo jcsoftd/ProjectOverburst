@@ -29,7 +29,9 @@ public sealed partial class MapMonsterField
         public float Radius, Height;
         public Rigidbody Body;
         public SpawnGroup Group;
-        public int GroupCursor, SearchRemaining, EdgeCursor;
+        public int GroupCursor, EdgeCursor;
+        public int GroupRemaining = 24, EdgeRemaining = -1;
+        public int SearchRemaining = -1;
     }
     MapRunRoster finiteRoster;
     MapRunRoster.Area finiteArea;
@@ -298,14 +300,16 @@ public sealed partial class MapMonsterField
             if (!budget.IsSeparated(result, slot.Radius)) return false;
             slot.SpawnAreaIndex = ground.Index;
             visibleEdgePlacement = allowVisible && budget.InView(result, .12f, slot.Radius, slot.Height);
-            slot.SearchRemaining = 0;
+            slot.SearchRemaining = -1;
+            slot.GroupRemaining = 24; slot.EdgeRemaining = -1;
             slot.EdgeCursor = 0;
             return true;
         }
-        if (!slot.EverSpawned && slot.Group?.Ground != null)
-            for (int i = 0; i < 24; i++)
+        if (slot.SearchRemaining < 0 && !slot.EverSpawned && slot.Group?.Ground != null)
+            while (slot.GroupRemaining > 0)
             {
                 if (Expired()) return false;
+                slot.GroupRemaining--;
                 int n = slot.GroupCursor++;
                 float angle = (slot.Member.Index * 2.399963f + n * Mathf.PI * .25f);
                 float distance = (slot.Radius * 2 + MapCombatGeometry.BodyGap + .12f) * (1 + n % 24 / 8);
@@ -320,8 +324,10 @@ public sealed partial class MapMonsterField
             if (preparing) return false;
         }
         var points = finiteArea.Ground.Points;
-        int total = points.Count + approaches.Count;
-        if (slot.SearchRemaining <= 0) slot.SearchRemaining = total;
+        // New reserves stay on their own floor; initial road packs and living returns keep approaches.
+        int total = points.Count + (slot.Member.Initial || slot.EverSpawned ? approaches.Count : 0);
+        // Zero retains the completed offscreen pass across a budget deferral.
+        if (slot.SearchRemaining < 0) slot.SearchRemaining = total;
         while (slot.SearchRemaining > 0)
         {
             if (Expired()) return false;
@@ -333,14 +339,17 @@ public sealed partial class MapMonsterField
         }
         if (!preparing && edgePoints.Count > 0)
         {
+            if (Expired()) return false;
             if ((edgeSortPlayer - player).sqrMagnitude > 1)
             {
                 edgeSortPlayer = player;
                 edgePoints.Sort(edgeComparison);
             }
-            for (int i = 0; i < Mathf.Min(8, edgePoints.Count); i++)
+            if (slot.EdgeRemaining < 0) slot.EdgeRemaining = Mathf.Min(8, edgePoints.Count);
+            while (slot.EdgeRemaining > 0)
             {
                 if (Expired()) return false;
+                slot.EdgeRemaining--;
                 var candidate = edgePoints[(slot.EdgeCursor++) % edgePoints.Count];
                 if (Clear(finiteArea.Ground, candidate, false, out position, true)) return true;
                 // Leave room for the whole body on the valid side of the authored edge.
@@ -348,6 +357,8 @@ public sealed partial class MapMonsterField
                 if (Clear(finiteArea.Ground, candidate, false, out position, true)) return true;
             }
         }
+        slot.SearchRemaining = -1;
+        slot.GroupRemaining = 24; slot.EdgeRemaining = -1;
         position = default; return false;
     }
     internal void SetFiniteAwake(bool awake)

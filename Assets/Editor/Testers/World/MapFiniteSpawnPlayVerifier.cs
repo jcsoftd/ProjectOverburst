@@ -19,6 +19,8 @@ public static class MapFiniteSpawnPlayVerifier
         check(budget.AliveCount <= budget.AliveLimit && budget.SpawnedThisFrame <= MapSpawnBudget.MaxPerFrame, label + ": frame and live actor limits respected");
         check(roster.Active == budget.Fields.Sum(f => f.FiniteActiveCount), label + ": every active ID has one actor lease");
         MapFiniteSpawnIndexVerifier.VerifyRuntime(budget, check);
+        MapFiniteSpawnIndexVerifier.VerifyOuterCache(budget, check, output);
+        MapFiniteSpawnIndexVerifier.VerifyReserveFloor(budget, check, output);
         var first = roster.Members.First(m => m.State == MapRunRoster.Life.Active);
         var field = budget.Fields[first.AreaIndex];
         check(field.TryGetActor(first.Index, out var actor), label + ": logical member resolves to actual actor");
@@ -73,6 +75,21 @@ public static class MapFiniteSpawnPlayVerifier
                 label + ": depleted packs receive their own finite reinforcement even with the entire platform visible");
             check(field.VisibleEdgeSpawnCount > visibleBefore,
                 label + ": camera-visible fallback actually spawns at the owning platform edge");
+            MapFiniteSpawnIndexVerifier.VerifyVisiblePositions(field, check, output);
+            var resumed = roster.Members.First(m => m.AreaIndex == first.AreaIndex && !m.Initial && m.State == MapRunRoster.Life.Active);
+            check(field.TryGetActor(resumed.Index,out var boundaryActor), label + ": boundary-resume actor exists");
+            int boundaryLease = resumed.Lease, boundaryVisible = field.VisibleEdgeSpawnCount; float boundaryHp = boundaryActor.Health.CurrentHp;
+            EnemySpawnService.Current.Release(boundaryActor);
+            typeof(MapMonsterField).GetMethod("ReconcileFinite",System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).Invoke(field,null);
+            check(resumed.State == MapRunRoster.Life.Pending, label + ": boundary-resume keeps the living logical ID pending");
+            MapFiniteSpawnIndexVerifier.VerifyDeferredBoundary(field,resumed.Index,player.transform.position,check,output);
+            until = EditorApplication.timeSinceStartup + 30;
+            while (resumed.Lease == boundaryLease && EditorApplication.timeSinceStartup < until) yield return null;
+            check(resumed.State == MapRunRoster.Life.Active && resumed.Lease > boundaryLease && field.TryGetActor(resumed.Index,out boundaryActor)
+                && Mathf.Abs(boundaryActor.Health.CurrentHp - boundaryHp) < .01f && roster.Kills == killed,
+                label + ": real budget resumes completed offscreen search and restores the same ID/HP without a synthetic death");
+            check(field.VisibleEdgeSpawnCount > boundaryVisible, label + ": deferred edge phase actually spawns with the full platform visible");
+            MapFiniteSpawnIndexVerifier.VerifyVisiblePositions(field, check, output);
             check(roster.Kills == killed && roster.Total == total, label + ": reinforcement and placement retries do not fabricate kills");
         }
         finally
@@ -261,6 +278,7 @@ public static class MapFiniteSpawnPlayVerifier
         var roster = gate.Roster; var budget = gate.SpawnBudget; var player = PlayerContext.Instance.CurrentActor;
         int total = roster.Total, target = roster.Target, lastKills = roster.Kills;
         string label = "G08 cave " + roster.Areas.Count;
+        MapFiniteSpawnIndexVerifier.VerifyOuterCache(budget, check, output);
         var samples = new System.Collections.Generic.List<int>();
         var deaths = new System.Collections.Generic.List<int>();
         var areas = new System.Collections.Generic.List<object>();

@@ -215,21 +215,50 @@ public static class MapCombatGeometry
         point = nav.position; return true;
     }
 
-    // Existing installed connections supply walk-in positions on fully visible small platforms.
+    // Only the exterior of the authored floor counts; obstacles and NavMesh gaps do not cut a new rim.
     public static List<Vector3> EdgePoints(Area area)
     {
-        var cells = new HashSet<Vector2Int>();
-        Vector2Int Cell(Vector3 p) => new Vector2Int(Mathf.FloorToInt(p.x / CellSize), Mathf.FloorToInt(p.z / CellSize));
-        foreach (var p in area.Points) cells.Add(Cell(p));
         var result = new List<Vector3>();
+        if (area.Points.Count == 0) return result;
+        Vector2Int Cell(Vector3 p) => new Vector2Int(Mathf.FloorToInt(p.x / CellSize), Mathf.FloorToInt(p.z / CellSize));
+        var source = area.Source;
+        bool authored = source != null && (source.boundary || source.place != null);
+        var min = Cell(area.Points[0]); var max = min;
+        foreach (var p in area.Points) { var c = Cell(p); min = Vector2Int.Min(min, c); max = Vector2Int.Max(max, c); }
+        if (authored) { min = Vector2Int.Min(min, Cell(source.bounds.min)); max = Vector2Int.Max(max, Cell(source.bounds.max)); }
+        min -= Vector2Int.one; max += Vector2Int.one;
+        int width = max.x - min.x + 1, depth = max.y - min.y + 1;
+        var floor = new byte[checked(width * depth)];
+        if (authored)
+        {
+            var inverse = source.boundary ? source.boundary.transform.worldToLocalMatrix : Matrix4x4.identity;
+            for (int z = 1; z < depth - 1; z++) for (int x = 1; x < width - 1; x++)
+            {
+                var p = new Vector3((min.x + x + .5f) * CellSize, area.Center.y, (min.y + z + .5f) * CellSize);
+                bool inside = source.boundary ? source.boundary.ContainsLocal(inverse.MultiplyPoint3x4(p))
+                    : source.place.Distance(new Vector2(p.x, p.z)) <= 0;
+                if (inside) floor[z * width + x] = 1;
+            }
+        }
+        else foreach (var p in area.Points) { var c = Cell(p) - min; floor[c.y * width + c.x] = 1; }
+        var exterior = new Queue<int>();
+        void Visit(int index) { if (floor[index] == 0) { floor[index] = 2; exterior.Enqueue(index); } }
+        Visit(0);
+        while (exterior.Count > 0)
+        {
+            int index = exterior.Dequeue(), x = index % width, z = index / width;
+            if (x > 0) Visit(index - 1); if (x + 1 < width) Visit(index + 1);
+            if (z > 0) Visit(index - width); if (z + 1 < depth) Visit(index + width);
+        }
         foreach (var p in area.Points)
         {
-            var cell = Cell(p);
-            if (!cells.Contains(cell + Vector2Int.right) || !cells.Contains(cell + Vector2Int.left)
-                || !cells.Contains(cell + Vector2Int.up) || !cells.Contains(cell + Vector2Int.down)) result.Add(p);
+            var c = Cell(p) - min; int index = c.y * width + c.x;
+            if (floor[index - 1] == 2 || floor[index + 1] == 2 || floor[index - width] == 2 || floor[index + width] == 2)
+                result.Add(p);
         }
         return result;
     }
+    // Existing installed connections supply walk-in positions on fully visible small platforms.
     public static List<Vector3> Approaches(Area area)
     {
         var result = new List<Vector3>(); var source = area.Source;
