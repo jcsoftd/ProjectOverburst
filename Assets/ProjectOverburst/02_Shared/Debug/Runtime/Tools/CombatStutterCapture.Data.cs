@@ -49,6 +49,7 @@ namespace Overburst.DebugTools
         [Serializable] struct Frame
         {
             public int frame, hitCount, criticalCount, dotCount, audioStarts;
+            public int mapArea, mapAlive, mapSpawned, mapKills;
             public int gc0, gc1, gc2, maintenanceOps, targetCount, healthBindings, audioBindings;
             public int bloodPlayed, bloodRequests, bloodPlayedDelta, bloodRequestDelta, bloodVariation, bloodGraphId, bloodVariationDelta;
             public int auraControllers, auraLeases, saveWrites, saveWriteDelta, element;
@@ -60,7 +61,7 @@ namespace Overburst.DebugTools
         [Serializable] sealed class MetricInfo { public string name, category, unit; public bool nanoseconds; }
         [Serializable] sealed class Summary
         {
-            public string schema = "overburst-combat-stutter-v1";
+            public string schema = "overburst-combat-stutter-v2";
             public string stopReason, unityVersion, platform, graphicsApi, activeScene, recordedUtc, sampleOrigin;
             public string frameTimingOrigin, audioOrigin, hitOrigin, bloodOrigin;
             public bool objectRebinding;
@@ -75,9 +76,14 @@ namespace Overburst.DebugTools
             public Frame[] worstFrames;
         }
 
+        static int MetricPriority(string name) => name.StartsWith("OVERBURST.MapSpawn", StringComparison.Ordinal) ? 0
+            : Array.IndexOf(EngineMetrics, name) >= 0 ? 1
+            : name.StartsWith("Overburst.Loot.", StringComparison.Ordinal) ? 2 : 3;
+
         static bool WantedMetric(string name)
         {
             return name.StartsWith("Overburst.", StringComparison.Ordinal)
+                || name.StartsWith("OVERBURST.MapSpawn", StringComparison.Ordinal)
                 || Array.IndexOf(EngineMetrics, name) >= 0;
         }
 
@@ -190,7 +196,7 @@ namespace Overburst.DebugTools
         {
             using (var writer = new StreamWriter(path, false, new UTF8Encoding(false)))
             {
-                writer.Write("completed_frame,seconds,wall_ms,unscaled_delta_ms,time_scale,observer_ms,registry_scan,end_observed,hits,critical,dot,energy,element,gc0,gc1,gc2,maintenance_ops,targets,health_bindings,audio_bindings,aura_controllers,aura_leases,blood_requests,blood_request_delta,blood_played,blood_played_delta,last_blood_variation,blood_variation_delta,last_new_sweep_graph_id,save_writes,save_write_delta,pending_save,audio_starts,delayed_cpu_ms,delayed_gpu_ms,timing_timestamp");
+                writer.Write("completed_frame,seconds,wall_ms,unscaled_delta_ms,time_scale,observer_ms,registry_scan,end_observed,hits,critical,dot,energy,element,gc0,gc1,gc2,maintenance_ops,targets,health_bindings,audio_bindings,aura_controllers,aura_leases,blood_requests,blood_request_delta,blood_played,blood_played_delta,last_blood_variation,blood_variation_delta,last_new_sweep_graph_id,save_writes,save_write_delta,pending_save,audio_starts,delayed_cpu_ms,delayed_gpu_ms,timing_timestamp,map_area,map_alive,map_spawned,map_kills");
                 foreach (Metric metric in metrics) writer.Write("," + Csv(metric.category + "/" + metric.name + (metric.timeNanoseconds ? " [ms]" : " [" + metric.unit + "]")));
                 writer.WriteLine();
                 for (int i = 0; i < frameCount; i++)
@@ -207,7 +213,7 @@ namespace Overburst.DebugTools
                         f.bloodPlayed.ToString(Invariant), f.bloodPlayedDelta.ToString(Invariant), f.bloodVariation.ToString(Invariant),
                         f.bloodVariationDelta.ToString(Invariant), f.bloodGraphId.ToString(Invariant),
                         f.saveWrites.ToString(Invariant), f.saveWriteDelta.ToString(Invariant), f.pendingSave ? "1" : "0", f.audioStarts.ToString(Invariant),
-                        f.cpuTimingMs < 0 ? "" : Number(f.cpuTimingMs), f.gpuMs < 0 ? "" : Number(f.gpuMs), f.frameTimingStamp.ToString(Invariant) }));
+                        f.cpuTimingMs < 0 ? "" : Number(f.cpuTimingMs), f.gpuMs < 0 ? "" : Number(f.gpuMs), f.frameTimingStamp.ToString(Invariant), f.mapArea.ToString(Invariant), f.mapAlive.ToString(Invariant), f.mapSpawned.ToString(Invariant), f.mapKills.ToString(Invariant) }));
                     for (int m = 0; m < metrics.Count; m++)
                     {
                         int cell = i * metrics.Count + m;
@@ -265,6 +271,9 @@ namespace Overburst.DebugTools
             Require(sample[0].frame == 100 && sample[5].frame == 105, "completed-frame IDs preserved"); checks++;
             Require(!WantedMetric("unrelated.marker") && WantedMetric("Overburst.Account.DiskSave"), "save marker selection"); checks++;
             Require(Number(double.NaN) == "" && Number(double.PositiveInfinity) == "", "unavailable numbers"); checks++;
+            Require(WantedMetric("OVERBURST.MapSpawnFinite.Total") && WantedMetric("OVERBURST.MapSpawnBatch"), "finite spawn markers included"); checks++;
+            Require(MetricPriority("OVERBURST.MapSpawnFinite.Total") < MetricPriority("PlayerLoop")
+                && MetricPriority("PlayerLoop") < MetricPriority("Overburst.Feel.Load"), "spawn and engine markers precede optional metrics"); checks++;
             return "PASS " + checks + " checks; no Play, scene or account changes";
         }
         static void Require(bool condition, string label)

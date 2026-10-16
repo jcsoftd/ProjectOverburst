@@ -27,7 +27,7 @@ public static class MapSpawnPerformanceProbe
         tick = System.Diagnostics.Stopwatch.GetTimestamp(); recorder.Tick(); recorder.Observe(budget.AliveCount);
     }
     public static void EndTick() { if (recorder != null) recorder.AddObserverTicks(tick); }
-    public static IEnumerator Verify(RunWorldGate gate, string output, Action<bool, string> check)
+    public static IEnumerator Verify(RunWorldGate gate, string output, Action<bool, string> check, bool detailed = false)
     {
         budget = gate.SpawnBudget;
         var player = PlayerContext.Instance.CurrentActor;
@@ -40,6 +40,17 @@ public static class MapSpawnPerformanceProbe
         while (!field.InitialPlaced && EditorApplication.timeSinceStartup < until) yield return null;
         check(field.InitialPlaced, "Spawn capture: initial placement settled on selected platform");
         for (int i = 0; i < 30; i++) yield return null;
+        bool captureOwned = false, previousProfileEditor = UnityEditorInternal.ProfilerDriver.profileEditor;
+        try
+        {
+            if (detailed)
+            {
+                var result = Overburst.DebugTools.CombatStutterCapture.Start(60, 50, true, null, false);
+                if (!result.Success) throw new InvalidOperationException(Overburst.DebugTools.CombatStutterCapture.LastStatus);
+                captureOwned = true;
+                File.WriteAllText(Path.Combine(output, "detailed-path.txt"), Overburst.DebugTools.CombatStutterCapture.LastFolder);
+                UnityEditorInternal.ProfilerDriver.profileEditor = true;
+            }
         var segment = new CombatPerformanceSegment { key = "replenishment", scenario = "real actor deaths, one per second", theme = gate.Map.monsterThemeId };
         var actors = new List<EnemyActor>();
         int kills = 0, initialReleased = field.ReinforcementReleased, total = gate.Roster.Total;
@@ -72,5 +83,14 @@ public static class MapSpawnPerformanceProbe
         }
         check(kills == 20 && field.ReinforcementReleased > initialReleased && gate.Roster.Total == total,
             "Spawn capture: twenty real deaths replenish finite reserves without changing total");
+        }
+        finally
+        {
+            if (captureOwned)
+            {
+                try { Overburst.DebugTools.CombatStutterCapture.Stop(); }
+                finally { UnityEditorInternal.ProfilerDriver.profileEditor = previousProfileEditor; }
+            }
+        }
     }
 }

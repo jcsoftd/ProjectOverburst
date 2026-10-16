@@ -48,6 +48,7 @@ namespace Overburst.DebugTools
         BloodHitVfxService blood;
         BloodHitCatalog bloodCatalog;
         AccountAutosave autosave;
+        RunWorldGate mapGate;
         OverburstElementEnergy playerEnergy;
         int previousBloodPlayed, previousBloodRequested, previousBloodVariations, previousSaveWrites;
         readonly FrameTiming[] timings = new FrameTiming[1];
@@ -221,6 +222,11 @@ namespace Overburst.DebugTools
                     current.unscaledDeltaMs = Time.unscaledDeltaTime * 1000d;
                     current.timeScale = Time.timeScale;
                     current.targetCount = CombatTargetRegistry.RegisteredCount;
+                    var spawn = mapGate != null ? mapGate.SpawnBudget : null;
+                    current.mapArea = spawn != null ? spawn.CurrentPlayerArea : -1;
+                    current.mapAlive = spawn != null ? spawn.AliveCount : -1;
+                    current.mapSpawned = spawn != null ? spawn.SpawnedThisFrame : 0;
+                    current.mapKills = mapGate != null && mapGate.Roster != null ? mapGate.Roster.Kills : -1;
                     current.healthBindings = healthBindings.Count;
                     current.audioBindings = audioBindings.Count;
                     current.gc0 = GC.CollectionCount(0);
@@ -275,6 +281,7 @@ namespace Overburst.DebugTools
 
         void BindObjects()
         {
+            if (mapGate == null) mapGate = UObject.FindFirstObjectByType<RunWorldGate>();
             CombatHealth[] healths = UObject.FindObjectsByType<CombatHealth>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
             foreach (CombatHealth health in healths)
             {
@@ -355,6 +362,11 @@ namespace Overburst.DebugTools
         {
             var handles = new List<ProfilerRecorderHandle>();
             ProfilerRecorderHandle.GetAvailable(handles);
+            handles.Sort((a, b) => {
+                var left = ProfilerRecorderHandle.GetDescription(a); var right = ProfilerRecorderHandle.GetDescription(b);
+                int order = MetricPriority(left.Name).CompareTo(MetricPriority(right.Name));
+                return order != 0 ? order : string.CompareOrdinal(left.Name, right.Name);
+            });
             foreach (var handle in handles)
             {
                 var description = ProfilerRecorderHandle.GetDescription(handle);
