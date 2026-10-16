@@ -247,3 +247,5 @@ Assets/StreamingAssets/aa/
 # Licensed player-death sound mix; restore private PlayerDeath recovery with original meta.
 /Assets/ProjectOverburst/Resources/UI/Death/LowBoom_150.wav
 /Assets/ProjectOverburst/Resources/UI/Death/LowBoom_150.wav.meta
+# Local Unity SDK with build compatibility patch; restored from internal recovery record.
+/Packages/com.unity.pipeline/
