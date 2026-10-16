@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Overburst.Persistence;
 using UnityEngine;
 using Unity.Profiling;
+using UnityEngine.AI;
 
 public sealed partial class MapSpawnBudget
 {
@@ -12,13 +13,18 @@ public sealed partial class MapSpawnBudget
     static readonly ProfilerMarker RefreshMarker = new ProfilerMarker("OVERBURST.MapSpawnFinite.Refresh");
     static readonly ProfilerMarker ReinforcementMarker = new ProfilerMarker("OVERBURST.MapSpawnFinite.Refresh.Detail.Reinforcement");
     static readonly ProfilerMarker PriorityMarker = new ProfilerMarker("OVERBURST.MapSpawnFinite.Priority");
+    static readonly ProfilerMarker PlayerAreaMarker = new ProfilerMarker("OVERBURST.MapSpawnFinite.PlayerArea");
     RunWorldGate runGate;
+    int playerAreaFrame = -1, playerAreaIndex = -1;
+    Vector3 playerAreaPosition, playerAreaSafe;
+    public int CurrentPlayerArea => playerAreaIndex;
     readonly List<MapMonsterField> finiteFields = new List<MapMonsterField>();
     readonly List<MapMonsterField> priorityFields = new List<MapMonsterField>();
     Transform runPlayer;
     Camera runCamera;
     readonly Plane[] viewPlanes = new Plane[6];
     int viewFrame = -1;
+    internal int ReservePreparationFrame { get; set; } = -1;
     bool preparingInitial;
     float nextFiniteRefresh;
     int lastFiniteFrame = -1;
@@ -96,6 +102,7 @@ public sealed partial class MapSpawnBudget
         {
             long started = System.Diagnostics.Stopwatch.GetTimestamp();
             lastFiniteFrame = Time.frameCount; SpawnedThisFrame = 0; LastSpawnMilliseconds = 0;
+            if (!preparing) FindPlayerArea(player, out _);
             using (ReconcileMarker.Auto())
                 foreach (var field in finiteFields) field.ReconcileFinite();
             if (preparing || finiteRefreshing || Time.unscaledTime >= nextFiniteRefresh)
@@ -108,7 +115,11 @@ public sealed partial class MapSpawnBudget
                 {
                     using (ReinforcementMarker.Auto())
                     {
-                        foreach (var field in finiteFields) field.PrepareReinforcement(player, field.FiniteActiveCount, preparing);
+                        if (!preparing && playerAreaIndex >= 0)
+                        {
+                            var field = finiteFields[playerAreaIndex];
+                            field.PrepareReinforcement(player, field.FiniteActiveCount, false);
+                        }
                     }
                     nextFiniteRefresh = Time.unscaledTime + .1f;
                     finiteRefreshing = false; finiteRefreshField = 0;
@@ -122,7 +133,8 @@ public sealed partial class MapSpawnBudget
                 if (capacity && HasFiniteTime(started))
                 {
                     foreach (var field in finiteFields)
-                        if (field.HasFiniteSpawnWork && (preparing ? field.PrepareAtEntry : field.NearForInitial(player)))
+                        if (field.HasFiniteSpawnWork && (preparing ? field.PrepareAtEntry : field.NearForInitial(player))
+                            && field.HasEligibleFiniteWork(player, preparing))
                         { field.CacheFinitePriority(player); priorityFields.Add(field); }
                     priorityFields.Sort((a, b) => a.FinitePriority.CompareTo(b.FinitePriority));
                 }
@@ -131,7 +143,7 @@ public sealed partial class MapSpawnBudget
             using (SpawnMarker.Auto())
             {
                 int attempts = 0;
-                while (attempts < MaxPerFrame && HasFiniteTime(started)
+                while (attempts < MaxPerFrame && ReservePreparationFrame != Time.frameCount && HasFiniteTime(started)
                     && service.Pool.LeasedCount + service.Pool.PendingReturnCount < AliveLimit)
                 {
                     bool attempted = false;
@@ -148,6 +160,31 @@ public sealed partial class MapSpawnBudget
             }
         }
     }
+    // Completion and reinforcement share the current floor, separate from the last safe completion area.
+    internal int FindPlayerArea(Vector3 position, out Vector3 safe)
+    {
+        if (playerAreaFrame == Time.frameCount && playerAreaPosition == position)
+        { safe = playerAreaSafe; return playerAreaIndex; }
+        using (PlayerAreaMarker.Auto())
+        {
+            playerAreaFrame = Time.frameCount; playerAreaPosition = position; playerAreaSafe = default;
+            int previous = playerAreaIndex; playerAreaIndex = -1;
+            if (runGate && runGate.Roster != null && NavMesh.SamplePosition(position, out var nav, 1f, NavMesh.AllAreas)
+                && Mathf.Abs(nav.position.y - position.y) <= .75f)
+            {
+                var areas = runGate.Roster.Areas;
+                if (previous >= 0 && previous < areas.Count && MapCombatGeometry.Contains(areas[previous].Ground, position))
+                    playerAreaIndex = previous;
+                else
+                    for (int i = 0; i < areas.Count; i++)
+                        if (i != previous && MapCombatGeometry.Contains(areas[i].Ground, position))
+                        { playerAreaIndex = i; break; }
+                if (playerAreaIndex >= 0) playerAreaSafe = nav.position;
+            }
+            safe = playerAreaSafe; return playerAreaIndex;
+        }
+    }
+    internal bool AllowsReinforcement(int areaIndex, Vector3 player) => FindPlayerArea(player, out _) == areaIndex;
     public bool InView(Vector3 point, float padding = .12f, float radius = .5f, float height = 2)
     {
         if (!runCamera) return true;

@@ -133,6 +133,7 @@ public static class MapFiniteSpawnPlayVerifier
             check(budget.SpawnedThisFrame == 0 && roster.Active == priorActive && roster.Kills == killed, label + ": exhausted global capacity preserves actors and pending IDs");
         }
         finally { cap.SetValue(budget, priorLimit); }
+        ActorTeleportUtility.TeleportSafely(player.transform, field.FiniteArea.Ground.Points.OrderBy(p => (p - field.FiniteArea.Ground.Center).sqrMagnitude).First() + Vector3.up * .12f, Quaternion.identity);
         var catalogField = typeof(EnemySpawnService).GetField("catalog", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
         var catalog = service.Catalog; int retries = budget.SpawnRetries;
         catalogField.SetValue(service, null);
@@ -147,6 +148,7 @@ public static class MapFiniteSpawnPlayVerifier
         until = EditorApplication.timeSinceStartup + 20;
         while (roster.Active <= priorActive && EditorApplication.timeSinceStartup < until) yield return null;
         check(roster.Active > priorActive, label + ": failed requests resume after the original service recovers");
+        yield return MapCurrentPlatformSpawnVerifier.Verify(gate, field, output, check);
         if (roster.Areas.Count == 20)
         {
             var far = roster.Areas.OrderByDescending(a => (a.Ground.Center - living.transform.position).sqrMagnitude).First();
@@ -170,17 +172,8 @@ public static class MapFiniteSpawnPlayVerifier
             foreach (var fieldForRoute in budget.Fields)
             {
                 var ground = fieldForRoute.FiniteArea.Ground;
-                destinations.Add(ground.Center);
-                float range = ground.Points.Max(p => Vector3.Distance(p, ground.Center)) + 30;
-                foreach (var candidate in fieldForRoute.FiniteApproaches.OrderByDescending(p => (p - ground.Center).sqrMagnitude))
-                {
-                    if (Vector3.Distance(candidate, ground.Center) > range
-                        || !UnityEngine.AI.NavMesh.SamplePosition(candidate, out var nav, .75f, UnityEngine.AI.NavMesh.AllAreas)) continue;
-                    var path = new UnityEngine.AI.NavMeshPath();
-                    if (!UnityEngine.AI.NavMesh.CalculatePath(gate.EntryPoint.position, nav.position, UnityEngine.AI.NavMesh.AllAreas, path)
-                        || path.status != UnityEngine.AI.NavMeshPathStatus.PathComplete) continue;
-                    destinations.Add(nav.position); break;
-                }
+                if (fieldForRoute.FiniteArea.Count > 0)
+                    destinations.Add(ground.Points.OrderBy(p => (p - ground.Center).sqrMagnitude).First());
             }
             int previousKills = roster.Kills; double movedAt = 0; int destination = 0, samples = 0;
             bool frameLimits = true;
@@ -192,7 +185,7 @@ public static class MapFiniteSpawnPlayVerifier
                         enemy.Health.TakeDamage(new DamageInfo(1000000, enemy.transform.position, player.gameObject, suppressDefaultHitVfx: true));
                 if (EditorApplication.timeSinceStartup >= movedAt)
                 {
-                    // A populated court can be entirely visible; use its connected retreat as in VerifyScale.
+                    // Stay on the owning platform so pending reserves are eligible.
                     ActorTeleportUtility.TeleportSafely(player.transform, destinations[destination++ % destinations.Count] + Vector3.up * .12f, Quaternion.identity);
                     movedAt = EditorApplication.timeSinceStartup + 3;
                 }
@@ -393,11 +386,12 @@ public static class MapFiniteSpawnPlayVerifier
                         {
                             var candidate = Vector3.Lerp(path.corners[n - 1], path.corners[n], length > 0 ? step / length : 0);
                             var delta = candidate - area.Ground.Center; delta.y = 0;
-                            if (delta.sqrMagnitude <= farthest || delta.sqrMagnitude > wakeRange * wakeRange) continue;
+                            if (delta.sqrMagnitude <= farthest || delta.sqrMagnitude > wakeRange * wakeRange
+                                || !MapCombatGeometry.Contains(area.Ground, candidate)) continue;
                             retreat = candidate; farthest = delta.sqrMagnitude;
                         }
                     }
-                    check(farthest > 16, label + ": connected retreat keeps reinforcement in wake range " + area.Ground.Index);
+                    check(farthest > 16, label + ": retreat stays inside the owning platform " + area.Ground.Index);
                     ActorTeleportUtility.TeleportSafely(player.transform, retreat + Vector3.up * .12f, Quaternion.identity);
                     retreated = true;
                 }

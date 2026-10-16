@@ -287,10 +287,10 @@ public static class MapCombatGeometry
     }
     public static bool TryRuntimePoint(Area area, EnemyDefinition definition, Vector3 desired, bool approach,
         Collider[] overlaps, NavMeshPath path, out Vector3 point)
-    {
-        point = default; var source = area.Source; var body = BodyFor(definition);
-        return TryRuntimePointPrepared(source, area.Center, body, desired, approach, overlaps, path, out point);
-    }
+        => TryRuntimePoint(area, BodyFor(definition), desired, approach, overlaps, path, out point);
+    public static bool TryRuntimePoint(Area area, Body body, Vector3 desired, bool approach,
+        Collider[] overlaps, NavMeshPath path, out Vector3 point)
+        => TryRuntimePointPrepared(area.Source, area.Center, body, desired, approach, overlaps, path, out point);
     static bool TryRuntimePointPrepared(Source source, Vector3 center, Body body, Vector3 desired, bool approach,
         Collider[] overlaps, NavMeshPath path, out Vector3 point)
     {

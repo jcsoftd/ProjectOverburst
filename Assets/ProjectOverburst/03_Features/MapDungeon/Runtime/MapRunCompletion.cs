@@ -55,13 +55,7 @@ public sealed class MapRunCompletion : MonoBehaviour
 
     int FindArea(Vector3 position, out Vector3 safe)
     {
-        safe = default;
-        foreach (var area in gate.Roster.Areas)
-            if (MapCombatGeometry.Contains(area.Ground, position)
-                && NavMesh.SamplePosition(position, out var nav, 1f, NavMesh.AllAreas)
-                && Mathf.Abs(nav.position.y - position.y) <= .75f)
-            { safe = nav.position; return area.Ground.Index; }
-        return -1;
+        return gate.SpawnBudget.FindPlayerArea(position, out safe);
     }
     void ObservePlayer()
     {

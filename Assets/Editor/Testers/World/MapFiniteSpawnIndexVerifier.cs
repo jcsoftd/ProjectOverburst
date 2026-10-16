@@ -398,6 +398,13 @@ public static class MapFiniteSpawnIndexVerifier
             Check(List(field, "spawnSlots").All(s => Member(s).Initial), "Untouched initial population cannot release reserves");
             foreach (var s in slots.Where(s => Member(s).Initial)) Set(s, "EverSpawned", true);
             Set(field, "initialRemaining", 0); Set(field, "triggered", true);
+            // This native queue fixture has no baked NavMesh. Supply a resolved current-floor cache;
+            // actual floor/road/height classification is covered by the Play verifier.
+            Set(budget, "playerAreaFrame", Time.frameCount); Set(budget, "playerAreaPosition", Vector3.zero);
+            Set(budget, "playerAreaIndex", 1);
+            Call(field, "PrepareReinforcement", Vector3.zero, 0, false);
+            Check(List(field, "spawnSlots").All(s => Member(s).Initial), "A triggered remote platform cannot release fresh reserves");
+            Set(budget, "playerAreaIndex", 0);
             var unreleased = List(field, "reserves");
             int total = roster.Total;
             Call(field, "PrepareReinforcement", Vector3.zero, 0, false);

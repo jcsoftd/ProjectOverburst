@@ -5,6 +5,7 @@ using Unity.Profiling;
 
 public sealed partial class MapMonsterField
 {
+    static readonly ProfilerMarker PrewarmMarker = new ProfilerMarker("OVERBURST.MapSpawnFinite.Prewarm");
     static readonly ProfilerMarker RefreshGroundMarker = new ProfilerMarker("OVERBURST.MapSpawnFinite.Refresh.Detail.Ground");
     static readonly ProfilerMarker RefreshReturnMarker = new ProfilerMarker("OVERBURST.MapSpawnFinite.Refresh.Detail.Return");
     sealed class SpawnGroup
@@ -53,6 +54,7 @@ public sealed partial class MapMonsterField
     float areaRadius, nextPackAt;
     bool finiteAwake;
     int nextFiniteSlot;
+    public int ReservePrewarmedCount { get; private set; }
     int initialRemaining, releasedReserves, refreshCursor;
     float nextSpawnAttempt;
     public MapRunRoster.Area FiniteArea => finiteArea;
@@ -62,7 +64,7 @@ public sealed partial class MapMonsterField
     public bool PrepareAtEntry { get; internal set; }
     public bool InitialPlaced => initialRemaining == 0;
     internal float FinitePriority { get; private set; }
-    internal bool HasFiniteSpawnWork => !finiteArea.Cleared && spawnSlots.Count > 0 && Time.unscaledTime >= nextSpawnAttempt;
+    internal bool HasFiniteSpawnWork => Time.frameCount != budget.ReservePreparationFrame && !finiteArea.Cleared && spawnSlots.Count > 0 && Time.unscaledTime >= nextSpawnAttempt;
     public int FiniteActiveCount => bindings.Count;
     public IReadOnlyList<Vector3> FiniteApproaches => approaches;
     public void CollectLivingActors(List<EnemyActor> result)
@@ -198,7 +200,7 @@ public sealed partial class MapMonsterField
     }
     internal void PrepareReinforcement(Vector3 player, int nearby, bool preparing)
     {
-        if (preparing || finiteArea.Cleared || !triggered || !NearForInitial(player) || !InitialPlaced || nearby >= LocalFightLimit) return;
+        if (preparing || finiteArea.Cleared || !triggered || !budget.AllowsReinforcement(finiteArea.Ground.Index, player) || !InitialPlaced || nearby >= LocalFightLimit) return;
         if (releasedReserves > 0) return;
         if (nearby > 0 && Time.unscaledTime < nextPackAt) return;
         Slot first = reserves.First?.Value;
@@ -213,30 +215,55 @@ public sealed partial class MapMonsterField
         }
         nextPackAt = Time.unscaledTime + .8f;
     }
+    internal bool HasEligibleFiniteWork(Vector3 player, bool preparing)
+    {
+        bool current = !preparing && budget.AllowsReinforcement(finiteArea.Ground.Index, player);
+        foreach (var slot in spawnSlots)
+            if (slot.Member.Initial || slot.EverSpawned || current) return true;
+        return false;
+    }
     internal bool TrySpawnFinite(Vector3 player, bool preparing, long started, out bool spawned)
     {
         spawned = false;
         if (finiteArea.Cleared || (preparing ? !PrepareAtEntry : !NearForInitial(player))) return false;
         if (!HasFiniteSpawnWork) return false;
+        bool current = !preparing && budget.AllowsReinforcement(finiteArea.Ground.Index, player);
         Slot chosen = null, wrapped = null; float earliest = float.PositiveInfinity;
         // A visible returning actor must not monopolize the frame budget ahead of reserves.
         foreach (var slot in spawnSlots)
         {
+            // Pause only new reserves; initial placement and living-ID restoration remain eligible.
+            if (!slot.Member.Initial && !slot.EverSpawned && !current) continue;
             earliest = Mathf.Min(earliest, slot.RetryAt);
             if (slot.RetryAt > Time.unscaledTime) continue;
             if (wrapped == null) wrapped = slot;
             if (slot.Order >= nextFiniteSlot) { chosen = slot; break; }
         }
         chosen = chosen ?? wrapped;
-        if (chosen == null) { nextSpawnAttempt = earliest; return false; }
+        if (chosen == null) { nextSpawnAttempt = float.IsPositiveInfinity(earliest) ? 0 : earliest; return false; }
         nextFiniteSlot = (chosen.Order + 1) % slots.Count;
-        if (FiniteActiveCount >= LocalFightLimit) return false;
+        if (FiniteActiveCount >= LocalFightLimit || !MapSpawnBudget.HasFiniteTime(started)) return false;
+        // A fresh reserve gets its own activation/creation slice; do not start it after another spawn.
+        if (!chosen.Member.Initial && !chosen.EverSpawned && budget.SpawnedThisFrame > 0) return false;
+        // Stage only the next required reserve in the existing pool. Creating it consumes one
+        // shared attempt; activation waits until a later frame and rechecks platform/position.
+        if (!preparing && !chosen.Member.Initial && !chosen.EverSpawned && service.Catalog)
+        {
+            int created;
+            using (PrewarmMarker.Auto()) created = service.Prewarm(chosen.Member.Definition, 1);
+            if (created > 0)
+            {
+                ReservePrewarmedCount += created; budget.ReservePreparationFrame = Time.frameCount;
+                return true;
+            }
+        }
         if (!TryFinitePositionWithinBudget(chosen, player, preparing, started, out var position))
         {
             if (chosen.PositionDeferred) return false;
             chosen.RetryAt = Time.unscaledTime + .15f; chosen.Failures++; budget.SpawnRetries++;
             return true;
         }
+        if (!MapSpawnBudget.HasFiniteTime(started)) return false;
         Vector3 direction = player - position; direction.y = 0;
         var request = new EnemySpawnRequest(chosen.Member.Definition, position + Vector3.up * .06f,
             direction.sqrMagnitude > .01f ? Quaternion.LookRotation(direction) : Quaternion.identity,
@@ -289,7 +316,7 @@ public sealed partial class MapMonsterField
             if (finiteRoster.Areas[ground.Index].Cleared || !slot.EverSpawned && ground.Index != finiteArea.Ground.Index) return false;
             if (FlatDistance(candidate, player) < MapCombatGeometry.EntrySafety + (preparing ? 0 : slot.Radius)) return false;
             if (!preparing && !allowVisible && budget.InView(candidate, .12f, slot.Radius, slot.Height)) return false;
-            if (!MapCombatGeometry.TryRuntimePoint(ground, slot.Member.Definition, candidate, approach, spawnOverlaps, spawnPath, out result)) return false;
+            if (!MapCombatGeometry.TryRuntimePoint(ground, new MapCombatGeometry.Body(slot.Radius, slot.Height), candidate, approach, spawnOverlaps, spawnPath, out result)) return false;
             // Approach points and restored actors can belong to a different platform than their roster owner.
             foreach (var area in finiteRoster.Areas)
                 if ((area.Ground.Index == finiteRoster.EntryAreaIndex || area.Cleared || !area.Ground.AllowsMonsters
