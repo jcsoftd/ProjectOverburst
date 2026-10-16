@@ -109,15 +109,15 @@ namespace Overburst.DebugTools
                 var capture = root.AddComponent<CombatStutterCapture>();
                 instance = capture;
                 capture.folder = destination;
-                capture.duration = Mathf.Clamp(seconds, 10f, 300f);
+                capture.duration = Mathf.Clamp(seconds, 10f, MaximumSeconds);
                 capture.threshold = Mathf.Clamp(hitchMs, 16f, 2000f);
                 capture.binaryRequested = binaryProfiler;
                 capture.rebindObjects = rebindObjects;
-                capture.frames = new Frame[MaximumFrames];
-                capture.hits = new Hit[MaximumEvents];
-                capture.sounds = new Sound[MaximumEvents];
+                capture.frames = new Frame[FrameCapacity(capture.duration)];
+                capture.hits = new Hit[EventCapacity(capture.duration)];
+                capture.sounds = new Sound[EventCapacity(capture.duration)];
                 capture.BindMetrics();
-                capture.metricValues = new long[MaximumFrames * capture.metrics.Count];
+                capture.metricValues = new long[capture.frames.Length * capture.metrics.Count];
                 capture.metricAvailable = new byte[capture.metricValues.Length];
                 capture.BindObjects();
                 if (binaryProfiler) capture.BeginBinaryProfiler();
@@ -167,9 +167,9 @@ namespace Overburst.DebugTools
                 using (SampleMarker.Auto())
                 {
                     if (trackedFrame >= 0) CompleteFrame(begin);
-                    if (frameCount >= MaximumFrames || Milliseconds(captureStarted, begin) >= duration * 1000d)
+                    if (frameCount >= frames.Length || Milliseconds(captureStarted, begin) >= duration * 1000d)
                     {
-                        Finish(frameCount >= MaximumFrames ? "frame_capacity" : "duration");
+                        Finish(frameCount >= frames.Length ? "frame_capacity" : "duration");
                         return;
                     }
                     trackedFrame = Time.frameCount;

@@ -13,7 +13,10 @@ namespace Overburst.DebugTools
 {
     public sealed partial class CombatStutterCapture
     {
-        const int MaximumFrames = 18000, MaximumEvents = 16384, MaximumBindings = 512, MaximumMetrics = 96;
+        const int MaximumSeconds = 600, MaximumBindings = 512, MaximumMetrics = 96;
+        // Allocate once before sampling, with room for 300 FPS and 256 events/sec.
+        static int FrameCapacity(double seconds) => Math.Max(18000, (int)Math.Ceiling(seconds * 300));
+        static int EventCapacity(double seconds) => Math.Max(16384, (int)Math.Ceiling(seconds * 256));
         static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;
         static readonly string[] EngineMetrics = {
             "Main Thread", "Render Thread", "PlayerLoop", "GC.Collect", "GC Allocated In Frame",
@@ -72,7 +75,7 @@ namespace Overburst.DebugTools
             public int maxFrames, maxEvents, maxBindings;
             public float thresholdMs;
             public bool binaryProfilerRequested, binaryProfilerFilePresent, profilerOwnershipLost, includesIncompleteLastFrame;
-            public double maxWallMs, maxObserverMs;
+            public double maxWallMs, maxObserverMs, durationSeconds;
             public Frame[] worstFrames;
         }
 
@@ -173,7 +176,7 @@ namespace Overburst.DebugTools
                 maxWallMs = maxWall, maxObserverMs = maxObserver, worstFrames = worst.ToArray(),
                 droppedHits = droppedHits, droppedSounds = droppedSounds, bindingLimitHits = bindingLimitHits,
                 hitsBeforeFrameCallback = hitsBeforeFrameCallback,
-                maxFrames = MaximumFrames, maxEvents = MaximumEvents, maxBindings = MaximumBindings,
+                maxFrames = frames.Length, maxEvents = hits.Length, maxBindings = MaximumBindings, durationSeconds = duration,
                 metrics = info, unavailableEngineMetrics = unavailable.ToArray(),
                 binaryProfilerRequested = binaryRequested, binaryProfilerFilePresent = File.Exists(Path.Combine(folder, "profiler.raw")),
                 profilerOwnershipLost = profilerOwnershipLost, includesIncompleteLastFrame = false,
@@ -274,6 +277,9 @@ namespace Overburst.DebugTools
             Require(WantedMetric("OVERBURST.MapSpawnFinite.Total") && WantedMetric("OVERBURST.MapSpawnBatch"), "finite spawn markers included"); checks++;
             Require(MetricPriority("OVERBURST.MapSpawnFinite.Total") < MetricPriority("PlayerLoop")
                 && MetricPriority("PlayerLoop") < MetricPriority("Overburst.Feel.Load"), "spawn and engine markers precede optional metrics"); checks++;
+            Require(Mathf.Clamp(600f, 10f, MaximumSeconds) == 600f, "ten minute duration is not truncated"); checks++;
+            Require(FrameCapacity(600) == 180000 && FrameCapacity(10) == 18000, "duration-scaled frame capacity"); checks++;
+            Require(EventCapacity(600) == 153600 && EventCapacity(10) == 16384, "duration-scaled event capacity"); checks++;
             return "PASS " + checks + " checks; no Play, scene or account changes";
         }
         static void Require(bool condition, string label)

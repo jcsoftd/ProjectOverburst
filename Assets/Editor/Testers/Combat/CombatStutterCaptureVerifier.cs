@@ -32,7 +32,7 @@ public static class CombatStutterCaptureVerifier
         SessionState.EraseBool(CombatStutterCapture.ArmKey);
         SessionState.SetBool(NextRunKey, true); nextRunCheck = 0;
         EditorApplication.update -= AwaitRun; EditorApplication.update += AwaitRun;
-        Debug.Log("[CombatStutterCapture] 다음 사용자 Play의 지도 입장 완료부터 최대120초 상세 기록. Play 종료 시 저장.");
+        Debug.Log("[CombatStutterCapture] 다음 사용자 Play의 지도 입장 완료부터 최대10분 상세 기록. Play 종료 시 저장.");
     }
     static void AwaitRun()
     {
@@ -44,7 +44,7 @@ public static class CombatStutterCaptureVerifier
         var gate = Object.FindFirstObjectByType<RunWorldGate>();
         if (gate == null || !gate.IsReady || gate.SpawnBudget == null) return;
         SessionState.EraseBool(NextRunKey); EditorApplication.update -= AwaitRun;
-        Report(CombatStutterCapture.Start(120, 50, true));
+        Report(CombatStutterCapture.Start(600, 50, true));
     }
     [MenuItem(Root + "다음 Play 예약 해제")]
     static void Disarm() { SessionState.EraseBool(CombatStutterCapture.ArmKey); SessionState.EraseBool(NextRunKey); EditorApplication.update -= AwaitRun; }
