@@ -8,14 +8,22 @@ using UnityEngine;
 
 public static partial class MonsterWeakAttackPlayerLoopVerifier
 {
+    internal static void ValidateStrongWarningReview(JObject approved, JObject dataset)
+    {
+        bool legacy = (int?)approved["schemaVersion"] == 3 && (string)approved["purpose"] == "monster-danger-warning-cue-only-review";
+        bool current = (int?)approved["schemaVersion"] == 4 && (string)approved["purpose"] == "monster-warning-parry-window-review"
+            && (bool?)approved["parryStartsAtWarning"] == true && (bool?)approved["parryTimingLocked"] == false;
+        if (!(legacy || current) || (string)approved["datasetKey"] != (string)dataset["datasetKey"]
+            || !(approved["monsters"] is JArray rows) || rows.Count != 35)
+            throw new ArgumentException("Current approved warning review required.");
+    }
+
     public static string StartStrongWarningTiming(string output, string approvedPath, string datasetPath)
     {
         MonsterBlenderParryR6Builder.RequireIdle();
         var approved = JObject.Parse(File.ReadAllText(approvedPath));
         var dataset = JObject.Parse(File.ReadAllText(datasetPath));
-        if ((string)approved["purpose"] != "monster-danger-warning-cue-only-review"
-            || (string)approved["datasetKey"] != (string)dataset["datasetKey"] || approved["monsters"].Count() != 35)
-            throw new ArgumentException("Current approved warning review required.");
+        ValidateStrongWarningReview(approved, dataset);
         Directory.CreateDirectory(output);
         string batch = Path.Combine(output, "strong-warning-batch.json");
         File.WriteAllText(batch, new JObject { ["entries"] = new JArray(), ["verifyStrongWarningTiming"] = true,

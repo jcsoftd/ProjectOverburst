@@ -20,6 +20,39 @@ public static class MonsterStrongWarningRollbackVerifier
         if (save) AssetDatabase.SaveAssetIfDirty(value);
     }
 
+    public static string VerifyReviewInputs(string outputRelative)
+    {
+        MonsterBlenderParryR6Builder.RequireIdle();
+        string workspace = Directory.GetParent(Directory.GetParent(Application.dataPath).FullName).FullName;
+        string output = Path.GetFullPath(Path.Combine(workspace, outputRelative));
+        string allowed = Path.GetFullPath(Path.Combine(workspace, "개인파일/코덱스산출/Monsters")) + Path.DirectorySeparatorChar;
+        Check(output.StartsWith(allowed, StringComparison.OrdinalIgnoreCase), "Private output required.");
+        string input = Path.Combine(output, "NativePreflight4/Input");
+        var approved = JObject.Parse(File.ReadAllText(Path.Combine(input, "approved.json")));
+        var dataset = JObject.Parse(File.ReadAllText(Path.Combine(input, "review-data.json")));
+        MonsterWeakAttackPlayerLoopVerifier.ValidateStrongWarningReview(approved, dataset);
+        MonsterWeakAttackPlayerLoopVerifier.ValidateStrongWarningReview(
+            JObject.Parse(File.ReadAllText(Path.Combine(input, "legacy-approved.json"))),
+            JObject.Parse(File.ReadAllText(Path.Combine(input, "legacy-dataset.json"))));
+        foreach (string invalid in new[] { "schemaVersion", "parryStartsAtWarning", "parryTimingLocked", "datasetKey", "count" })
+        {
+            var copy = (JObject)approved.DeepClone();
+            if (invalid == "schemaVersion") copy[invalid] = 99;
+            else if (invalid == "parryStartsAtWarning") copy[invalid] = false;
+            else if (invalid == "parryTimingLocked") copy[invalid] = true;
+            else if (invalid == "datasetKey") copy[invalid] = "stale";
+            else ((JArray)copy["monsters"]).RemoveAt(0);
+            bool rejected = false;
+            try { MonsterWeakAttackPlayerLoopVerifier.ValidateStrongWarningReview(copy, dataset); }
+            catch (ArgumentException) { rejected = true; }
+            Check(rejected, "Invalid review accepted: " + invalid);
+        }
+        string result = Path.Combine(output, "review-input-verification.json");
+        File.WriteAllText(result, new JObject { ["status"] = "PASS_NATIVE_REVIEW_INPUTS_7", ["accepted"] = 2,
+            ["rejected"] = 5, ["playStarted"] = false }.ToString());
+        return result;
+    }
+
     public static string Run(string outputRelative)
     {
         MonsterBlenderParryR6Builder.RequireIdle();

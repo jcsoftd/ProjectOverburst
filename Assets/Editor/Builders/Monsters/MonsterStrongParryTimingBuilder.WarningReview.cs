@@ -66,7 +66,7 @@ public static partial class MonsterStrongParryTimingBuilder
         return result;
     }
 
-    public static string ApplyApprovedWarningParryFrames(string outputRelative)
+    public static string ApplyApprovedWarningParryFrames(string outputRelative, bool validateOnly = false)
     {
         MonsterBlenderParryR6Builder.RequireIdle();
         string directory = Output(outputRelative), receipt = Path.Combine(directory, "apply-result.json");
@@ -140,6 +140,13 @@ public static partial class MonsterStrongParryTimingBuilder
             finally { Object.DestroyImmediate(copy); }
             before.Add(new JObject { ["id"] = id, ["path"] = path, ["fields"] = fields,
                 ["metaHash"] = MonsterBlenderParryR6Builder.Hash(Path.Combine(Project, path) + ".meta") });
+        }
+        if (validateOnly)
+        {
+            string validation = Path.Combine(directory, "validation-result.json");
+            File.WriteAllText(validation, new JObject { ["status"] = "PASS_NATIVE_WARNING_PREFLIGHT", ["checks"] = checks,
+                ["abilities"] = rows.Length, ["schemaVersion"] = input["schemaVersion"], ["gameAssetsWritten"] = false }.ToString());
+            return validation;
         }
         File.WriteAllText(Path.Combine(directory, "native-before.json"), before.ToString());
         var saved = new JArray();
