@@ -122,7 +122,7 @@ public sealed class MapRunRoster
         int weightTotal = 0;
         for (int i = 0; i < ground.Count; i++)
         {
-            if (ground[i] == null || ground[i].Index != i || ground[i].AllowsMonsters && ground[i].Points.Count < 6)
+            if (ground[i] == null || ground[i].Index != i || i != entryArea && ground[i].AllowsMonsters && ground[i].Points.Count < 6)
                 throw new InvalidOperationException("전투 구역의 안전한 배치 공간이 부족합니다.");
             bool allowed = i != bossArea && i != entryArea && ground[i].AllowsMonsters;
             var size = PlatformSize(map.terrain, ground[i]);

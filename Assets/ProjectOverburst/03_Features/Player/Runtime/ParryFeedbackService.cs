@@ -45,6 +45,22 @@ public sealed class ParryFeedbackService : MonoBehaviour
 
     public static Tier ResolveTier(ParryGrade grade) => Grades[Mathf.Clamp((int)grade, 0, Grades.Length - 1)];
 
+    // The scene loader owns the deadline. Prepare silently without executing a parry or changing pool caps.
+    public static bool PrepareOne()
+    {
+        if (!Application.isPlaying) return false;
+        if (instance == null) { EnsureInstance(); return true; }
+        if (library == null)
+            library = Resources.Load<EnemyTelegraphVisualLibrary>("Enemies/Balance/EnemyTelegraphVisualLibrary");
+        if (normalZoomBlur == null)
+            normalZoomBlur = Resources.Load<GameObject>("Combat/VFX/PF_ParryZoomBlur_Normal");
+        if (perfectZoomBlur == null)
+            perfectZoomBlur = Resources.Load<GameObject>("Combat/VFX/PF_ParryZoomBlur_Perfect");
+        return TransientVfxPool.PrepareOne(library != null ? library.ParrySuccess : null, 1)
+            || TransientVfxPool.PrepareOne(normalZoomBlur, 1)
+            || TransientVfxPool.PrepareOne(perfectZoomBlur, 1);
+    }
+
     // Older presentation tools retain their historical count-based preview; gameplay uses the grade overload.
     public static Tier ResolveTier(int parriedCount, bool anyStrong)
     {
@@ -197,6 +213,11 @@ public sealed class ParryFeedbackService : MonoBehaviour
     private void PlayVoice(AudioClip clip, Vector3 position, float volume, float pitch)
     {
         AudioSource source = voices[nextVoice];
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        Overburst.DebugTools.CombatStutterCapture.TrackAudioSource(source);
+        if (source.isPlaying) Overburst.DebugTools.CombatStutterCapture.ObservePool("ParrySfx", "replace_playing", -1, voices.Length, asset: source.clip);
+#endif
+
         nextVoice = (nextVoice + 1) % voices.Length;
         source.transform.position = position;
         source.Stop();

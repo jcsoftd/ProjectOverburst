@@ -3,6 +3,11 @@ using UnityEngine;
 
 public static class EnemyCrowdService // 몬스터 XZ 공간 그리드와 이웃 조회
 {
+    static readonly Unity.Profiling.ProfilerMarker TotalMarker = new Unity.Profiling.ProfilerMarker("Overburst.AI.Crowd.Total");
+    static readonly Unity.Profiling.ProfilerMarker BuildMarker = new Unity.Profiling.ProfilerMarker("Overburst.AI.Crowd.Build");
+    static readonly Unity.Profiling.ProfilerMarker SolveMarker = new Unity.Profiling.ProfilerMarker("Overburst.AI.Crowd.Solve");
+    static readonly Unity.Profiling.ProfilerMarker ApplyMarker = new Unity.Profiling.ProfilerMarker("Overburst.AI.Crowd.Apply");
+    static readonly Unity.Profiling.ProfilerMarker CellsMarker = new Unity.Profiling.ProfilerMarker("Overburst.AI.Crowd.Cells");
     public const float CellSize = 2f;
     public const float MaximumCentralCorrection = 0.08f;
     public const int CentralSolverPassCount = 2;
@@ -166,6 +171,7 @@ public static class EnemyCrowdService // 몬스터 XZ 공간 그리드와 이웃
 
     internal static void ResolveSubmittedMovement()
     {
+        using var diagnostic = TotalMarker.Auto();
         if (!centralMovementResolutionEnabled || !Application.isPlaying)
             return;
 
@@ -405,6 +411,7 @@ public static class EnemyCrowdService // 몬스터 XZ 공간 그리드와 이웃
 
     private static void BuildSolverBodies()
     {
+        using var diagnostic = BuildMarker.Auto();
         SolverBodies.Clear();
         SolverAgents.Clear();
         SolverIntentIndices.Clear();
@@ -474,6 +481,7 @@ public static class EnemyCrowdService // 몬스터 XZ 공간 그리드와 이웃
 
     private static bool ResolveCentralSolverPass()
     {
+        using var diagnostic = SolveMarker.Auto();
         RebuildSolverCells();
         for (int i = 0; i < SolverCorrections.Count; i++)
         {
@@ -551,6 +559,7 @@ public static class EnemyCrowdService // 몬스터 XZ 공간 그리드와 이웃
 
     private static void ApplyResolvedMovement()
     {
+        using var diagnostic = ApplyMarker.Auto();
         for (int i = 0; i < SolverBodies.Count; i++)
         {
             int intentIndex = SolverIntentIndices[i];
@@ -591,6 +600,7 @@ public static class EnemyCrowdService // 몬스터 XZ 공간 그리드와 이웃
 
     private static void RebuildSolverCells()
     {
+        using var diagnostic = CellsMarker.Auto();
         ReleaseSolverBuckets();
         for (int i = 0; i < SolverBodies.Count; i++)
         {

@@ -171,6 +171,7 @@ public sealed partial class EnemyAIController : MonoBehaviour // 적 상태 조�
     public Transform Target => target;
     public EnemyPartyTargetPhase PartyTargetPhase => EnemyCombatCoordinator.GetPartyTargetPhase(this);
     public int TargetPartyMemberIndex => EnemyCombatCoordinator.GetPartyTargetMemberIndex(this);
+    public int SpawnPackId { get; private set; }
     public GameObject SquadEncounterOwner => squadEncounterOwner;
     public Transform SquadEncounterAnchor => squadEncounterAnchor;
     public Vector3 HomePosition => homePosition;
@@ -236,6 +237,7 @@ public sealed partial class EnemyAIController : MonoBehaviour // 적 상태 조�
 
     private void OnEnable()
     {
+        ResetNavigation();
         ActiveEnemies.Add(this);
         EnemyCombatCoordinator.Register(this);
         ResolveReferences();
@@ -346,14 +348,15 @@ public sealed partial class EnemyAIController : MonoBehaviour // 적 상태 조�
         homePosition = position;
     }
 
-    public void SetSquadEncounter(GameObject encounterOwner, Transform encounterAnchor)
+    public void SetSquadEncounter(GameObject encounterOwner, Transform encounterAnchor, int spawnPackId = 0)
     {
         encounterAnchor = EnemyCombatCoordinator.ResolveCurrentLeaderTarget(encounterAnchor);
-        if (squadEncounterOwner == encounterOwner && squadEncounterAnchor == encounterAnchor)
+        if (squadEncounterOwner == encounterOwner && squadEncounterAnchor == encounterAnchor && SpawnPackId == spawnPackId)
             return;
 
         squadEncounterOwner = encounterOwner; // 타깃과 분리된 전투 구역
         squadEncounterAnchor = encounterAnchor; // 플레이어 기준 포위 중심
+        SpawnPackId = Mathf.Max(0, spawnPackId);
         tacticalPositioning?.Bind();
         EnemySquadPursuitRuntimeService.NotifyEncounterBindingChanged(this);
         RequestImmediateAiTick();

@@ -101,9 +101,21 @@ public sealed class BloodEffectsPackPool
             foreach (var slot in slots)
                 if (catalog.Accepts(slot.variant, shape, priority, drip, accented) && slot.priority < priority
                     && (chosen == null || slot.until < chosen.until)) chosen = slot;
-        if (chosen == null) return false;
+        if (chosen == null)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Overburst.DebugTools.CombatStutterCapture.ObservePool("BloodVfx", "capacity_reject", -1, Capacity, variant, catalog);
+#endif
+            return false;
+        }
         variant = chosen.variant;
-        if (chosen.until > 0f) { PreemptedCount++; Release(chosen); }
+        if (chosen.until > 0f)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Overburst.DebugTools.CombatStutterCapture.ObservePool("BloodVfx", "replace_playing", -1, Capacity, variant, catalog);
+#endif
+            PreemptedCount++; Release(chosen);
+        }
         var definition = catalog.sprays[variant];
         direction = direction.sqrMagnitude < .0001f ? Vector3.forward : direction.normalized;
         Vector3 up = Mathf.Abs(Vector3.Dot(direction, Vector3.up)) > .95f ? Vector3.forward : Vector3.up;

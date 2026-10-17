@@ -91,7 +91,7 @@ public readonly struct EnemySquadPursuitRoute // 할당 없는 최대 5점 부�
 
 public static class EnemySquadPursuitPlanner // 대량 웨이브 부대 편성과 추격 슬롯 순수 계산
 {
-    public const int DefaultActivationCount = 41;
+    public const int DefaultActivationCount = 1;
     public const int DefaultMinimumSquadSize = 8;
     public const int DefaultMaximumSquadSize = 12;
     public const float DefaultSlotRadius = 5.5f;

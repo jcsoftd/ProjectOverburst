@@ -70,7 +70,7 @@ public sealed class EnemyChaseState : IEnemyState // 발견 반응과 거리 기
 
         if (owner.TryHandleTacticalCombat()) return;
 
-        if (owner.IsTargetWithin(owner.AttackEnterRange))
+        if (owner.IsTargetWithin(owner.AttackEnterRange) && owner.HasNavigationApproachToTarget())
         {
             owner.ChangeToAttack(); // 공격 가능 거리에서는 자리 찾기보다 공격을 우선
             return;
@@ -92,7 +92,7 @@ public sealed class EnemyChaseState : IEnemyState // 발견 반응과 거리 기
     {
         mode = ChaseMode.Approach;
         if (owner.UsesRangedTactics) return;
-        if (owner.IsTargetWithin(owner.AttackEnterRange))
+        if (owner.IsTargetWithin(owner.AttackEnterRange) && owner.HasNavigationApproachToTarget())
         {
             owner.Movement?.StopMovement(); // 사거리 내 진입은 조향 목적지를 만들지 않음
             lastProgressPosition = owner.transform.position;

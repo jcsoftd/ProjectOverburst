@@ -80,6 +80,7 @@ public readonly struct MeleeDamageResult
 
 public static class MeleeDamageResolver
 {
+    static readonly Unity.Profiling.ProfilerMarker TakeDamageMarker = new Unity.Profiling.ProfilerMarker("Overburst.Melee.Damage.TakeDamage");
     public static MeleeDamageResult Apply(MeleeDamageRequest request)
     {
         if (request.Target == null)
@@ -120,7 +121,7 @@ public static class MeleeDamageResolver
             request.SourceAttackPhaseIndex,
             weakKnockbackDistance: request.WeakKnockbackDistance, gemAttack: request.GemAttack);
 
-        request.Target.TakeDamage(info);
+        using (TakeDamageMarker.Auto()) request.Target.TakeDamage(info);
         float actualDamage = targetHealth != null && hpBeforeHit >= 0f
             ? Mathf.Max(0f, hpBeforeHit - targetHealth.CurrentHp)
             : damageAmount;

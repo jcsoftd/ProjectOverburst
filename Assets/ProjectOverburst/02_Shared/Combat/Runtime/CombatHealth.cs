@@ -498,6 +498,9 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
 
     private void RaiseDamageResolved(DamageInfo info, float actualDamage, bool lethal)
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        Overburst.DebugTools.CombatStutterCapture.ObserveHit(this, info, actualDamage, lethal);
+#endif
         if (OnDamageResolved == null) return;
         foreach (Action<CombatHealth, DamageInfo, float, bool> observer in OnDamageResolved.GetInvocationList())
         {

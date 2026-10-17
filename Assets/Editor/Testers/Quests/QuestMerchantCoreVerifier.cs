@@ -13,6 +13,37 @@ public static class QuestMerchantCoreVerifier
     private static readonly List<string> passed = new List<string>();
     private static string output;
 
+    public static object VerifyTrackedProjection(string directory)
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Use idle EditMode");
+        var registry = Resources.Load<AccountContentRegistry>(AccountContentRegistry.ResourcePath);
+        var quest = Make("test.tracked-projection", QuestObjectiveKind.KillEnemy, "enemy.any-run", 10);
+        try
+        {
+            var state = NewAccountFactory.Create(registry);
+            AccountQuestCommands.Accept(state, quest, MerchantId, registry); state.revision++;
+            var session = new AccountGameplaySession(null, registry, new EasySaveAccountStore(directory), state, true);
+            var projection = session.ReadTrackedQuest();
+            if (projection == null || projection.questId != quest.id) throw new Exception("Selection");
+            projection.title = "mutated"; projection.objectives[0].current = 999;
+            if (session.ReadTrackedQuest().title == "mutated" || session.ReadTrackedQuest().objectives[0].current != 0) throw new Exception("Copy isolation");
+            session.Read(); session.ReadTrackedQuest();
+            long before = GC.GetAllocatedBytesForCurrentThread(); var watch = System.Diagnostics.Stopwatch.StartNew();
+            for (int i = 0; i < 100; i++) session.Read();
+            watch.Stop(); double fullMs = watch.Elapsed.TotalMilliseconds; long fullBytes = GC.GetAllocatedBytesForCurrentThread() - before;
+            before = GC.GetAllocatedBytesForCurrentThread(); watch.Restart();
+            for (int i = 0; i < 100; i++) session.ReadTrackedQuest();
+            watch.Stop(); double trackedMs = watch.Elapsed.TotalMilliseconds; long trackedBytes = GC.GetAllocatedBytesForCurrentThread() - before;
+            session.ExecuteQuest("untrack", session.Revision, x => AccountQuestCommands.Track(x, null), false);
+            if (session.ReadTrackedQuest() != null) throw new Exception("Untrack");
+            var result = new { status = "PASS", checks = 4, fullMs, trackedMs, allocationMeasurementAvailable = fullBytes > 0, fullBytes, trackedBytes };
+            Directory.CreateDirectory(directory);
+            File.WriteAllText(Path.Combine(directory, "projection.json"), Newtonsoft.Json.JsonConvert.SerializeObject(result));
+            return result;
+        }
+        finally { UnityEngine.Object.DestroyImmediate(quest); }
+    }
+
     public static string Run()
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
@@ -35,9 +66,15 @@ public static class QuestMerchantCoreVerifier
             var store = new EasySaveAccountStore(Path.Combine(output, "Atomic"));
             Check(store.Load() == null, "Fixture starts empty");
             var session = new AccountGameplaySession(null, registry, store, initial, true);
+            Check(session.ReadTrackedQuest() == null, "Tracked-quest projection is empty for a fresh account");
             int events = 0; session.QuestsCommitted += () => events++;
             Check(session.ExecuteQuest("accept", 0, s => AccountQuestCommands.Accept(s, hunt, MerchantId, registry), true), "Accept checkpoint");
             Check(new EasySaveAccountStore(Path.Combine(output, "Atomic")).Load().quests.Count == 1, "Accept survives reload");
+            var tracked = session.ReadTrackedQuest();
+            Check(tracked != null && tracked.questId == hunt.id, "Tracked-quest projection selects the accepted quest");
+            tracked.title = "caller-owned copy"; tracked.objectives[0].current = 999;
+            Check(session.ReadTrackedQuest().title != tracked.title && session.ReadTrackedQuest().objectives[0].current == 0,
+                "Tracked-quest projection deep-copies nested objectives without exposing account ownership");
             long revision = session.Revision;
             Check(!session.ExecuteQuest("accept-again", revision, s => AccountQuestCommands.Accept(s, hunt, MerchantId, registry), true)
                 && session.Revision == revision, "Duplicate accept is a no-op");
@@ -64,6 +101,7 @@ public static class QuestMerchantCoreVerifier
             store.FaultInjector = phase => { if (phase == "after-write") throw new IOException("expected uncertain commit"); };
             Check(session.ExecuteQuest("report", session.Revision,
                 s => AccountQuestCommands.TurnIn(s, hunt.id, MerchantId, registry), true), "After-write failure resolves by readback");
+            Check(session.ReadTrackedQuest() == null, "Tracked-quest projection clears after turn-in");
             var completed = session.Read();
             Check(completed.quests.Single().state == SavedQuestState.Completed && completed.trackedQuestId == null, "Completion and tracker clear together");
             Check(completed.items.Where(i => i.contentId == completed.quests.Single().rewardGoldContentId).Sum(i => i.count) == 100

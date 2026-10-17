@@ -52,7 +52,6 @@ public sealed class QuestMerchantUI : MonoBehaviour
     private long popupRevision;
     private int executeFrame = -1, escapeFrame = -1, dialogueIndex;
     private float nextWheel;
-    private bool hasTracking;
     private bool? approachIsStylist;
     private UnityEngine.UI.Text[] approachKeyTexts;
     private UnityEngine.UI.Text approachHint;
@@ -456,13 +455,8 @@ public sealed class QuestMerchantUI : MonoBehaviour
     }
     private void RefreshTracker()
     {
-        var state = AccountGameplaySession.Current?.Read();
-        var q = state?.quests.Find(x => x.questId == state.trackedQuestId);
-        hasTracking = q != null;
+        // The workshop HUD owns the tracked objective; this legacy panel stays hidden.
         tracker.SetActive(false);
-        if (q == null) return;
-        trackerTitle.text = q.title;
-        trackerProgress.text = AccountQuestCommands.IsReady(q) ? "무기상인에게 보고" : string.Join("\n", q.objectives.Where(o => o.current < o.required).Select(o => o.label + "  " + o.current + " / " + o.required));
     }
     private void RefreshDialogue()
     {

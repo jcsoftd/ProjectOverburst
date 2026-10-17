@@ -24,9 +24,20 @@ public static class MapDropPolicy
         MapInstanceState map, EnemyThemeTier tier, string runId)
     {
         if (!MapFarmingLoot.Applies(map)) return Roll(definition, registry, map.level, tier, runId);
+        return RollOccurs(definition, registry, map, tier, runId) ? CreateDrop(definition, registry, map, tier, runId) : null;
+    }
+
+    public static bool RollOccurs(MapItemData definition, AccountContentRegistry registry,
+        MapInstanceState map, EnemyThemeTier tier, string runId)
+    {
         float chance = TesterSupportItemData.ApplyDropChance(ChanceForMap(tier, map) * (1f + MapRunBuffs.Bonus(MapBuffKind.ItemDrop)));
-        if (definition == null || registry == null || string.IsNullOrEmpty(runId)
-            || chance <= 0 || (chance < 1 && Random.value >= chance)) return null;
+        return definition != null && registry != null && !string.IsNullOrEmpty(runId)
+            && chance > 0 && (chance >= 1 || Random.value < chance);
+    }
+
+    public static ItemData CreateDrop(MapItemData definition, AccountContentRegistry registry,
+        MapInstanceState map, EnemyThemeTier tier, string runId)
+    {
         int level = Random.Range(MinimumLevel(map.level, tier), MaximumLevel(map.level, tier) + 1);
         return MapGenerationPolicy.CreateItem(definition, registry, level,
             MapFarmingLoot.SelectMapGrade(Random.value, map.grade), runId);

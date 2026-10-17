@@ -456,7 +456,7 @@ public static class MapCombatGeometry
                     || path.status != NavMeshPathStatus.PathComplete) continue;
                 points.Add(floor);
             }
-            if (source.AllowsMonsters && points.Count < 6) throw new InvalidOperationException("실제 전투 가능한 바닥이 부족합니다: " + source.name + " / " + points.Count + "㎡");
+            if (source.index != entryArea && source.AllowsMonsters && points.Count < 6) throw new InvalidOperationException("실제 전투 가능한 바닥이 부족합니다: " + source.name + " / " + points.Count + "㎡");
             areas.Add(new Area(source.index, source.name, source.center, source.band, points, source));
         }
         if (desert) gate.BossArena = MapBossArena.Prepare(areas, entry);

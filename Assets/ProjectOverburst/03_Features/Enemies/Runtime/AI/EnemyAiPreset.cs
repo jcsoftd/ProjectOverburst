@@ -9,7 +9,6 @@ public sealed class EnemyAiPreset : ScriptableObject // 종족 AI와 시뮬레�
     [SerializeField] private GameObject[] defaultMonsterPrefabs = new GameObject[0]; // 이 AI의 기본 로스터
 
     [Header("Squad Pursuit")]
-    [SerializeField, Min(1)] private int activationCount = EnemySquadPursuitPlanner.DefaultActivationCount; // 부대 AI 활성 마릿수
     [SerializeField, Min(1)] private int minimumSquadSize = EnemySquadPursuitPlanner.DefaultMinimumSquadSize; // 최소 부대원
     [SerializeField, Min(1)] private int maximumSquadSize = EnemySquadPursuitPlanner.DefaultMaximumSquadSize; // 최대 부대원
     [SerializeField, Min(0.5f)] private float slotRadius = EnemySquadPursuitPlanner.DefaultSlotRadius; // 플레이어 주변 슬롯 반경
@@ -26,7 +25,7 @@ public sealed class EnemyAiPreset : ScriptableObject // 종족 AI와 시뮬레�
     public string PresetId => string.IsNullOrWhiteSpace(presetId) ? name : presetId;
     public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? name : displayName;
     public int DefaultMonsterCount => defaultMonsterPrefabs != null ? defaultMonsterPrefabs.Length : 0;
-    public int ActivationCount => Mathf.Max(1, activationCount);
+    public int ActivationCount => 1; // 기존 제작 도구 호출 호환. 인원수 활성 조건은 없다.
     public int MinimumSquadSize => Mathf.Max(1, minimumSquadSize);
     public int MaximumSquadSize => Mathf.Max(MinimumSquadSize, maximumSquadSize);
     public float SlotRadius => Mathf.Max(0.5f, slotRadius);
@@ -70,7 +69,6 @@ public sealed class EnemyAiPreset : ScriptableObject // 종족 AI와 시뮬레�
         float newReserveOrbitAngularSpeed,
         float newCurveRadiusMultiplier)
     {
-        activationCount = Mathf.Max(1, newActivationCount);
         minimumSquadSize = Mathf.Max(1, newMinimumSquadSize);
         maximumSquadSize = Mathf.Max(minimumSquadSize, newMaximumSquadSize);
         slotRadius = Mathf.Max(0.5f, newSlotRadius);
@@ -87,7 +85,6 @@ public sealed class EnemyAiPreset : ScriptableObject // 종족 AI와 시뮬레�
 
     private void OnValidate()
     {
-        activationCount = Mathf.Max(1, activationCount);
         minimumSquadSize = Mathf.Max(1, minimumSquadSize);
         maximumSquadSize = Mathf.Max(minimumSquadSize, maximumSquadSize);
         slotRadius = Mathf.Max(0.5f, slotRadius);

@@ -111,7 +111,22 @@ public static class WorldItemDropFactory // 월드 아이템 생성
         return pickup;
     }
 
-    private static GameObject InstantiateWorldPickupObject(ItemData item)
+    internal static WorldItemPickup PrepareReserved(ItemData item, Transform inactiveRoot)
+    {
+        var node = InstantiateWorldPickupObject(item, inactiveRoot);
+        node.SetActive(false); node.name = BuildPickupName(item);
+        var pickup = EnsureWorldItemPickupComponent(node);
+        pickup.PrepareReserved(item);
+        return pickup;
+    }
+
+    internal static void ReleaseReserved(WorldItemPickup pickup, Vector3 position, PlayerInventory inventory, Transform player)
+    {
+        pickup.ReleaseReserved(position, inventory, player);
+        RunWalkableContext.TryAttachFallGuard(pickup.gameObject);
+    }
+
+    private static GameObject InstantiateWorldPickupObject(ItemData item, Transform parent = null)
     {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         using var cspScope = Overburst.DebugTools.Performance.CombatSpawnQualityTrace.PickupInstantiate.Auto();
@@ -120,9 +135,11 @@ public static class WorldItemDropFactory // 월드 아이템 생성
         if (prefab == null && item != null)
             prefab = ResolveSharedEquipmentPickupPrefab(item.baseData);
         if (prefab != null)
-            return Object.Instantiate(prefab);
+            return Object.Instantiate(prefab, parent);
 
-        return CreateWorldPickupFallback(item);
+        var fallback = CreateWorldPickupFallback(item);
+        if (parent) fallback.transform.SetParent(parent, false);
+        return fallback;
     }
 
     private static GameObject ResolveSharedEquipmentPickupPrefab(BaseItemData data)

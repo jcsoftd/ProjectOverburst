@@ -18,18 +18,24 @@ namespace Overburst.DebugTools.Performance
         struct Frame
         {
             public int id, targets, alive, bloodRequests, bloodPlayed, hits, kills, requests, accepted, parries;
-            public float scale; public double seconds, wall, observer;
+            public float scale; public double seconds, wall, observer; public long startTimestamp, endTimestamp;
         }
         struct PerformanceEvent
         { public int frame, kind, target, attack, element, fatal; public double seconds; public float damage; }
         struct Timing
         { public int observedFrame; public ulong timestamp; public double cpu, gpu; }
         const int MaximumMetrics = 72;
-        static readonly string[] EngineNames = { "Main Thread", "Render Thread", "PlayerLoop", "GC Allocated In Frame", "GC Used Memory",
+        static readonly ProfilerMarker ExportMarker = new ProfilerMarker("Overburst.Diagnostics.Performance.Export");
+        static readonly ProfilerMarker TickMarker = new ProfilerMarker("Overburst.Diagnostics.Performance.Tick");
+        static readonly ProfilerMarker ReadMarker = new ProfilerMarker("Overburst.Diagnostics.Performance.ReadMetrics");
+        static readonly ProfilerMarker TimingMarker = new ProfilerMarker("Overburst.Diagnostics.Performance.Timing");
+        static readonly string[] EngineNames = { "Main Thread", "Render Thread", "PlayerLoop", "FixedUpdate.ScriptRunBehaviourFixedUpdate", "FixedUpdate.PhysicsFixedUpdate", "GC Allocated In Frame", "GC Used Memory",
             "GC Reserved Memory", "Total Used Memory", "GC.Collect", "Draw Calls Count", "SetPass Calls Count", "Triangles Count",
             "Gfx.WaitForPresentOnGfxThread", "Gfx.WaitForRenderThread", "WaitForTargetFPS", "WaitForLastPresentation",
             "Animators.Update", "Physics.Simulate", "Audio.Update", "Resources.Load", "Shader.CreateGPUProgram",
-            "ParticleSystem.UpdateJob", "ParticleSystem.GeometryJob", "ParticleSystem.Draw", "VFX.Update", "VFX.Prepare" };
+            "ParticleSystem.UpdateJob", "ParticleSystem.GeometryJob", "ParticleSystem.Draw", "VFX.Update", "VFX.Prepare",
+            "Mono.JIT", "Gfx Used Memory", "Gfx Reserved Memory", "ParticleSystem.ScheduleGeometryJobs",
+            "GfxDeviceD3D12.ReserveScratchMemory", "CreateCommittedResourceWithTag", "GfxDeviceD3D12.WaitForLastPresentation.WaitForGPU" };
         readonly List<ProfilerRecorder> recorders = new List<ProfilerRecorder>();
         readonly List<CombatPerformanceMetric> descriptors = new List<CombatPerformanceMetric>();
         readonly FrameTiming[] timingBuffer = new FrameTiming[1];
@@ -38,6 +44,7 @@ namespace Overburst.DebugTools.Performance
         long[] metricSampleCounts;
         int count, eventCount, timingCount, droppedEvents, tracked = -1, hitchStreak;
         long start, previous;
+        DateTime startedUtc;
         ulong lastTiming;
         bool running;
         Frame current;
@@ -47,6 +54,7 @@ namespace Overburst.DebugTools.Performance
         public CombatPerformanceSegment Result { get; }
         public string[] MissingRequestedMetrics { get; }
         public bool CapacityReached => count >= frames.Length;
+        public double LastWallMilliseconds { get; private set; }
         public double ElapsedSeconds => Milliseconds(start, Stopwatch.GetTimestamp()) / 1000d;
 
         public CombatPerformanceRecorder(CombatPerformanceProfile profile, CombatPerformanceSegment segment, BloodHitVfxService bloodService, int maximumMetrics = MaximumMetrics, bool captureSampleCounts = false, string[] metricNames = null)
@@ -83,17 +91,19 @@ namespace Overburst.DebugTools.Performance
             bloodPlayStart = blood != null ? blood.PlayedCount : 0;
             for (int i = 0; i < 3; i++) gcStart[i] = GC.CollectionCount(i);
             Result.memoryStartBytes = UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong();
-            start = Stopwatch.GetTimestamp(); running = true;
+            start = Stopwatch.GetTimestamp(); startedUtc = DateTime.UtcNow; running = true;
         }
         static double Milliseconds(long a, long b) => (b - a) * 1000d / Stopwatch.Frequency;
         public void Tick()
         {
             if (!running || tracked == Time.frameCount) return;
+            using var diagnostic = TickMarker.Auto();
             long began = Stopwatch.GetTimestamp();
             if (tracked >= 0 && count < frames.Length)
             {
-                current.wall = Milliseconds(previous, began);
+                current.wall = Milliseconds(previous, began); LastWallMilliseconds = current.wall; current.endTimestamp = began;
                 int row = count++;
+                using (ReadMarker.Auto())
                 for (int m = 0; m < recorders.Count; m++)
                 {
                     var rec = recorders[m];
@@ -108,7 +118,9 @@ namespace Overburst.DebugTools.Performance
                 Result.longestHitchFrames = Math.Max(Result.longestHitchFrames, hitchStreak);
             }
             tracked = Time.frameCount; previous = began;
-            current = new Frame { id = tracked, seconds = Milliseconds(start, began) / 1000d };
+            current = new Frame { id = tracked, startTimestamp = began, seconds = Milliseconds(start, began) / 1000d };
+            using (TimingMarker.Auto())
+            {
             if (FrameTimingManager.GetLatestTimings(1, timingBuffer) > 0)
             {
                 FrameTiming t = timingBuffer[0];
@@ -121,6 +133,7 @@ namespace Overburst.DebugTools.Performance
                 }
             }
             FrameTimingManager.CaptureFrameTimings();
+            }
             current.observer += Milliseconds(began, Stopwatch.GetTimestamp());
         }
         public void Observe(int alive)
@@ -145,6 +158,7 @@ namespace Overburst.DebugTools.Performance
         public void End(string folder)
         {
             if (!running) return;
+            using var diagnostic = ExportMarker.Auto();
             running = false; DisposeRecorders();
             Result.frames = count; Result.droppedEvents = droppedEvents; Result.capacityReached = CapacityReached;
             Result.memoryEndBytes = UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong();
@@ -175,6 +189,7 @@ namespace Overburst.DebugTools.Performance
             Directory.CreateDirectory(folder);
             WriteFrames(Path.Combine(folder, "frames.csv")); WriteEvents(Path.Combine(folder, "events.csv")); WriteTimings(Path.Combine(folder, "timings.csv"));
             CombatPerformancePaths.SaveJson(Path.Combine(folder, "segment.json"), Result);
+            File.WriteAllText(Path.Combine(folder, "clock.json"), Newtonsoft.Json.JsonConvert.SerializeObject(new { frequency = Stopwatch.Frequency, startTimestamp = start, startedUtc = startedUtc.ToString("O", CultureInfo.InvariantCulture), clockOrigin = "System.Diagnostics.Stopwatch.GetTimestamp; process clock, not assumed equal to native profiler/Python QPC epoch.", wallOrigin = "Runner Tick to next distinct game-frame Tick. Profiler metrics are latest completed samples; their frame ID is not guaranteed." }), new UTF8Encoding(false));
         }
         static string N(double value) => double.IsNaN(value) || double.IsInfinity(value) ? "" : value.ToString("0.######", CultureInfo.InvariantCulture);
         static string Q(string value) => "\"" + (value ?? "").Replace("\"", "\"\"") + "\"";
@@ -185,6 +200,7 @@ namespace Overburst.DebugTools.Performance
                 w.Write("frame,seconds,wall_ms,time_scale,observer_ms,targets,alive,hits_total,kills_total,requests_total,accepted_total,parries_total,blood_requested_total,blood_played_total");
                 foreach (var d in descriptors) w.Write("," + Q(d.category + "/" + d.name + " [" + (d.nanoseconds ? "ms" : d.unit) + "]"));
                 if (metricSampleCounts != null) foreach (var d in descriptors) w.Write("," + Q(d.category + "/" + d.name + " samples [count]"));
+                w.Write(",stopwatch_start_ticks,stopwatch_end_ticks");
                 w.WriteLine();
                 for (int i = 0; i < count; i++)
                 {
@@ -194,6 +210,7 @@ namespace Overburst.DebugTools.Performance
                     for (int m = 0; m < descriptors.Count; m++) w.Write("," + N(metricValues[i * descriptors.Count + m]));
                     if (metricSampleCounts != null) for (int m = 0; m < descriptors.Count; m++)
                     { long value = metricSampleCounts[i * descriptors.Count + m]; w.Write("," + (value < 0 ? "" : value.ToString(CultureInfo.InvariantCulture))); }
+                    w.Write("," + f.startTimestamp.ToString(CultureInfo.InvariantCulture) + "," + f.endTimestamp.ToString(CultureInfo.InvariantCulture));
                     w.WriteLine();
                 }
             }

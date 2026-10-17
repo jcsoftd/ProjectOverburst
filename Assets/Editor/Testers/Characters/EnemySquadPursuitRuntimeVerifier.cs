@@ -11,10 +11,10 @@ public static class EnemySquadPursuitRuntimeVerifier // 실제 게임 연결 최
     private const string ActiveKey = "EnemySquadPursuitRuntimeVerifier.Active";
     private const string BatchKey = "EnemySquadPursuitRuntimeVerifier.Batch";
     private const string ExitCodeKey = "EnemySquadPursuitRuntimeVerifier.ExitCode";
-    private const int SquadMemberCount = 41;
+    private const int SquadMemberCount = 40; // Five explicit spawn packs; no population activation gate.
     private const int ExpectedSquadCount = 5;
     private const int ExpectedPlannedCount = 40;
-    private const int ExpectedUnassignedCount = 1;
+    private const int ExpectedUnassignedCount = 0;
     private const int ExpectedSquadSize = 8;
     private const string MurlocPrefabPath =
         "Assets/ProjectOverburst/Resources/Enemies/Murloc/PF_StageMonster_Murloc_Grunt.prefab";
@@ -88,7 +88,7 @@ public static class EnemySquadPursuitRuntimeVerifier // 실제 게임 연결 최
                 if (!ai.UsesSquadPursuit)
                     throw new InvalidOperationException("Core Murloc squad runtime opt-in missing");
                 ai.Configure(player.transform, position, 30f, 1.5f);
-                ai.SetSquadEncounter(encounterOwner, player.transform);
+                ai.SetSquadEncounter(encounterOwner, player.transform, i / ExpectedSquadSize + 1);
                 ai.RequestAggro(player.transform);
                 changeToChase.Invoke(ai, null);
                 RequirePartyTarget(
@@ -103,12 +103,11 @@ public static class EnemySquadPursuitRuntimeVerifier // 실제 게임 연결 최
                 BindingFlags.Static | BindingFlags.NonPublic);
             if (updatedFrame == null)
                 throw new InvalidOperationException("Runtime squad frame cache hook missing");
-            updatedFrame.SetValue(null, -1); // 같은 Editor 프레임에서 41명 전환 후 재평가
+            updatedFrame.SetValue(null, -1); // 같은 Editor 프레임에서 스폰 묶음 등록 후 재평가
 
             int planned = 0;
             int unassigned = 0;
             int pursuitPriority = 0;
-            EnemyAIController unassignedMember = null;
             var plannedMembers = new List<EnemyAIController>(ExpectedPlannedCount);
             var squadMemberCounts = new Dictionary<string, int>();
             for (int i = 0; i < SquadMemberCount; i++)
@@ -127,7 +126,6 @@ public static class EnemySquadPursuitRuntimeVerifier // 실제 게임 연결 최
                 else
                 {
                     unassigned++;
-                    unassignedMember = ai;
                     if (!string.IsNullOrEmpty(ai.SquadPursuitDebugModeName))
                     {
                         throw new InvalidOperationException(
@@ -140,12 +138,11 @@ public static class EnemySquadPursuitRuntimeVerifier // 실제 게임 연결 최
             if (planned != ExpectedPlannedCount
                 || unassigned != ExpectedUnassignedCount
                 || plannedMembers.Count != ExpectedPlannedCount
-                || unassignedMember == null
                 || squadMemberCounts.Count != ExpectedSquadCount
                 || pursuitPriority <= 0)
             {
                 throw new InvalidOperationException(
-                    "41 Murloc runtime squad pursuit plan mismatch planned=" + planned
+                    "Spawn-pack runtime squad pursuit plan mismatch planned=" + planned
                     + " unassigned=" + unassigned
                     + " squads=" + squadMemberCounts.Count
                     + " pursuitPriority=" + pursuitPriority);
@@ -158,16 +155,6 @@ public static class EnemySquadPursuitRuntimeVerifier // 실제 게임 연결 최
                         "Maximum-first runtime squad size mismatch squad=" + pair.Key
                         + " size=" + pair.Value + " expected=" + ExpectedSquadSize);
                 }
-            }
-
-            Vector3 fallbackDestination = (Vector3)resolveChaseDestination.Invoke(unassignedMember, null);
-            if (!float.IsFinite(fallbackDestination.x)
-                || !float.IsFinite(fallbackDestination.y)
-                || !float.IsFinite(fallbackDestination.z)
-                || (fallbackDestination - unassignedMember.transform.position).sqrMagnitude <= 0.000001f)
-            {
-                throw new InvalidOperationException(
-                    "Unassigned member did not preserve the individual chase fallback");
             }
 
             EnemySquadPursuitRuntimeStats stats = EnemySquadPursuitRuntimeService.GetRuntimeStats();
@@ -356,9 +343,9 @@ public static class EnemySquadPursuitRuntimeVerifier // 실제 게임 연결 최
             }
 
             Debug.Log(
-                "[EnemySquadPursuitRuntimeVerifier] PASS members=41 leaderApproach=41 memberLock=1 planned="
+                "[EnemySquadPursuitRuntimeVerifier] PASS members=40 leaderApproach=40 memberLock=1 planned="
                 + planned + " unassigned=" + unassigned + " squadSize=" + ExpectedSquadSize
-                + " individualFallback=1 pursuitPriority=" + pursuitPriority
+                + " explicitSpawnPacks=5 pursuitPriority=" + pursuitPriority
                 + " squads=" + stats.SquadCount + " debugSlots=" + debugSlots.Count
                 + " persistentMembership=1 singlePlayerContext=1 attackReservationPreserved=1"
                 + " returnCleared=1 groupTargetCopy=0 groupFar=0");

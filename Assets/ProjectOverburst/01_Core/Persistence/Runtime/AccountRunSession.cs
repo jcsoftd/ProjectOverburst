@@ -14,6 +14,9 @@ namespace Overburst.Persistence
 
         public RunOutcome ResolveOutcome(long utcTicks, bool playerDead, bool portalRequested = false, bool abandoned = false, bool emergencyRequested = false)
         {
+            // Ordinary combat polls only need the phase. Keep full snapshots for settlement and timed boss exits.
+            if (!playerDead && !portalRequested && !abandoned && !emergencyRequested
+                && account.CurrentRunPhase != RunPhase.BossCleared) return RunOutcome.None;
             var run = account.ReadRun();
             if (run == null || run.phase == RunPhase.Failed || run.phase == RunPhase.Extracted) return RunOutcome.None;
             if (playerDead || abandoned)

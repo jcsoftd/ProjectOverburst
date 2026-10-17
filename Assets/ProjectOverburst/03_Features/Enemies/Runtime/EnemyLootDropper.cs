@@ -53,6 +53,9 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
     }
 
     private bool dropped; // 중복 드랍 방지
+    private MapLootReserve lootReserve;
+    private EnemyThemeTier lootTier;
+    public void ConfigurePreparedLoot(MapLootReserve reserve, EnemyThemeTier tier) { lootReserve = reserve; lootTier = tier; }
     private EncounterContext encounter = EncounterContext.Test;
     public void ConfigureEncounter(EncounterContext context) => encounter = context ?? EncounterContext.Test;
 
@@ -97,6 +100,7 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
     {
         CaptureAuthoredPresentation();
         encounter = EncounterContext.Test;
+        lootReserve = null;
         dropTable = authoredDropTable;
         targetInventory = authoredTargetInventory;
         player = authoredPlayer;
@@ -145,8 +149,20 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
             var grade = rank != null ? rank.GradeType : EnemyGradeType.Normal;
             float rarePercent = BagQuality.EquippedBonus(BagStat.RareGradeWeight);
             for (int kind = 0; kind < 5; kind++)
-                DropFarmingItem(MapFarmingLoot.Roll((MapFarmingKind)kind, grade, encounter.Map, rarePercent),
-                    dropOrigin + dropOffset + GetScatterOffset(kind, 5));
+            {
+                if (!MapFarmingLoot.RollOccurs((MapFarmingKind)kind, grade, encounter.Map)) continue;
+                Vector3 position = dropOrigin + dropOffset + GetScatterOffset(kind, 5);
+                if (lootReserve && lootReserve.TryTake(lootTier, kind, grade, rarePercent, pickupGradeVfxSet, out var ready, out var extra))
+                {
+                    position = ConstrainCaveDrop(position);
+                    WorldItemDropFactory.ReleaseReserved(ready, position, targetInventory, player);
+                    float chance = BagQuality.EquippedBonus(BagStat.ExtraItemDrop) * .01f;
+                    if (extra && chance > 0 && Random.value < chance)
+                        WorldItemDropFactory.ReleaseReserved(extra, ConstrainCaveDrop(position + Vector3.forward * .35f), targetInventory, player);
+                    else if (extra) Destroy(extra.gameObject);
+                }
+                else DropFarmingItem(MapFarmingLoot.CreateDrop((MapFarmingKind)kind, grade, encounter.Map, rarePercent), position);
+            }
         }
         else if (encounter.IsRun || encounter.IsOutdoor)
         {

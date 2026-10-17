@@ -58,7 +58,7 @@ public sealed class OverburstObjectiveTracker : MonoBehaviour
         if(!ReferenceEquals(account,shownAccount) || (account?.Revision ?? -1)!=shownRevision)
         {
             shownAccount=account;shownRevision=account?.Revision ?? -1;
-            var snapshot=account?.Read();var quest=snapshot?.quests.Find(q=>q.questId==snapshot.trackedQuestId);
+            var quest=account?.ReadTrackedQuest();
             if(emptyMessage)
             {
                 string progress="";

@@ -249,9 +249,23 @@ public sealed class CombatImpactFeel : MonoBehaviour
         if (selected == null)
         {
             DroppedCount++;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Overburst.DebugTools.CombatStutterCapture.ObservePool("ImpactFeel", "surface_capacity_reject", -1, slots.Length, (int)surface);
+#endif
+
             return false;
         }
-        if (selected.availableAt > Time.unscaledTime) PreemptedCount++;
+        if (selected.availableAt > Time.unscaledTime)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Overburst.DebugTools.CombatStutterCapture.ObservePool("ImpactFeel", "replace_playing", -1, slots.Length, (int)surface);
+#endif
+            PreemptedCount++;
+        }
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        Overburst.DebugTools.CombatStutterCapture.TrackAudioSource(selected.audio);
+#endif
+
         var selectedSlot = selected;
         selectedSlot.player.StopFeedbacks();
         selectedSlot.particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);

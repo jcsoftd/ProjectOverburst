@@ -48,6 +48,7 @@ public sealed class PlayerDashVfx : MonoBehaviour
         public MeshRenderer renderer;
         public MeshFilter filter;
         public Mesh baked;
+        public Mesh preparedSource;
         public int materialCount;
     }
     sealed class Frame
@@ -136,6 +137,15 @@ public sealed class PlayerDashVfx : MonoBehaviour
     {
         EnsureRoot();
         if(dust!=null){dust.Play();dustPaused=false;}
+        CacheSources();
+        activeTint = ResolveTint(tint);
+        activeAccent = colorStyle == 1 ? new Color(1f, .92f, .38f, activeTint.a) : activeTint;
+        lastSamplePosition = transform.position;
+        nextSample = OverburstGameClock.UnscaledTime + sampleInterval;
+        emitting = true;
+    }
+    void CacheSources()
+    {
         sources.Clear();
         var animator = GetComponentInChildren<Animator>();
         if (animator != null)
@@ -147,12 +157,30 @@ public sealed class PlayerDashVfx : MonoBehaviour
                 var filter = renderer is MeshRenderer ? renderer.GetComponent<MeshFilter>() : null;
                 if ((skin != null && skin.sharedMesh != null) || (filter != null && filter.sharedMesh != null)) sources.Add(renderer);
             }
-        activeTint = ResolveTint(tint);
-        activeAccent = colorStyle == 1 ? new Color(1f, .92f, .38f, activeTint.a) : activeTint;
-        lastSamplePosition = transform.position;
-        nextSample = OverburstGameClock.UnscaledTime + sampleInterval;
-        emitting = true;
     }
+
+    // Move first allocation/topology copies out of combat; retain all four poses and their original sampling.
+    public System.Collections.IEnumerator PrepareForGameplay(double deadline, System.Func<bool> cancelled)
+    {
+        if (!afterimageMaterial || !dustMaterial) yield break;
+        Clear(); EnsureRoot(); CacheSources();
+        for (int f = 0; f < frames.Length; f++)
+        {
+            var frame = frames[f] ?? (frames[f] = new Frame());
+            int index = 0;
+            foreach (var source in sources)
+            {
+                if (cancelled?.Invoke() == true || Time.realtimeSinceStartupAsDouble >= deadline) yield break;
+                if (!source || !source.enabled || !source.gameObject.activeInHierarchy) continue;
+                var skin = source as SkinnedMeshRenderer;
+                var mesh = skin ? skin.sharedMesh : source.GetComponent<MeshFilter>().sharedMesh;
+                if (index < frame.pieces.Count && frame.pieces[index].preparedSource == mesh) { index++; continue; }
+                PreparePiece(frame, index++, source);
+                yield return null; // One atomic mesh bake per frame inside the existing cumulative loading deadline.
+            }
+        }
+    }
+
     void Ended(PlayerEvadeType type)
     {
         if (type != PlayerEvadeType.ExplorationDodge && type != PlayerEvadeType.CombatDodge) return;
@@ -241,29 +269,7 @@ public sealed class PlayerDashVfx : MonoBehaviour
         foreach (var source in sources)
         {
             if (source == null || !source.enabled || !source.gameObject.activeInHierarchy) continue;
-            if (index == frame.pieces.Count)
-            {
-                var item = new GameObject("Dash Pose") { hideFlags = HideFlags.DontSave, layer = source.gameObject.layer };
-                item.transform.SetParent(root.transform, false);
-                var piece = new Piece {transform=item.transform, filter=item.AddComponent<MeshFilter>(), renderer=item.AddComponent<MeshRenderer>(),
-                    baked=new Mesh {name="Dash Pose Mesh", hideFlags=HideFlags.DontSave}};
-                piece.baked.MarkDynamic();
-                piece.renderer.shadowCastingMode = ShadowCastingMode.Off; piece.renderer.receiveShadows = false;
-                piece.renderer.lightProbeUsage = LightProbeUsage.Off; piece.renderer.reflectionProbeUsage = ReflectionProbeUsage.Off;
-                piece.renderer.enabled = false;
-                frame.pieces.Add(piece);
-            }
-            var target = frame.pieces[index++];
-            var skin = source as SkinnedMeshRenderer;
-            if (skin != null) { skin.BakeMesh(target.baked, false); target.filter.sharedMesh = target.baked; }
-            else target.filter.sharedMesh = source.GetComponent<MeshFilter>().sharedMesh;
-            var mesh = target.filter.sharedMesh;
-            if (target.materialCount != mesh.subMeshCount)
-            {
-                var materials = new Material[mesh.subMeshCount];
-                for (int i = 0; i < materials.Length; i++) materials[i] = afterimageMaterial;
-                target.renderer.sharedMaterials = materials; target.materialCount = materials.Length;
-            }
+            var target = PreparePiece(frame, index++, source);
             target.transform.SetPositionAndRotation(source.transform.position, source.transform.rotation);
             target.transform.localScale = source.transform.lossyScale;
             target.renderer.enabled = true;
@@ -274,6 +280,38 @@ public sealed class PlayerDashVfx : MonoBehaviour
         frame.active = index > 0; frame.born = now; frame.tint = activeTint; frame.accent = activeAccent;
         frame.heavy = emittingHeavy; frame.stopFadeStarted = -1f;
         if (frame.active) CapturedAfterimageCount++;
+    }
+    static readonly Unity.Profiling.ProfilerMarker BakeMarker = new Unity.Profiling.ProfilerMarker("Overburst.PlayerAfterimage.Bake");
+    Piece PreparePiece(Frame frame, int index, Renderer source)
+    {
+        if (index == frame.pieces.Count)
+        {
+            var item = new GameObject("Dash Pose") { hideFlags = HideFlags.DontSave, layer = source.gameObject.layer };
+            item.transform.SetParent(root.transform, false);
+            var piece = new Piece {transform=item.transform, filter=item.AddComponent<MeshFilter>(), renderer=item.AddComponent<MeshRenderer>(),
+                baked=new Mesh {name="Dash Pose Mesh", hideFlags=HideFlags.DontSave}};
+            piece.baked.MarkDynamic();
+            piece.renderer.shadowCastingMode = ShadowCastingMode.Off; piece.renderer.receiveShadows = false;
+            piece.renderer.lightProbeUsage = LightProbeUsage.Off; piece.renderer.reflectionProbeUsage = ReflectionProbeUsage.Off;
+            piece.renderer.enabled = false;
+            frame.pieces.Add(piece);
+        }
+        var target = frame.pieces[index];
+        var skin = source as SkinnedMeshRenderer;
+        if (skin != null)
+        {
+            using (BakeMarker.Auto()) skin.BakeMesh(target.baked, false);
+            target.filter.sharedMesh = target.baked; target.preparedSource = skin.sharedMesh;
+        }
+        else target.preparedSource = target.filter.sharedMesh = source.GetComponent<MeshFilter>().sharedMesh;
+        var mesh = target.filter.sharedMesh;
+        if (target.materialCount != mesh.subMeshCount)
+        {
+            var materials = new Material[mesh.subMeshCount];
+            for (int i = 0; i < materials.Length; i++) materials[i] = afterimageMaterial;
+            target.renderer.sharedMaterials = materials; target.materialCount = materials.Length;
+        }
+        return target;
     }
     void EmitDust(int count)
     {

@@ -15,6 +15,8 @@ public sealed class EnemyMotor : MonoBehaviour // Rigidbody 이동과 회전만 
     private bool isFrozen; // 빙결 위치·회전 하드 락
     private Overburst.Caves.CaveFallProtection.Movement caveBoundary;
     private CapsuleCollider capsule;
+    static readonly Unity.Profiling.ProfilerMarker CorrectMarker = new Unity.Profiling.ProfilerMarker("Overburst.EnemyMotor.Correct");
+    static readonly Unity.Profiling.ProfilerMarker PredictMarker = new Unity.Profiling.ProfilerMarker("Overburst.EnemyMotor.Predict");
     public bool ContinuousFacing { get; set; }
     private float facingSmoothTime, facingAngularVelocity, lastFacingTick = float.NegativeInfinity;
     public float FacingSmoothTime
@@ -213,9 +215,10 @@ public sealed class EnemyMotor : MonoBehaviour // Rigidbody 이동과 회전만 
     private Vector3 ConstrainCavePosition(Vector3 from, Vector3 to)
     {
         ReadCaveFootprint(out float radius, out float footOffset);
-        caveBoundary.Resolve(from, from, radius, footOffset);
+        // Submission scope: block enemy stair traversal only; bridges and player traversal remain available.
+        caveBoundary.Resolve(from, from, radius, footOffset, allowStairs: false);
         var preview = caveBoundary;
-        return preview.Resolve(from, to, radius, footOffset);
+        return preview.Resolve(from, to, radius, footOffset, allowStairs: false);
     }
 
     private void ReadCaveFootprint(out float radius, out float rootAboveFoot)
@@ -237,10 +240,11 @@ public sealed class EnemyMotor : MonoBehaviour // Rigidbody 이동과 회전만 
         // Crowd contacts and external forces bypass MoveToPosition; constrain the physics velocity too.
         CorrectCavePosition();
         if (!caveBoundary.Active || body == null || body.isKinematic) return;
+        using var predictionSample = PredictMarker.Auto();
         Vector3 predicted = body.position + body.linearVelocity * Time.fixedDeltaTime;
         var preview = caveBoundary;
         ReadCaveFootprint(out float radius, out float offset);
-        Vector3 safe = preview.Resolve(body.position, predicted, radius, offset);
+        Vector3 safe = preview.Resolve(body.position, predicted, radius, offset, allowStairs: false);
         if ((safe - predicted).sqrMagnitude > .000001f)
             body.linearVelocity = (safe - body.position) / Time.fixedDeltaTime;
     }
@@ -249,6 +253,7 @@ public sealed class EnemyMotor : MonoBehaviour // Rigidbody 이동과 회전만 
 
     private void CorrectCavePosition()
     {
+        using var correctionSample = CorrectMarker.Auto();
         Vector3 current = Position;
         Vector3 safe = ConstrainCavePosition(current, current);
         if ((safe - current).sqrMagnitude < .000001f) return;

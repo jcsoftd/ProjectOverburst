@@ -98,6 +98,25 @@ public sealed class ItemDropSfxService : MonoBehaviour
         return catalog;
     }
 
+    public static bool PrepareOneVoice()
+    {
+        if (!EnsureInstance() || instance.voiceCount >= Mathf.Min(8, VoiceLimit)) return false;
+        instance.CreateVoice();
+        return true;
+    }
+    private AudioSource CreateVoice()
+    {
+        var voice = new GameObject("ItemDropSfxVoice_" + voiceCount);
+        voice.transform.SetParent(transform, false);
+        var source = voice.AddComponent<AudioSource>();
+        source.playOnAwake = false;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        Overburst.DebugTools.CombatStutterCapture.TrackAudioSource(source);
+#endif
+        voices[voiceCount++] = source;
+        return source;
+    }
+
     private static bool EnsureInstance()
     {
         if (!Application.isPlaying) return false;
@@ -113,7 +132,13 @@ public sealed class ItemDropSfxService : MonoBehaviour
     {
         float now = Time.unscaledTime;
         cueSlot = Mathf.Clamp(cueSlot, 0, CueSlots - 1);
-        if (limitSameCue && now < nextAllowedTime[cueSlot]) return false;
+        if (limitSameCue && now < nextAllowedTime[cueSlot])
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Overburst.DebugTools.CombatStutterCapture.ObservePool("ItemSfx", "cooldown", -1, VoiceLimit, cueSlot, clip);
+#endif
+            return false;
+        }
 
         AudioSource source = null;
         for (int i = 0; i < voiceCount; i++)
@@ -122,15 +147,20 @@ public sealed class ItemDropSfxService : MonoBehaviour
         {
             if (voiceCount < VoiceLimit)
             {
-                var voice = new GameObject("ItemDropSfxVoice_" + voiceCount);
-                voice.transform.SetParent(transform, false);
-                source = voice.AddComponent<AudioSource>();
-                voices[voiceCount++] = source;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Overburst.DebugTools.CombatStutterCapture.ObservePool("ItemSfx", "grow", voiceCount, VoiceLimit, cueSlot, clip);
+#endif
+                source = CreateVoice();
             }
             else
             {
                 source = voices[nextVoice]; // 가장 오래된 순서로 돌려 쓴다
                 nextVoice = (nextVoice + 1) % VoiceLimit;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Overburst.DebugTools.CombatStutterCapture.ObservePool("ItemSfx", "replace_playing", voiceCount, VoiceLimit, cueSlot, source.clip);
+#endif
                 source.Stop();
             }
         }

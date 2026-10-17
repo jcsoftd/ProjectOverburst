@@ -33,6 +33,8 @@ public sealed class OverburstTimeEffectArbiter : MonoBehaviour
     private float baselineFixedDeltaTime = 0.02f;
     private float appliedTimeScale = 1f;
     private bool ownsTimeScale;
+    private int fixedStepFrame = -1;
+    private float minimumFixedStepThisFrame;
 
     // 2026-10-01 ESC 메뉴 일시정지: 시간 효과보다 위에서 timeScale을 0으로 둔다.
     // 멈춘 동안 히트스톱·패링 슬로우의 남은 시간은 줄지 않고, 풀면 그대로 이어진다.
@@ -261,8 +263,15 @@ public sealed class OverburstTimeEffectArbiter : MonoBehaviour
 
         appliedTimeScale = Mathf.Min(baselineTimeScale, EffectiveScale(winner, Time.unscaledTime));
         Time.timeScale = appliedTimeScale;
-        Time.fixedDeltaTime = baselineFixedDeltaTime
+        // A sudden 20ms -> 0.2ms step turns leftover physics time into dozens of
+        // FixedUpdates. Limit reductions once per rendered frame, including repeated requests.
+        float minimumStep = Time.fixedDeltaTime * 0.5f;
+        minimumFixedStepThisFrame = fixedStepFrame == Time.frameCount
+            ? Mathf.Max(minimumFixedStepThisFrame, minimumStep) : minimumStep;
+        fixedStepFrame = Time.frameCount;
+        float targetStep = baselineFixedDeltaTime
             * (appliedTimeScale / Mathf.Max(0.0001f, baselineTimeScale));
+        Time.fixedDeltaTime = Mathf.Max(targetStep, minimumFixedStepThisFrame);
     }
 
     private static float EffectiveScale(RequestState request, float now)
@@ -327,9 +336,11 @@ public sealed class OverburstTimeEffectArbiter : MonoBehaviour
             return;
 
         if (paused)
+        {
             pausedTimeScale = baselineTimeScale; // 멈춘 동안 효과가 지워지면 풀 때 원래 속도로 돌아간다.
-
-        if (Mathf.Approximately(Time.timeScale, appliedTimeScale))
+            Time.fixedDeltaTime = baselineFixedDeltaTime;
+        }
+        else if (Mathf.Approximately(Time.timeScale, appliedTimeScale))
         {
             Time.timeScale = baselineTimeScale;
             Time.fixedDeltaTime = baselineFixedDeltaTime;

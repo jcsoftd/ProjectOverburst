@@ -113,6 +113,16 @@ namespace Overburst.Caves
             var navigation=new NavMeshData(surface.agentTypeID); Own(navigation);
             var sources=new List<NavMeshBuildSource>();
             NavMeshBuilder.CollectSources(world.generatedRoot,~0,NavMeshCollectGeometry.PhysicsColliders,0,new List<NavMeshBuildMarkup>(),sources);
+            // Shared navigation also defines player entry and spawnable floor. Keep its authored
+            // clearance; enemy body clearance is handled by the local obstacle query.
+            int stairArea = NavMesh.GetAreaFromName("Jump");
+            for (int i = 0; i < sources.Count; i++)
+            {
+                var source = sources[i];
+                var connector = source.component ? source.component.GetComponentInParent<CaveRigidConnection>() : null;
+                if (!connector || connector.stairCount <= 0) continue;
+                source.area = stairArea; sources[i] = source;
+            }
             var settings=surface.GetBuildSettings();
             settings.agentRadius=.32f; settings.agentClimb=1.2f;
             bounds.Expand(4);
@@ -137,7 +147,7 @@ namespace Overburst.Caves
                 var link=connection.gameObject.AddComponent<NavMeshLink>(); link.agentTypeID=surface.agentTypeID;
                 link.startPoint=connection.transform.InverseTransformPoint(start);
                 link.endPoint=connection.transform.InverseTransformPoint(end);
-                link.width=0; link.bidirectional=true; link.UpdateLink();
+                link.width=0; link.bidirectional=true; link.area=connection.stairCount > 0 ? stairArea : 0; link.UpdateLink();
             }
             yield return null;
             var route=new NavMeshPath();

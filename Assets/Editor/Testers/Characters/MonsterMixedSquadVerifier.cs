@@ -6,7 +6,7 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
-// One short, targeted run: real ranged update, wall, retreat, 40/41/50 assignment and lease cleanup.
+// One short, targeted run: real ranged update, wall, retreat, always-active pack assignment and lease cleanup.
 [InitializeOnLoad]
 public static class MonsterMixedSquadVerifier
 {
@@ -78,10 +78,10 @@ public static class MonsterMixedSquadVerifier
     }
     private static void Finish(string result) { Save(result); EditorApplication.update -= Tick; EditorApplication.ExitPlaymode(); }
     private static void Check(bool value, string message) { if (!value) throw new InvalidOperationException(message); }
-    private static EnemyActor Spawn(EnemyDefinition definition, Vector3 position)
+    private static EnemyActor Spawn(EnemyDefinition definition, Vector3 position, int pack = 0)
     {
         var request = new EnemySpawnRequest(definition, position, Quaternion.LookRotation(player.transform.position - position), player.transform,
-            encounter, player.transform, null, 1, 1, 731);
+            encounter, player.transform, null, 1, 1, 731, packId: pack);
         Check(spawnService.TrySpawn(request, out var actor), "Spawn " + definition.EnemyId);
         actors.Add(actor); actor.AI.RequestAggro(player.transform); return actor;
     }
@@ -159,14 +159,14 @@ public static class MonsterMixedSquadVerifier
         for (int i = 0; i < 40; i++)
         {
             Vector3 position = center + Quaternion.Euler(0, i * 9f, 0) * Vector3.forward * (14f + i % 2 * 2f);
-            Spawn(i < 32 ? melee : ranged, position);
+            Spawn(i < 32 ? melee : ranged, position, i / 8 + 1);
         }
         yield return null; yield return null;
-        Check(!EnemySquadPursuitRuntimeService.GetRuntimeStats().IsActive, "40 activated early");
+        Check(EnemySquadPursuitRuntimeService.GetRuntimeStats().IsActive, "Spawn-pack squads activate immediately");
         Spawn(ranged, center + Vector3.back * 18);
         yield return null; yield return null;
         var stats = EnemySquadPursuitRuntimeService.GetRuntimeStats();
-        Check(stats.IsActive && stats.CombatEligibleAgentCount == 41 && stats.SquadCount == 4, "41 activation/32 melee assignment: " + stats.CombatEligibleAgentCount + "/" + stats.SquadCount);
+        Check(stats.IsActive && stats.CombatEligibleAgentCount == 41 && stats.SquadCount == 4, "32 melee retain four spawn-pack squads: " + stats.CombatEligibleAgentCount + "/" + stats.SquadCount);
         Check(actors.Where(a => a.AI.UsesRangedTactics).All(a => string.IsNullOrEmpty(a.AI.SquadPursuitDebugModeName)), "Ranged entered melee squad");
         for (int i = 0; i < 8; i++) Spawn(ranged, center + Quaternion.Euler(0, i * 45, 0) * Vector3.forward * 20);
         Spawn(elite, center + Vector3.right * 18);
@@ -175,10 +175,10 @@ public static class MonsterMixedSquadVerifier
         Check(stats.CombatEligibleAgentCount == 49 && stats.SquadCount == 4, "50 composition count");
         for (int i = 20; i < actors.Count; i++) actors[i].RequestPoolRelease();
         yield return null;
-        Check(EnemySquadPursuitRuntimeService.GetRuntimeStats().IsActive, "Activated encounter lost latch below 41");
+        Check(EnemySquadPursuitRuntimeService.GetRuntimeStats().IsActive, "Surviving encounter lost its active squads");
         Clear(); yield return null;
         Check(EnemyEncounterTacticsContext.ContextCount == 0, "Final context cleanup");
-        passed.Add("40 inactive / 41 active / 50=32 melee+17 ranged+1 elite / latch / cleanup");
+        passed.Add("always active / four intact packs / 50=32 melee+17 ranged+1 elite / survivors / cleanup");
         ui.ToggleArena();
     }
 }

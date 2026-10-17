@@ -50,7 +50,7 @@ public static class MapRunEntryPlayVerifier
         if (!value) throw new InvalidOperationException(name);
         checks.Add(name); Write("progress.json", new { checks = checks.Count, last = name, utc = DateTime.UtcNow });
     }
-    public static void Start(string directory, bool desertOnly = false, bool largeOnly = false, int completionCases = 0, int bossCases = 0, bool minimapOnly = false, bool guidanceOnly = false, bool minimapCycles = false, bool includeLargeCave = true, int desertCandidateIndex = 0, bool minimapCompatibility = false, bool minimapResolution = false, bool progressionOnly = false, bool escapeSettlementOnly = false, int escapeCases = 0, int caveCount = 0, bool verifyMapRequired = false, bool speciesGroupsOnly = false, bool caveOnly = false, bool caveBakedSpawnOnly = false, string caveTheme = null, bool desertRoadSpawnOnly = false, bool caveStairTraversalOnly = false, string desertPerformanceProfile = null, bool desertBoundaryOnly = false, bool spawnPerformance = false, bool spawnDetailed = false)
+    public static void Start(string directory, bool desertOnly = false, bool largeOnly = false, int completionCases = 0, int bossCases = 0, bool minimapOnly = false, bool guidanceOnly = false, bool minimapCycles = false, bool includeLargeCave = true, int desertCandidateIndex = 0, bool minimapCompatibility = false, bool minimapResolution = false, bool progressionOnly = false, bool escapeSettlementOnly = false, int escapeCases = 0, int caveCount = 0, bool verifyMapRequired = false, bool speciesGroupsOnly = false, bool caveOnly = false, bool caveBakedSpawnOnly = false, string caveTheme = null, bool desertRoadSpawnOnly = false, bool caveStairTraversalOnly = false, string desertPerformanceProfile = null, bool desertBoundaryOnly = false, bool spawnPerformance = false, bool spawnDetailed = false, bool playerCombat = false, bool navigationRegions = false, int caveSeed = 0)
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
             || IsolatedSavePlayGuard.ActiveDirectory != "" || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable))
@@ -58,7 +58,7 @@ public static class MapRunEntryPlayVerifier
             throw new InvalidOperationException("Use an idle real-account Editor.");
         if (caveCount != 0 && caveCount != 5 && caveCount != 10 && caveCount != 15) throw new ArgumentException("Scale case must be 5, 10 or 15.");
         finishing = false;
-        if (spawnDetailed) spawnPerformance = true;
+        if (spawnDetailed || playerCombat) spawnPerformance = true;
         var performance = string.IsNullOrEmpty(desertPerformanceProfile) ? null : DesertPerformanceProfile.Read(desertPerformanceProfile);
         if (minimapCycles) minimapOnly = true;
         output = Path.GetFullPath(directory);
@@ -91,6 +91,7 @@ public static class MapRunEntryPlayVerifier
             if (bossCases > 0 && map.terrain == MapTerrainKind.Desert)
             { map.options.Add(new MapOptionRoll { optionId = MapOptionPolicy.EnemyHealth, value = .5f }); }
             if (caveStairTraversalOnly && i == 0) map.seed = 19091;
+            if (caveSeed != 0 && i == 0 && map.terrain == MapTerrainKind.Cave) map.seed = caveSeed;
             if (map.terrain == MapTerrainKind.Cave && !string.IsNullOrEmpty(caveTheme)) map.monsterThemeId = caveTheme;
             map.monsterThemes[0].themeId = map.monsterThemeId;
             if (performance != null && map.terrain == MapTerrainKind.Desert)
@@ -116,6 +117,8 @@ public static class MapRunEntryPlayVerifier
         Write("fixture.json", state.items.Where(i => i.map != null));
         SessionState.SetString(Key + "pending", output); SessionState.SetString(Key + "return", output);
         SessionState.SetBool(Key + "spawnPerformance", spawnPerformance);
+        SessionState.SetBool(Key + "playerCombat", playerCombat);
+        SessionState.SetBool(Key + "navigationRegions", navigationRegions);
         SessionState.SetBool(Key + "spawnDetailed", spawnDetailed);
         SessionState.SetBool(Key + "desertOnly", desertOnly);
         SessionState.SetBool(Key + "desertRoadSpawnOnly", desertRoadSpawnOnly);
@@ -242,6 +245,11 @@ public static class MapRunEntryPlayVerifier
         var account = AccountGameplaySession.Current; var flow = PersistentSceneFlow.Instance;
         PlayerContext.Instance.CurrentActor.Health.SetDamageDeathPrevention(flow, true);
         Check(AccountBootstrap.SaveDirectory == Path.Combine(output, "Account"), "Account is isolated");
+        if (SessionState.GetBool(Key + "playerCombat", false))
+        {
+            var weapon = AssetDatabase.LoadAssetAtPath<WeaponItemData>("Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/GRS01_AzureStarblade/GRS01_AzureStarblade.asset");
+            Check(PlayerContext.Instance.CurrentActor.Equipment.EquipWeaponItem(new ItemData(weapon, 1, ItemGrade.Common, element: WeaponElement.Fire)), "Input combat equips the weapon before map loading");
+        }
         string performanceProfile = SessionState.GetString(Key + "desertPerformanceProfile", "");
         if (performanceProfile != "")
         {
@@ -413,7 +421,7 @@ public static class MapRunEntryPlayVerifier
             }
             if (SessionState.GetBool(Key + "caveBakedSpawnOnly", false) && gate.GetComponent<Overburst.Caves.CaveWorld>())
                 CaveBakedSpawnIntegrationVerifier.VerifyPlay(gate, output, Check);
-            if (SessionState.GetBool(Key + "spawnPerformance", false)) yield return MapSpawnPerformanceProbe.Verify(gate, output, Check, SessionState.GetBool(Key + "spawnDetailed", false));
+            if (SessionState.GetBool(Key + "spawnPerformance", false)) yield return MapSpawnPerformanceProbe.Verify(gate, output, Check, SessionState.GetBool(Key + "spawnDetailed", false), SessionState.GetBool(Key + "playerCombat", false), SessionState.GetBool(Key + "navigationRegions", false));
             else if (SessionState.GetBool(Key + "caveStairTraversalOnly", false)) yield return CaveStairTraversalVerifier.Verify(gate, output, Check);
             else if (caveCount > 0) yield return MapFiniteSpawnPlayVerifier.VerifyScale(gate, output, Check);
             else if (SessionState.GetBool(Key + "progressionOnly", false)) yield return MapCaveProgressionPlayVerifier.Verify(gate, Check);
@@ -573,6 +581,8 @@ public static class MapRunEntryPlayVerifier
         foreach (var key in new[] { "return", "start", "scenes" }) SessionState.EraseString(Key + key);
         SessionState.EraseFloat(Key + "deadline"); SessionState.EraseBool(Key + "background"); EditorApplication.update -= Return;
         SessionState.EraseBool(Key + "spawnPerformance");
+        SessionState.EraseBool(Key + "playerCombat");
+        SessionState.EraseBool(Key + "navigationRegions");
         SessionState.EraseBool(Key + "spawnDetailed");
         SessionState.EraseBool(Key + "desertOnly");
         SessionState.EraseBool(Key + "desertRoadSpawnOnly");

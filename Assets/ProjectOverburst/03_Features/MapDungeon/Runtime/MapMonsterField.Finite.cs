@@ -30,6 +30,7 @@ public sealed partial class MapMonsterField
         public float Radius, Height;
         public Rigidbody Body;
         public SpawnGroup Group;
+        public int SpawnPackId;
         public int GroupCursor, EdgeCursor;
         public int GroupRemaining = 24, EdgeRemaining = -1;
         public int SearchRemaining = -1;
@@ -105,11 +106,20 @@ public sealed partial class MapMonsterField
                 if (trail.from == area.Ground.Index) AddNeighbour(trail.to);
                 else if (trail.to == area.Ground.Index) AddNeighbour(trail.from);
         reinforcementNeighbours.Sort((a,b) => (a.Center-area.Ground.Center).sqrMagnitude.CompareTo((b.Center-area.Ground.Center).sqrMagnitude));
+        var initialPacks = new Dictionary<EnemyDefinition, (int id, int count)>();
         for (int i = area.FirstMember; i < area.FirstMember + area.Count; i++)
         {
             var member = roster.Members[i];
             var body = MapCombatGeometry.BodyFor(member.Definition);
-            slots.Add(new Slot { Member = member, Released = member.Initial, Position = member.PlannedPosition,
+            int packId = 0;
+            if (member.Initial)
+            {
+                initialPacks.TryGetValue(member.Definition, out var pack);
+                if (pack.count % MapCombatGeometry.GroupSize(member.Tier) == 0) pack.id = member.Index + 1;
+                packId = pack.id; pack.count++;
+                initialPacks[member.Definition] = pack;
+            }
+            slots.Add(new Slot { Member = member, SpawnPackId = packId, Released = member.Initial, Position = member.PlannedPosition,
                 Safe = member.PlannedPosition, Radius = body.Radius, Height = body.Height });
         }
         // Keep neighbours together in the limited initial queue; reserves retain their seeded order.
@@ -211,6 +221,7 @@ public sealed partial class MapMonsterField
         while (remaining > 0 && queue.Count > 0)
         {
             var slot = queue.Dequeue(); reserves.Remove(slot.ReserveNode); slot.ReserveNode = null;
+            slot.SpawnPackId = first.Member.Index + 1;
             slot.Group = group; slot.Released = true; QueueSpawn(slot); remaining--; ReinforcementReleased++;
         }
         nextPackAt = Time.unscaledTime + .8f;
@@ -268,7 +279,7 @@ public sealed partial class MapMonsterField
         var request = new EnemySpawnRequest(chosen.Member.Definition, position + Vector3.up * .06f,
             direction.sqrMagnitude > .01f ? Quaternion.LookRotation(direction) : Quaternion.identity,
             PlayerContext.Instance?.CurrentActor?.transform, gameObject, transform, transform, 1, 1,
-            unchecked(seed + chosen.Member.Index * 7919), context);
+            unchecked(seed + chosen.Member.Index * 7919), context, chosen.SpawnPackId);
         if (!service.TrySpawn(request, out var actor))
         {
             chosen.RetryAt = Time.unscaledTime + .5f; chosen.Failures++; budget.SpawnRetries++;
@@ -276,6 +287,7 @@ public sealed partial class MapMonsterField
         }
         if (!finiteRoster.TryActivate(chosen.Member.Index, out chosen.RosterLease)) { service.Release(actor); return true; }
         chosen.Actor = actor; chosen.ActorLease = actor.LeaseVersion; chosen.Safe = position;
+        actor.GetComponent<EnemyLootDropper>()?.ConfigurePreparedLoot(budget.GetComponentInParent<RunWorldGate>().LootReserve, chosen.Member.Tier);
         if (chosen.Group != null && chosen.Group.Ground == null)
         {
             chosen.Group.Point = position;
@@ -421,6 +433,22 @@ public sealed partial class MapMonsterField
             || !finiteRoster.TryRecordDeath(slot.Member.Index, slot.RosterLease)) return;
         Unbind(slot);
         if (!context.CanGrantRewards || !hit.source || !hit.source.GetComponentInParent<PlayerActorRuntime>()) return;
+        var reserve = budget.GetComponentInParent<RunWorldGate>().LootReserve;
+        if (reserve && MapFarmingLoot.Applies(map))
+        {
+            if (!MapDropPolicy.RollOccurs(mapDefinition, registry, map, slot.Member.Tier, context.RunId)) return;
+            var rank = slot.Member.Tier == EnemyThemeTier.Elite ? EnemyGradeType.Elite : EnemyGradeType.Normal;
+            if (reserve.TryTake(slot.Member.Tier, 5, rank, BagQuality.EquippedBonus(BagStat.RareGradeWeight), null, out var ready, out _))
+            {
+                WorldItemDropFactory.ReleaseReserved(ready, health.transform.position + Vector3.up * .4f,
+                    PlayerAccountInventoryService.SharedInventory, PlayerContext.Instance?.CurrentActor?.transform);
+                return;
+            }
+            var fallback = MapDropPolicy.CreateDrop(mapDefinition, registry, map, slot.Member.Tier, context.RunId);
+            WorldItemDropFactory.CreateWorldPickup(fallback, health.transform.position + Vector3.up * .4f,
+                PlayerAccountInventoryService.SharedInventory, PlayerContext.Instance?.CurrentActor?.transform);
+            return;
+        }
         var item = MapDropPolicy.Roll(mapDefinition, registry, map, slot.Member.Tier, context.RunId);
         if (item != null) WorldItemDropFactory.CreateWorldPickup(item, health.transform.position + Vector3.up * .4f,
             PlayerAccountInventoryService.SharedInventory, PlayerContext.Instance?.CurrentActor?.transform);

@@ -116,7 +116,13 @@ public sealed class CombatActionSfxService : MonoBehaviour
         int active = 0;
         for (int i = 0; i < instance.voiceCount; i++)
             if (instance.voices[i].isPlaying && instance.voices[i].priority == priority) active++;
-        if (active >= 12) return false;
+        if (active >= 12)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Overburst.DebugTools.CombatStutterCapture.ObservePool("CombatSfx", "cue_limit", active, 12, priority, clip);
+#endif
+            return false;
+        }
         // Additional layers never evict the existing combat cues. Crowds share a quieter mix.
         float gain = 1.15f / Mathf.Sqrt(1f + active * .3f);
         return instance.Play(clip, position, .65f, Mathf.Clamp(volume, 0f, .8f) * gain,
@@ -237,6 +243,25 @@ public sealed class CombatActionSfxService : MonoBehaviour
         return direct != null ? direct : Resources.Load<AudioClip>(ResourceRoot + clipName);
     }
 
+    public static bool PrepareOneVoice()
+    {
+        if (!EnsureInstance() || instance.voiceCount >= Mathf.Min(8, VoiceLimit)) return false;
+        instance.CreateVoice();
+        return true;
+    }
+    private AudioSource CreateVoice()
+    {
+        var voice = new GameObject("CombatSfxVoice_" + voiceCount);
+        voice.transform.SetParent(transform, false);
+        var source = voice.AddComponent<AudioSource>();
+        source.playOnAwake = false;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        Overburst.DebugTools.CombatStutterCapture.TrackAudioSource(source);
+#endif
+        voices[voiceCount++] = source;
+        return source;
+    }
+
     private static bool EnsureInstance()
     {
         if (!Application.isPlaying) return false;
@@ -279,10 +304,11 @@ public sealed class CombatActionSfxService : MonoBehaviour
         {
             if (voiceCount < VoiceLimit)
             {
-                var voice = new GameObject("CombatSfxVoice_" + voiceCount);
-                voice.transform.SetParent(transform, false);
-                source = voice.AddComponent<AudioSource>();
-                voices[voiceCount++] = source;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Overburst.DebugTools.CombatStutterCapture.ObservePool("CombatSfx", "grow", voiceCount, VoiceLimit, asset: clip);
+#endif
+                source = CreateVoice();
             }
             else
             {
@@ -296,8 +322,18 @@ public sealed class CombatActionSfxService : MonoBehaviour
                     replaceIndex = i;
                     lowestImportance = voices[i].priority;
                 }
-                if (replaceIndex < 0) return false;
+                if (replaceIndex < 0)
+                {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                    Overburst.DebugTools.CombatStutterCapture.ObservePool("CombatSfx", "capacity_reject", voiceCount, VoiceLimit, asset: clip);
+#endif
+                    return false;
+                }
                 source = voices[replaceIndex];
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Overburst.DebugTools.CombatStutterCapture.ObservePool("CombatSfx", "replace_playing", voiceCount, VoiceLimit, asset: source.clip);
+#endif
                 source.Stop();
             }
         }

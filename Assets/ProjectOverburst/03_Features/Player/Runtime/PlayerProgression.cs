@@ -112,10 +112,10 @@ public sealed class PlayerProgression : MonoBehaviour
         AddExperienceCore(rewarded);
     }
 
-    public void AddExperience(int amount, bool applyRewardMultiplier = true)
+    public void AddExperience(int amount)
     {
         if (amount <= 0 || Level >= OverburstGrowthRules.MaximumLevel) return;
-        AddExperienceCore(checked(amount * (applyRewardMultiplier ? TesterSupportItemData.CurrentMultiplier : 1)));
+        AddExperienceCore(amount); // Only AddKillExperience receives the tester support multiplier.
     }
 
     private void AddExperienceCore(int amount)

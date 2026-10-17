@@ -117,7 +117,7 @@ internal static class PlayerDebugModule
         if (progression.Level >= OverburstGrowthRules.MaximumLevel)
             return DebugResult.Fail("최대 레벨이에요");
         progression.AddExperience(amount);
-        return DebugResult.Ok($"+{checked(amount * TesterSupportItemData.CurrentMultiplier)}");
+        return DebugResult.Ok($"+{amount}");
     }
 
     private static DebugResult ToNextLevel()
@@ -127,7 +127,7 @@ internal static class PlayerDebugModule
             return DebugResult.Fail("플레이어가 없어요");
         int need = progression.ExperienceToNext - progression.Experience;
         if (need <= 0) return DebugResult.Fail("최대 레벨이에요");
-        progression.AddExperience(need, applyRewardMultiplier: false);
+        progression.AddExperience(need);
         return DebugResult.Ok($"+{need}");
     }
 
@@ -145,7 +145,7 @@ internal static class PlayerDebugModule
             total += OverburstGrowthRules.ExperienceToNext(level);
         if (total > int.MaxValue)
             return DebugResult.Fail("필요 경험치가 너무 커요");
-        progression.AddExperience((int)total, applyRewardMultiplier: false);
+        progression.AddExperience((int)total);
         return DebugResult.Ok($"경험치 +{total} → Lv.{target}");
     }
 

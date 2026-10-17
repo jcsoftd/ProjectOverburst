@@ -166,7 +166,6 @@ namespace Overburst.Quests
         private static void GrantExperience(AccountSnapshot state, int amount)
         {
             if (amount <= 0 || state.level >= OverburstGrowthRules.MaximumLevel) return;
-            amount = checked(amount * TesterSupportItemData.Multiplier(state));
             state.experience = checked(state.experience + amount);
             while (state.level < OverburstGrowthRules.MaximumLevel && state.experience >= OverburstGrowthRules.ExperienceToNext(state.level))
             { state.experience -= OverburstGrowthRules.ExperienceToNext(state.level); state.level++; }

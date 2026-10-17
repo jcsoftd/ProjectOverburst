@@ -15,6 +15,7 @@ public sealed class RunWorldGate : MonoBehaviour
     public MapRunCompletion Completion { get; internal set; }
     public MapEmergencyExit EmergencyExit { get; internal set; }
     public MapBossArena BossArena { get; internal set; }
+    public MapLootReserve LootReserve { get; internal set; }
     public string PreparationStage { get; internal set; }
 
     public void BeginPreparation(RunSnapshot run)

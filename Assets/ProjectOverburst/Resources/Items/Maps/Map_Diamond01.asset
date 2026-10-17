@@ -20,7 +20,8 @@ MonoBehaviour:
     \uC9C0\uB3C4."
   weight: 0.1
   sellPrice: 0
-  worldPickupPrefab: {fileID: 0}
+  inventoryIconCategory: 0
+  worldPickupPrefab: {fileID: 6569347660026119444, guid: 9998dfda2ab5b0a46a88d53f42b18230, type: 3}
   possibleStats: []
   dungeonThemeId: first_diamond
   levelBandIcons:

@@ -76,6 +76,7 @@ public sealed class WorldPickupPresentation : MonoBehaviour
         bool hasBounds = false;
         for (int i = 0; i < meshes.Length; i++)
         {
+            if (meshes[i].name == "Baked Item Shadow") continue;
             if (meshes[i].sharedMesh == null)
                 continue;
 

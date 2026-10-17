@@ -32,6 +32,7 @@ namespace Overburst.Persistence
         public bool FlushPendingSave() => !editing && !restoring && transactions.FlushPendingSave();
         public AccountSnapshot Read() => transactions.Read();
         public List<QuestSnapshot> ReadQuests() => transactions.ReadQuests();
+        public QuestSnapshot ReadTrackedQuest() => transactions.ReadTrackedQuest();
         public SkillTreeSnapshot ReadSkillTree() => transactions.ReadSkillTree();
         public CharacterAppearanceSnapshot ReadAppearance() => transactions.ReadAppearance();
         public event Action<CharacterAppearanceSnapshot> AppearanceCommitted;
@@ -88,6 +89,7 @@ namespace Overburst.Persistence
         }
         public bool CanAcquireFromRun(string runId) => transactions.CanAcquireFromRun(runId);
         public RunSnapshot ReadRun() => transactions.ReadRun();
+        public RunPhase? CurrentRunPhase => transactions.CurrentRunPhase;
 
         public AccountGameplaySession(PlayerAccountInventoryService account, AccountContentRegistry registry, EasySaveAccountStore store, AccountSnapshot initial, bool deferDiskWrites = false)
         {

@@ -281,7 +281,13 @@ public sealed class BloodGroundDecalService : MonoBehaviour
         int index = -1;
         for (int i = 0; i < Capacity; i++)
             if (!slots[i].Active) { index = i; break; }
-        if (index < 0) return false; // Existing marks always retain their full 15+5 seconds.
+        if (index < 0)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Overburst.DebugTools.CombatStutterCapture.ObservePool("BloodGroundDecal", "capacity_reject", ActiveCount, Capacity);
+#endif
+            return false; // Existing marks retain their full 15+5 seconds.
+        }
 
         var selectedCatalog = request.Style == BloodEffectStyle.Legacy ? null : Resources.Load<BloodEffectsPackCatalog>(BloodEffectsPackCatalog.ResourceFor(request.Style));
         GameObject prefab = request.Template ? request.Template : selectedCatalog != null ? selectedCatalog.ResolveDecal(request.Shape, request.Lethal, request.Variant, request.Trail)
@@ -343,6 +349,50 @@ public sealed class BloodGroundDecalService : MonoBehaviour
         float scale = BloodComparisonTuning.Scale * BloodComparisonTuning.GroundScale;
         return new Vector3(source.x * scale, source.y * scale, source.z);
     }
+    // Only this run's blood colours and the selected style; no decals, hits or random draws are emitted.
+    public System.Collections.IEnumerator PrepareMaterials(MapRunRoster roster, BloodEffectStyle style, double deadline, System.Func<bool> cancelled)
+    {
+        if (catalog == null || roster == null) yield break;
+        var profiles = new HashSet<BloodHitProfile>();
+        var definitions = new HashSet<EnemyDefinition>();
+        var playerProfile = Resources.Load<BloodHitProfile>(BloodHitVfxService.PlayerProfilePath);
+        if (playerProfile) profiles.Add(BloodHitVfxService.ResolveColorProfile(playerProfile));
+        foreach (var member in roster.Members)
+            if (definitions.Add(member.Definition) && member.Definition.ActorPrefab)
+            {
+                var target = member.Definition.ActorPrefab.GetComponentInChildren<BloodHitTarget>(true);
+                if (target && target.Profile) profiles.Add(BloodHitVfxService.ResolveColorProfile(target.Profile));
+            }
+        var templates = new HashSet<GameObject>();
+        void Add(GameObject[] values) { if (values != null) foreach (var value in values) if (value) templates.Add(value); }
+        if (style == BloodEffectStyle.Legacy)
+        {
+            Add(new[] { catalog.directionalDecal, catalog.spotDecal, catalog.splatterDecal, catalog.puddleDecal });
+            Add(catalog.sweepDecals); Add(catalog.thrustDecals); Add(catalog.downwardDecals); Add(catalog.lethalDecals);
+        }
+        else
+        {
+            var selected = Resources.Load<BloodEffectsPackCatalog>(BloodEffectsPackCatalog.ResourceFor(style));
+            if (!selected) yield break;
+            Add(selected.sweepDecals); Add(selected.thrustDecals); Add(selected.downwardDecals); Add(selected.lethalDecals); Add(selected.trailDecals);
+            if (selected.sprays != null) foreach (var spray in selected.sprays) if (spray?.groundPrefab) templates.Add(spray.groundPrefab);
+        }
+        long slice = System.Diagnostics.Stopwatch.GetTimestamp(); int operations = 0;
+        foreach (var template in templates)
+        {
+            var projector = template.GetComponent<DecalProjector>();
+            if (!projector || !projector.material) continue;
+            foreach (var profile in profiles)
+            {
+                if (cancelled?.Invoke() == true || Time.realtimeSinceStartupAsDouble >= deadline || style != BloodHitVfxService.CurrentStyle) yield break;
+                TintedMaterial(projector.material, profile, style);
+                double ms = (System.Diagnostics.Stopwatch.GetTimestamp() - slice) * 1000d / System.Diagnostics.Stopwatch.Frequency;
+                if (++operations >= 8 || ms >= 2d)
+                { yield return null; operations = 0; slice = System.Diagnostics.Stopwatch.GetTimestamp(); }
+            }
+        }
+    }
+
     private Material TintedMaterial(Material source, BloodHitProfile profile, BloodEffectStyle style)
     {
         bool pack = style == BloodEffectStyle.EffectsPack;

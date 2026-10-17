@@ -42,6 +42,11 @@ public sealed class BloodHitVfxService : MonoBehaviour
     private readonly System.Collections.Generic.Dictionary<BloodHitProfile, BloodHitProfile> redProfiles = new System.Collections.Generic.Dictionary<BloodHitProfile, BloodHitProfile>();
     private readonly System.Collections.Generic.HashSet<BloodHitProfile> redProfileInstances = new System.Collections.Generic.HashSet<BloodHitProfile>();
     public static BloodEffectStyle CurrentStyle => currentStyle;
+    public static System.Collections.IEnumerator PrepareGroundMaterials(MapRunRoster roster, double deadline, System.Func<bool> cancelled)
+    {
+        if (instance != null && instance.groundDecals != null)
+            yield return instance.groundDecals.PrepareMaterials(roster, currentStyle, deadline, cancelled);
+    }
     public static bool PackEnabled => currentStyle == BloodEffectStyle.EffectsPack;
     public static bool UsePackVignette => currentStyle != BloodEffectStyle.Legacy;
     public static bool UniformRed => uniformRed;
@@ -391,6 +396,10 @@ public sealed class BloodHitVfxService : MonoBehaviour
         {
             DroppedCount++;
             DroppedQueueCount++;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Overburst.DebugTools.CombatStutterCapture.ObservePool("BloodVfxQueue", value.Priority > queue[weakest].Priority ? "replace_queued" : "queue_reject", queued, QueueCapacity);
+#endif
+
             if (value.Priority > queue[weakest].Priority) queue[weakest] = value;
         }
     }
@@ -489,10 +498,20 @@ public sealed class BloodHitVfxService : MonoBehaviour
             for (int i = 0; i < Capacity; i++)
                 if (slots[i].Priority < request.Priority
                     && (chosen < 0 || slots[i].Until < slots[chosen].Until)) chosen = i;
-        if (chosen < 0) return false;
+        if (chosen < 0)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Overburst.DebugTools.CombatStutterCapture.ObservePool("BloodVfxLegacy", "capacity_reject", Capacity, Capacity, asset: graph);
+#endif
+            return false;
+        }
         if (slots[chosen].Until > 0)
         {
             PreemptedCount++;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Overburst.DebugTools.CombatStutterCapture.ObservePool("BloodVfxLegacy", "replace_playing", Capacity, Capacity, asset: graph);
+#endif
+
             Release(chosen);
         }
         var vfx = slots[chosen].Effect;

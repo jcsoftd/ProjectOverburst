@@ -3,6 +3,11 @@ using UnityEngine;
 // MeleeRuntime partial: 패턴 피해, 넉백·띄우기, 치명타, 지속 피해, 흡혈. 필드와 Unity 수명주기는 MeleeRuntime.cs에 있다.
 public partial class MeleeRuntime
 {
+    static readonly Unity.Profiling.ProfilerMarker CanPlayVisualDamageMarker = new Unity.Profiling.ProfilerMarker("Overburst.Melee.Damage.CanPlayVisual");
+    static readonly Unity.Profiling.ProfilerMarker ApplyDamageMarker = new Unity.Profiling.ProfilerMarker("Overburst.Melee.Damage.Apply");
+    static readonly Unity.Profiling.ProfilerMarker AirborneDamageMarker = new Unity.Profiling.ProfilerMarker("Overburst.Melee.Damage.Airborne");
+    static readonly Unity.Profiling.ProfilerMarker FeedbackDamageMarker = new Unity.Profiling.ProfilerMarker("Overburst.Melee.Damage.Feedback");
+    static readonly Unity.Profiling.ProfilerMarker OnHitDamageMarker = new Unity.Profiling.ProfilerMarker("Overburst.Melee.Damage.OnHit");
     // A committed heavy retains its sound strength after consumption/refund and during its remaining trails.
     public float ElementSfxEnergy => activeAttackIsHeavy && activeDischarge != null
         ? activeDischarge.Energy : GetComponent<OverburstElementEnergy>()?.Amount ?? 0f;
@@ -32,13 +37,15 @@ public partial class MeleeRuntime
         // 2026-10-01: 방출 없는 강공(에너지 0)은 원소 타격 VFX·소리·원소 피해 보너스 없이 일반 타격으로 친다.
         WeaponElement attackElement = usesHeavyDamage && activeDischarge == null
             ? WeaponElement.None : ResolveActiveAttackElement();
-        bool useElementHitVfx = MeleeElementHitVfxService.CanPlay(attackElement)
+        bool useElementHitVfx;
+        using (CanPlayVisualDamageMarker.Auto()) useElementHitVfx = MeleeElementHitVfxService.CanPlay(attackElement)
             || (hit.TargetHealth != null && hit.TargetHealth.GetComponent<EnemyDeathPresentation>() != null);
         int hitActionId = activeActionId;
         var hitDischarge = activeDischarge;
         int darkDonorId = hasDischargeTarget ? hit.TargetHealth.GetInstanceID() : 0;
         float elementSfxEnergy = ElementSfxEnergy; // Capture before confirmed damage charges a weak hit.
-        MeleeDamageResult result = MeleeDamageResolver.Apply(new MeleeDamageRequest(
+        MeleeDamageResult result;
+        using (ApplyDamageMarker.Auto()) result = MeleeDamageResolver.Apply(new MeleeDamageRequest(
             hit.Damageable,
             runtimeData.Damage,
             impact,
@@ -72,7 +79,7 @@ public partial class MeleeRuntime
                 dischargeTarget, result.ActualDamage, out OverburstDischargeResult dischargeResult))
             heavyDischargeExecutor.ResolveDirectHit(hit.TargetHealth, hit.HitPoint, dischargeResult);
 
-        ApplyAirborne(
+        using (AirborneDamageMarker.Auto()) ApplyAirborne(
             result.TargetHealth,
             result.ActualDamage,
             impact.airborneImpulse,
@@ -81,7 +88,7 @@ public partial class MeleeRuntime
         if (result.ActualDamage > 0f
             && impact.triggersOnHitEffects)
         {
-            CombatHitFeedbackService.Request(new CombatHitFeedbackRequest(
+            using (FeedbackDamageMarker.Auto()) CombatHitFeedbackService.Request(new CombatHitFeedbackRequest(
                 this,
                 activeHitFeedbackSequenceId,
                 impact.hitFeedbackProfile,
@@ -106,7 +113,7 @@ public partial class MeleeRuntime
         }
 
         if (impact.triggersOnHitEffects)
-            ApplyOnHitEffects(result.TargetHealth, result.ActualDamage, hit.Direction);
+            using (OnHitDamageMarker.Auto()) ApplyOnHitEffects(result.TargetHealth, result.ActualDamage, hit.Direction);
     }
 
     private void ApplyAirborne(

@@ -174,7 +174,18 @@ public sealed class ElementalReactionSfxService : MonoBehaviour
     {
         Voice voice = available.Count > 0 ? available.Pop() : null;
         if (voice == null && createdVoiceCount < MaximumPoolSize)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Overburst.DebugTools.CombatStutterCapture.ObservePool("ReactionSfx", "grow", active.Count, MaximumPoolSize);
+#endif
             voice = CreateVoice();
+        }
+        else if (voice == null)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Overburst.DebugTools.CombatStutterCapture.ObservePool("ReactionSfx", "capacity_reject", active.Count, MaximumPoolSize);
+#endif
+        }
         if (voice?.Source != null)
             voice.Source.gameObject.SetActive(true);
         return voice;
@@ -185,6 +196,9 @@ public sealed class ElementalReactionSfxService : MonoBehaviour
         GameObject voiceObject = new GameObject("ReactionSfxVoice_" + createdVoiceCount);
         voiceObject.transform.SetParent(transform, false);
         AudioSource source = voiceObject.AddComponent<AudioSource>();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        Overburst.DebugTools.CombatStutterCapture.TrackAudioSource(source);
+#endif
         ResetSource(source);
         voiceObject.SetActive(false);
         createdVoiceCount++;

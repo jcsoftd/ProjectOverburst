@@ -135,12 +135,16 @@ public static class EnemySquadPursuitRuntimeService // 프리셋별 대량 웨�
         public EnemyAIController Controller;
         public EncounterData Encounter;
         public SquadData Squad;
+        public int SpawnPackId;
         public Vector3 LocalOffset;
     }
 
     private sealed class SquadData
     {
         public int Id;
+        public int SpawnPackId;
+        public float LastMemberJoined;
+        public EnemyNavigationRoute Navigation;
         public readonly List<AgentData> Members = new List<AgentData>(16);
         public int InitialCount;
         public int SlotIndex = -1;
@@ -202,6 +206,9 @@ public static class EnemySquadPursuitRuntimeService // 프리셋별 대량 웨�
         public readonly List<int> VacantSlots = new List<int>(7);
         public readonly List<Vector3> VacantPositions = new List<Vector3>(7);
         public readonly List<int> SquadIndexBySlot = new List<int>(7);
+        public float NextRecruitTime;
+        public int RecruitCursor;
+        public readonly Dictionary<int, SquadData> SpawnPacks = new Dictionary<int, SquadData>();
         public bool Active;
         public bool FrameInitialized;
         public int NextSquadId = 1;
@@ -296,7 +303,7 @@ public static class EnemySquadPursuitRuntimeService // 프리셋별 대량 웨�
 
         if (agent.Encounter != null
             && (agent.Encounter.Owner != controller.SquadEncounterOwner
-                || agent.Encounter.Preset != controller.SquadPursuitPreset))
+                || agent.Encounter.Preset != controller.SquadPursuitPreset || agent.SpawnPackId != controller.SpawnPackId))
             RemoveAgentFromEncounter(agent); // 실제 전투 구역 변경만 기존 부대 해제
         else if (agent.Encounter != null)
         {
@@ -638,7 +645,7 @@ public static class EnemySquadPursuitRuntimeService // 프리셋별 대량 웨�
             }
             if (agent.Encounter != null
                 && agent.Encounter.Owner == encounterOwner
-                && agent.Encounter.Preset == preset)
+                && agent.Encounter.Preset == preset && agent.SpawnPackId == controller.SpawnPackId)
             {
                 agent.Encounter.Anchor = encounterAnchor;
                 continue;
@@ -662,6 +669,9 @@ public static class EnemySquadPursuitRuntimeService // 프리셋별 대량 웨�
             }
             encounter.Agents.Add(agent);
             agent.Encounter = encounter;
+            agent.SpawnPackId = controller.SpawnPackId;
+            if (controller.SpawnPackId > 0 && controller.UsesMeleeSquadMovement)
+                BindSpawnPack(encounter, agent);
         }
 
         for (int i = 0; i < StaleControllers.Count; i++)
@@ -675,10 +685,9 @@ public static class EnemySquadPursuitRuntimeService // 프리셋별 대량 웨�
 
     private static void UpdateEncounter(EncounterData encounter, float deltaTime, float now)
     {
-        if (!encounter.Active && CountCombatEligibleAgents(encounter) >= encounter.Preset.ActivationCount)
+        if (!encounter.Active && CountCombatEligibleAgents(encounter) > 0)
         {
             encounter.Active = true;
-            BuildInitialSquads(encounter);
             RefreshPursuitFrame(encounter, true, now);
             AssignAvailableSlots(encounter, now);
             encounter.LastRouteTargetPosition = encounter.Anchor.position;
@@ -690,7 +699,11 @@ public static class EnemySquadPursuitRuntimeService // 프리셋별 대량 웨�
         if (!encounter.Active)
             return;
 
-        RecruitUnassignedAgents(encounter);
+        if (now >= encounter.NextRecruitTime)
+        {
+            RecruitUnassignedAgents(encounter);
+            encounter.NextRecruitTime = now + .5f;
+        }
         RefreshSquadCenters(encounter, deltaTime);
         UpdateSquadModes(encounter, deltaTime, now);
         TryRefreshFullReformation(encounter, now);
@@ -698,98 +711,94 @@ public static class EnemySquadPursuitRuntimeService // 프리셋별 대량 웨�
         AssignAvailableSlots(encounter, now);
     }
 
-    private static void BuildInitialSquads(EncounterData encounter)
+    private static void BindSpawnPack(EncounterData encounter, AgentData agent)
     {
-        CollectUnassignedCombatAgents(encounter);
-        EnemySquadPursuitPlanner.BuildMaximumFirstSquadSizes(
-            encounter.Unassigned.Count,
-            encounter.Preset.MinimumSquadSize,
-            encounter.Preset.MaximumSquadSize,
-            encounter.SquadSizes);
-        for (int i = 0; i < encounter.SquadSizes.Count; i++)
-            CreateNearestSquad(encounter, encounter.SquadSizes[i]);
+        if (!encounter.SpawnPacks.TryGetValue(agent.SpawnPackId, out var squad))
+        {
+            squad = new SquadData { Id = agent.SpawnPackId, SpawnPackId = agent.SpawnPackId, RawCenter = agent.Controller.transform.position,
+                SmoothedCenter = agent.Controller.transform.position,
+                Mode = HorizontalDistance(agent.Controller.transform.position, encounter.Anchor.position) < encounter.Preset.FarActivationDistance
+                    ? EnemySquadPursuitRuntimeMode.NearCombat : EnemySquadPursuitRuntimeMode.Reserve };
+            encounter.SpawnPacks.Add(agent.SpawnPackId, squad);
+            encounter.Squads.Add(squad);
+        }
+        AddMember(squad, agent, squad.SmoothedCenter);
+        squad.InitialCount = Mathf.Max(squad.InitialCount, squad.AliveCount);
+        squad.LastMemberJoined = Time.time;
+        if (squad.Mode == EnemySquadPursuitRuntimeMode.Dead) squad.Mode = EnemySquadPursuitRuntimeMode.Reserve;
+        // Binding changes happen on spawn/return, not by distance or a platform-wide threshold.
+        var center = Vector3.zero;
+        foreach (var member in squad.Members) center += member.Controller.transform.position;
+        center /= squad.Members.Count;
+        squad.RawCenter = squad.SmoothedCenter = center;
+        foreach (var member in squad.Members) AddMember(squad, member, center, false);
     }
 
+    // Only loose survivors/singletons are regrouped. Healthy spawn packs keep their identity.
+    // One local group per encounter per half-second; no all-pairs scan or full repartition.
     private static void RecruitUnassignedAgents(EncounterData encounter)
     {
-        CollectUnassignedCombatAgents(encounter);
-        while (encounter.Unassigned.Count > 0)
+        var loose = encounter.Unassigned;
+        loose.Clear();
+        int count = encounter.Agents.Count;
+        for (int i = 0; i < Mathf.Min(64, count); i++)
         {
-            SquadData nearestSquad = null;
-            int nearestAgentIndex = -1;
-            float nearestDistance = float.PositiveInfinity;
-            for (int squadIndex = 0; squadIndex < encounter.Squads.Count; squadIndex++)
-            {
-                SquadData candidate = encounter.Squads[squadIndex];
-                if (candidate.SlotEligibilityRevoked || candidate.AliveCount <= 0)
-                    continue;
-                int desired = encounter.Preset.MaximumSquadSize; // 부분 부대도 후속 인원으로 최대치까지 먼저 충원
-                if (candidate.AliveCount >= desired)
-                    continue;
-
-                int agentIndex = FindNearestAgentIndex(encounter.Unassigned, candidate.SmoothedCenter);
-                float distance = HorizontalSqrDistance(
-                    encounter.Unassigned[agentIndex].Controller.transform.position,
-                    candidate.SmoothedCenter);
-                if (distance >= nearestDistance)
-                    continue;
-                nearestDistance = distance;
-                nearestSquad = candidate;
-                nearestAgentIndex = agentIndex;
-            }
-
-            if (nearestSquad == null || nearestAgentIndex < 0)
-                break;
-            AgentData recruit = encounter.Unassigned[nearestAgentIndex];
-            encounter.Unassigned.RemoveAt(nearestAgentIndex);
-            AddMember(nearestSquad, recruit, nearestSquad.SmoothedCenter);
-            nearestSquad.InitialCount = Mathf.Max(nearestSquad.InitialCount, nearestSquad.AliveCount);
+            var agent = encounter.Agents[(encounter.RecruitCursor + i) % count];
+            if (!IsAgentAlive(agent) || !agent.Controller.UsesMeleeSquadMovement) continue;
+            var squad = agent.Squad;
+            if (squad == null || squad.SpawnPackId == 0 && squad.AliveCount == 1)
+                loose.Add(agent);
         }
-
-        if (encounter.Unassigned.Count < encounter.Preset.MinimumSquadSize)
-            return;
-        EnemySquadPursuitPlanner.BuildMaximumFirstSquadSizes(
-            encounter.Unassigned.Count,
-            encounter.Preset.MinimumSquadSize,
-            encounter.Preset.MaximumSquadSize,
-            encounter.SquadSizes);
-        for (int i = 0; i < encounter.SquadSizes.Count; i++)
-            CreateNearestSquad(encounter, encounter.SquadSizes[i]);
+        if (count > 0) encounter.RecruitCursor = (encounter.RecruitCursor + 1) % count;
+        if (loose.Count == 0) return;
+        var seed = loose[0];
+        var center = seed.Controller.transform.position;
+        var group = seed.Squad;
+        int maximum = encounter.Preset.MaximumSquadSize;
+        // A lone actor also has an active squad; it can meet another loose actor on a later pass.
+        if (group == null)
+        {
+            group = new SquadData { Id = -encounter.NextSquadId++, RawCenter = center, SmoothedCenter = center,
+                Mode = EnemySquadPursuitRuntimeMode.NearCombat, LastMemberJoined = Time.time };
+            encounter.Squads.Add(group);
+            AddMember(group, seed, center);
+            group.InitialCount = 1;
+        }
+        loose.RemoveAt(0);
+        while (group.Members.Count < maximum && loose.Count > 0)
+        {
+            int index = FindNearestAgentIndex(loose, center);
+            var recruit = loose[index];
+            if (HorizontalSqrDistance(center, recruit.Controller.transform.position) > 64f) break;
+            loose.RemoveAt(index);
+            DetachFromSquad(encounter, recruit);
+            if (group.SpawnPackId > 0)
+            {
+                encounter.SpawnPacks.Remove(group.SpawnPackId);
+                group.SpawnPackId = 0; group.Id = -encounter.NextSquadId++;
+            }
+            AddMember(group, recruit, center);
+            group.InitialCount = group.Members.Count;
+            group.LastMemberJoined = Time.time;
+        }
     }
 
-    private static void CreateNearestSquad(EncounterData encounter, int targetSize)
+    private static void DetachFromSquad(EncounterData encounter, AgentData agent)
     {
-        if (encounter.Unassigned.Count <= 0 || targetSize <= 0)
-            return;
+        var squad = agent.Squad;
+        if (squad == null) return;
+        squad.Members.Remove(agent);
+        agent.Squad = null; agent.LocalOffset = Vector3.zero;
+        if (squad.Members.Count != 0) return;
+        ReleaseSlot(squad);
+        if (squad.SpawnPackId > 0) encounter.SpawnPacks.Remove(squad.SpawnPackId);
+        encounter.Squads.Remove(squad);
+    }
 
-        int seedIndex = FindNearestAgentIndex(encounter.Unassigned, encounter.Anchor.position);
-        AgentData seed = encounter.Unassigned[seedIndex];
-        encounter.Unassigned.RemoveAt(seedIndex);
-        encounter.Unassigned.Sort((left, right) => HorizontalSqrDistance(
-                left.Controller.transform.position,
-                seed.Controller.transform.position)
-            .CompareTo(HorizontalSqrDistance(
-                right.Controller.transform.position,
-                seed.Controller.transform.position)));
-
-        SquadData squad = new SquadData { Id = encounter.NextSquadId++ };
-        squad.Members.Add(seed);
-        int additionalCount = Mathf.Min(targetSize - 1, encounter.Unassigned.Count);
-        for (int i = 0; i < additionalCount; i++)
-            squad.Members.Add(encounter.Unassigned[i]);
-        if (additionalCount > 0)
-            encounter.Unassigned.RemoveRange(0, additionalCount);
-
-        squad.RawCenter = CalculateSquadCenter(squad);
-        squad.SmoothedCenter = squad.RawCenter;
-        squad.InitialCount = squad.Members.Count;
-        squad.Mode = HorizontalDistance(squad.SmoothedCenter, encounter.Anchor.position)
-            >= encounter.Preset.FarActivationDistance
-            ? EnemySquadPursuitRuntimeMode.Reserve
-            : EnemySquadPursuitRuntimeMode.NearCombat;
-        for (int i = 0; i < squad.Members.Count; i++)
-            AddMember(squad, squad.Members[i], squad.RawCenter, false);
-        encounter.Squads.Add(squad);
+    internal static EnemyNavigationRoute NavigationFor(EnemyAIController controller)
+    {
+        return Agents.TryGetValue(controller, out var agent) && agent.Squad != null
+            ? agent.Squad.Navigation ??= new EnemyNavigationRoute() : null;
     }
 
     private static void AddMember(SquadData squad, AgentData agent, Vector3 center, bool addToList = true)
@@ -829,12 +838,24 @@ public static class EnemySquadPursuitRuntimeService // 프리셋별 대량 웨�
             }
 
             if (!squad.SlotEligibilityRevoked
-                && aliveCount / (float)Mathf.Max(1, squad.InitialCount) < encounter.Preset.RemnantRatio)
+                && (aliveCount == 1 && squad.InitialCount > 1
+                    || aliveCount / (float)Mathf.Max(1, squad.InitialCount) < encounter.Preset.RemnantRatio))
             {
-                squad.SlotEligibilityRevoked = true;
                 ReleaseSlot(squad);
-                squad.HasRushed = false;
-                squad.FarEligibleTime = 0f;
+                if (squad.SpawnPackId > 0) encounter.SpawnPacks.Remove(squad.SpawnPackId);
+                encounter.Squads.RemoveAt(i--);
+                foreach (var member in squad.Members)
+                {
+                    member.Squad = null; member.LocalOffset = Vector3.zero;
+                    if (!IsAgentAlive(member)) continue;
+                    var center = member.Controller.transform.position;
+                    var loose = new SquadData { Id = -encounter.NextSquadId++, InitialCount = 1,
+                        RawCenter = center, SmoothedCenter = center, Mode = EnemySquadPursuitRuntimeMode.NearCombat };
+                    AddMember(loose, member, center); encounter.Squads.Add(loose);
+                }
+                squad.Members.Clear();
+                encounter.NextRecruitTime = 0f;
+                continue;
             }
             if (squad.SlotEligibilityRevoked)
             {
@@ -961,7 +982,6 @@ public static class EnemySquadPursuitRuntimeService // 프리셋별 대량 웨�
             return;
         }
 
-        RebuildStrategicSquads(encounter);
         encounter.FrameInitialized = false;
         encounter.RouteRefreshPending = false;
         encounter.RouteRefreshCursor = 0;
@@ -970,48 +990,6 @@ public static class EnemySquadPursuitRuntimeService // 프리셋별 대량 웨�
         encounter.LastFullReformationPosition = anchorPosition;
         encounter.LastFullReformationTime = now;
         encounter.NextFullReformationTime = now + FullReformationInterval;
-    }
-
-    private static void RebuildStrategicSquads(EncounterData encounter)
-    {
-        for (int squadIndex = encounter.Squads.Count - 1; squadIndex >= 0; squadIndex--)
-        {
-            SquadData squad = encounter.Squads[squadIndex];
-            if (squad.DirectCommitted)
-            {
-                BeginRush(squad); // 진입 확정 부대는 재편성 대신 전투 진입
-                continue;
-            }
-            if (!IsStrategicReformationSquad(squad))
-                continue;
-
-            ReleaseSlot(squad);
-            for (int memberIndex = 0; memberIndex < squad.Members.Count; memberIndex++)
-            {
-                AgentData member = squad.Members[memberIndex];
-                member.Squad = null;
-                member.LocalOffset = Vector3.zero;
-            }
-            encounter.Squads.RemoveAt(squadIndex);
-        }
-
-        CollectUnassignedCombatAgents(encounter);
-        EnemySquadPursuitPlanner.BuildMaximumFirstSquadSizes(
-            encounter.Unassigned.Count,
-            encounter.Preset.MinimumSquadSize,
-            encounter.Preset.MaximumSquadSize,
-            encounter.SquadSizes);
-        for (int i = 0; i < encounter.SquadSizes.Count; i++)
-            CreateNearestSquad(encounter, encounter.SquadSizes[i]);
-    }
-
-    private static bool IsStrategicReformationSquad(SquadData squad)
-    {
-        return squad != null
-            && !squad.HasRushed
-            && !squad.SlotEligibilityRevoked
-            && (squad.Mode == EnemySquadPursuitRuntimeMode.Pursuit
-                || squad.Mode == EnemySquadPursuitRuntimeMode.Reserve);
     }
 
     private static void RefreshPursuitFrame(EncounterData encounter, bool resetRoutes, float now)
@@ -1722,12 +1700,12 @@ public static class EnemySquadPursuitRuntimeService // 프리셋별 대량 웨�
     {
         if (agent == null)
             return;
-        if (agent.Squad != null)
-            agent.Squad.Members.Remove(agent);
+        if (agent.Encounter != null) DetachFromSquad(agent.Encounter, agent);
         if (agent.Encounter != null)
             agent.Encounter.Agents.Remove(agent);
         agent.Squad = null;
         agent.Encounter = null;
+        agent.SpawnPackId = 0;
         agent.LocalOffset = Vector3.zero;
     }
 

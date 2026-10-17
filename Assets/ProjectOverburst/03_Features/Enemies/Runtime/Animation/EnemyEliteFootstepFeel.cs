@@ -83,7 +83,19 @@ public sealed class EnemyEliteFootstepFeel : MonoBehaviour
             selected = weaker;
             PreemptedMediumCount++;
         }
-        if (selected == null) { DroppedCount++; return false; }
+        if (selected == null)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Overburst.DebugTools.CombatStutterCapture.ObservePool("GroundStep", "capacity_reject", slots.Length, slots.Length, (int)tier);
+#endif
+            DroppedCount++; return false;
+        }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        Overburst.DebugTools.CombatStutterCapture.TrackAudioSource(selected.audio);
+        if (selected.audio && selected.audio.isPlaying) Overburst.DebugTools.CombatStutterCapture.ObservePool("GroundStep", "replace_playing", -1, slots.Length, (int)tier, selected.audio.clip);
+#endif
+
 
         selected.player.StopFeedbacks();
         if (selected.dust != null)

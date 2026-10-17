@@ -1,4 +1,5 @@
 using UnityEngine;
+using Unity.Profiling;
 
 public static class MeleeEvadeCancelPolicy
 {
@@ -12,6 +13,12 @@ public static class MeleeEvadeCancelPolicy
 
 public partial class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
 {
+    private static readonly ProfilerMarker MeleeUpdateMarker = new ProfilerMarker("Overburst.Melee.Update");
+    private static readonly ProfilerMarker MeleeResolveMarker = new ProfilerMarker("Overburst.Melee.Resolve");
+    private static readonly ProfilerMarker MeleeEvadeMarker = new ProfilerMarker("Overburst.Melee.BufferedEvade");
+    private static readonly ProfilerMarker MeleeDispatchMarker = new ProfilerMarker("Overburst.Melee.InputDispatch");
+    private static readonly ProfilerMarker MeleeAdvanceMarker = new ProfilerMarker("Overburst.Melee.Advance");
+
     private const float DamageOverTimeTickInterval = 1f; // 지속 피해 주기
     private const float MinAttackDuration = 0.2f; // 공격 액션 최소 길이
     private const float MeleeCombatStanceKnockbackMultiplier = 1.5f; // 자세 넉백 배율
@@ -112,14 +119,21 @@ public partial class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 �
 
     private void Update()
     {
-        ResolveReferences();
-        ResetStateIfWeaponChanged();
+        using var updateScope = MeleeUpdateMarker.Auto();
+        using (MeleeResolveMarker.Auto())
+        {
+            ResolveReferences();
+            ResetStateIfWeaponChanged();
+        }
 
         // Resolve an executable evade before accepting an attack, independent of
         // MonoBehaviour Update order. Cooldown/locks/cost remain owned by evade.
-        if (manualInputEnabled && inputEvadeController != null
-            && inputEvadeController.TryExecuteBufferedEvade())
-            return;
+        using (MeleeEvadeMarker.Auto())
+        {
+            if (manualInputEnabled && inputEvadeController != null
+                && inputEvadeController.TryExecuteBufferedEvade())
+                return;
+        }
 
         if (!CombatDebugSettings.ShowAttackPatternDebug)
             attackPatternDebugRenderer?.Hide();
@@ -132,20 +146,23 @@ public partial class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 �
             return;
         }
 
-        if (ShouldStartHeavyAttack())
+        using (MeleeDispatchMarker.Auto())
         {
-            TryStartHeavyAttack(CaptureAttackStartDirection());
-        }
-        else if (ShouldStartAttack())
-        {
-            WeaponActionRequest request = new WeaponActionRequest(
-                WeaponActionSource.PlayerInput,
-                null,
-                CaptureAttackStartDirection());
-            TryStartAction(request, out _);
+            if (ShouldStartHeavyAttack())
+            {
+                TryStartHeavyAttack(CaptureAttackStartDirection());
+            }
+            else if (ShouldStartAttack())
+            {
+                WeaponActionRequest request = new WeaponActionRequest(
+                    WeaponActionSource.PlayerInput,
+                    null,
+                    CaptureAttackStartDirection());
+                TryStartAction(request, out _);
+            }
         }
 
-        UpdateAttack();
+        using (MeleeAdvanceMarker.Auto()) UpdateAttack();
     }
 
     private void ResolveReferences()

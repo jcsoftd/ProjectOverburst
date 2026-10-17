@@ -22,12 +22,20 @@ namespace Overburst.DebugTools
         public const string ArmKey = "OVERBURST.CombatStutterCapture.NextPlay";
         public const string LaunchFlag = "--overburst-stutter-diagnostic";
         static CombatStutterCapture instance;
+        static readonly ProfilerMarker ExportMarker = new ProfilerMarker("Overburst.Diagnostics.Stutter.Export");
         static readonly ProfilerMarker SampleMarker = new ProfilerMarker("Overburst.Diagnostics.Stutter.Sample");
         static readonly ProfilerMarker ObserveMarker = new ProfilerMarker("Overburst.Diagnostics.Stutter.Observe");
         static readonly ProfilerMarker BindMarker = new ProfilerMarker("Overburst.Diagnostics.Stutter.Bind");
+        static readonly ProfilerMarker ReadMetricsMarker = new ProfilerMarker("Overburst.Diagnostics.Stutter.ReadMetrics");
+        static readonly ProfilerMarker ContextMarker = new ProfilerMarker("Overburst.Diagnostics.Stutter.Context");
+        static readonly ProfilerMarker AudioMarker = new ProfilerMarker("Overburst.Diagnostics.Stutter.Audio");
+        static readonly ProfilerMarker TimingMarker = new ProfilerMarker("Overburst.Diagnostics.Stutter.Timing");
+        static readonly ProfilerMarker PoolMarker = new ProfilerMarker("Overburst.Diagnostics.Stutter.Pool");
+        static readonly ProfilerMarker HitMarker = new ProfilerMarker("Overburst.Diagnostics.Stutter.Hit");
+        readonly List<string> omittedMetrics = new List<string>();
         static readonly FieldInfo ActorField = typeof(PlayerContext).GetField("actor", BindingFlags.NonPublic | BindingFlags.Instance);
         static readonly FieldInfo BloodCatalogField = typeof(BloodHitVfxService).GetField("catalog", BindingFlags.NonPublic | BindingFlags.Instance);
-        readonly List<CombatHealth> healthBindings = new List<CombatHealth>(256);
+        readonly HashSet<AudioSource> audioBindingSet = new HashSet<AudioSource>();
         readonly List<AudioSource> audioBindings = new List<AudioSource>(128);
         readonly Dictionary<int, AudioState> audioStates = new Dictionary<int, AudioState>(128);
         readonly List<Metric> metrics = new List<Metric>(MaximumMetrics);
@@ -36,12 +44,18 @@ namespace Overburst.DebugTools
         byte[] metricAvailable;
         Hit[] hits;
         Sound[] sounds;
+        PoolEvent[] poolEvents;
+        int poolEventCount, droppedPoolEvents;
+        readonly Dictionary<(string pool, string reason), int> poolTotals = new Dictionary<(string, string), int>(64);
+        readonly Dictionary<int, string> poolAssetNames = new Dictionary<int, string>(512);
         int frameCount, hitCount, soundCount, droppedHits, droppedSounds, bindingLimitHits, hitsBeforeFrameCallback;
         Frame current;
         int trackedFrame = -1;
         long frameStarted, captureStarted;
-        double duration, nextBind;
+        DateTime captureStartedUtc;
+        double duration;
         bool rebindObjects = true;
+        string[] includedMetricPrefixes;
         float threshold;
         string folder, stopReason, previousProfilerPath, ownedProfilerPath;
         bool active, binaryOwned, binaryRequested, previousProfilerEnabled, previousBinaryEnabled, profilerOwnershipLost;
@@ -94,7 +108,7 @@ namespace Overburst.DebugTools
         }
 
         public static DebugResult Start(float seconds = 120f, float hitchMs = 50f,
-            bool binaryProfiler = false, string outputRoot = null, bool rebindObjects = true)
+            bool binaryProfiler = false, string outputRoot = null, bool rebindObjects = true, string[] metricPrefixes = null)
         {
             if (!Application.isPlaying) return DebugResult.Fail("Play 중에 시작하세요");
             if (Running) return DebugResult.Fail("이미 전투를 기록 중이에요");
@@ -113,9 +127,11 @@ namespace Overburst.DebugTools
                 capture.threshold = Mathf.Clamp(hitchMs, 16f, 2000f);
                 capture.binaryRequested = binaryProfiler;
                 capture.rebindObjects = rebindObjects;
+                capture.includedMetricPrefixes = metricPrefixes == null ? null : (string[])metricPrefixes.Clone();
                 capture.frames = new Frame[FrameCapacity(capture.duration)];
                 capture.hits = new Hit[EventCapacity(capture.duration)];
                 capture.sounds = new Sound[EventCapacity(capture.duration)];
+                capture.poolEvents = new PoolEvent[EventCapacity(capture.duration)];
                 capture.BindMetrics();
                 capture.metricValues = new long[capture.frames.Length * capture.metrics.Count];
                 capture.metricAvailable = new byte[capture.metricValues.Length];
@@ -124,7 +140,8 @@ namespace Overburst.DebugTools
                 root.AddComponent<CombatStutterLateObserver>();
                 // Setup allocations/imports/binding are outside the sampled interval.
                 capture.captureStarted = Stopwatch.GetTimestamp();
-                capture.nextBind = 1d;
+                capture.captureStartedUtc = DateTime.UtcNow;
+                SceneManager.sceneLoaded += capture.OnSceneLoaded;
                 capture.active = true;
                 LastFolder = destination;
                 LastStatus = "기록 시작";
@@ -156,6 +173,7 @@ namespace Overburst.DebugTools
         void FixedUpdate()
         {
             BeginFrame();
+            if (active) current.fixedTicks++;
         }
 
         void BeginFrame()
@@ -174,7 +192,7 @@ namespace Overburst.DebugTools
                     }
                     trackedFrame = Time.frameCount;
                     frameStarted = begin;
-                    current = new Frame { frame = trackedFrame, seconds = Milliseconds(captureStarted, begin) / 1000d,
+                    current = new Frame { frame = trackedFrame, startTimestamp = begin, seconds = Milliseconds(captureStarted, begin) / 1000d,
                         timeScale = Time.timeScale, gpuMs = -1d, cpuTimingMs = -1d,
                         energy = -1f, element = -1, bloodVariation = -1, bloodGraphId = 0 };
                 }
@@ -185,7 +203,9 @@ namespace Overburst.DebugTools
 
         void CompleteFrame(long now)
         {
+            using var diagnostic = ReadMetricsMarker.Auto();
             current.wallMs = Milliseconds(frameStarted, now);
+            current.endTimestamp = now;
             frames[frameCount] = current;
             for (int i = 0; i < metrics.Count; i++)
             {
@@ -211,23 +231,22 @@ namespace Overburst.DebugTools
             {
                 using (ObserveMarker.Auto())
                 {
-                    double elapsed = Milliseconds(captureStarted, begin) / 1000d;
-                    if (rebindObjects && elapsed >= nextBind)
+                    using (ContextMarker.Auto())
                     {
-                        current.registryScan = true;
-                        using (BindMarker.Auto()) BindObjects();
-                        nextBind = elapsed + 1d;
-                    }
                     current.endObserved = true;
+                    current.applicationFocused = Application.isFocused;
+                    current.targetFrameRate = Application.targetFrameRate;
+                    current.vsyncCount = QualitySettings.vSyncCount;
                     current.unscaledDeltaMs = Time.unscaledDeltaTime * 1000d;
                     current.timeScale = Time.timeScale;
+                    current.fixedDeltaMs = Time.fixedDeltaTime * 1000f;
                     current.targetCount = CombatTargetRegistry.RegisteredCount;
                     var spawn = mapGate != null ? mapGate.SpawnBudget : null;
                     current.mapArea = spawn != null ? spawn.CurrentPlayerArea : -1;
                     current.mapAlive = spawn != null ? spawn.AliveCount : -1;
                     current.mapSpawned = spawn != null ? spawn.SpawnedThisFrame : 0;
                     current.mapKills = mapGate != null && mapGate.Roster != null ? mapGate.Roster.Kills : -1;
-                    current.healthBindings = healthBindings.Count;
+                    current.healthBindings = 0; // Source-level observation; no per-target subscriptions.
                     current.audioBindings = audioBindings.Count;
                     current.gc0 = GC.CollectionCount(0);
                     current.gc1 = GC.CollectionCount(1);
@@ -263,7 +282,10 @@ namespace Overburst.DebugTools
                     }
                     AccountGameplaySession session = AccountGameplaySession.Current;
                     current.pendingSave = session != null && session.HasPendingSave;
+                    }
                     ObserveAudio();
+                    using (TimingMarker.Auto())
+                    {
                     if (FrameTimingManager.GetLatestTimings(1, timings) > 0 && timings[0].frameStartTimestamp != 0
                         && timings[0].frameStartTimestamp != lastTimingStamp)
                     {
@@ -273,6 +295,7 @@ namespace Overburst.DebugTools
                         if (timings[0].cpuFrameTime > 0) current.cpuTimingMs = timings[0].cpuFrameTime;
                     }
                     FrameTimingManager.CaptureFrameTimings();
+                    }
                 }
             }
             catch (Exception error) { LastStatus = "관찰 오류: " + error.Message; Finish("observation_error"); }
@@ -282,17 +305,9 @@ namespace Overburst.DebugTools
         void BindObjects()
         {
             if (mapGate == null) mapGate = UObject.FindFirstObjectByType<RunWorldGate>();
-            CombatHealth[] healths = UObject.FindObjectsByType<CombatHealth>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
-            foreach (CombatHealth health in healths)
-            {
-                if (healthBindings.Contains(health)) continue;
-                if (healthBindings.Count >= MaximumBindings) { bindingLimitHits++; break; }
-                health.OnDamageResolved += OnHit;
-                healthBindings.Add(health);
-            }
-            audioBindings.Clear();
+            audioBindings.Clear(); audioBindingSet.Clear(); audioStates.Clear();
             AudioSource[] sources = UObject.FindObjectsByType<AudioSource>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
-            for (int i = 0; i < sources.Length && i < MaximumBindings; i++) audioBindings.Add(sources[i]);
+            for (int i = 0; i < sources.Length && i < MaximumBindings; i++) { audioBindings.Add(sources[i]); audioBindingSet.Add(sources[i]); }
             if (sources.Length > MaximumBindings) bindingLimitHits++;
             var nextBlood = UObject.FindFirstObjectByType<BloodHitVfxService>();
             if (blood != nextBlood) { blood = nextBlood; previousBloodPlayed = blood != null ? blood.PlayedCount : 0;
@@ -309,9 +324,56 @@ namespace Overburst.DebugTools
             playerEnergy = actor != null ? actor.GetComponent<OverburstElementEnergy>() : null;
         }
 
+        void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            if (active && rebindObjects) using (BindMarker.Auto()) BindObjects();
+        }
+
+        public static void ObserveHit(CombatHealth health, DamageInfo info, float damage, bool fatal)
+        {
+            if (!Running) return;
+            try { instance.OnHit(health, info, damage, fatal); }
+            catch (Exception error) { instance.Finish("hit_observation_error"); UDebug.LogException(error); }
+        }
+
+        public static void TrackAudioSource(AudioSource source)
+        {
+            if (!Running || source == null) return;
+            var capture = instance;
+            if (capture.audioBindingSet.Contains(source)) return;
+            if (capture.audioBindings.Count >= MaximumBindings)
+            {
+                for (int i = capture.audioBindings.Count - 1; i >= 0; i--)
+                    if (capture.audioBindings[i] == null) { capture.audioBindingSet.Remove(capture.audioBindings[i]); capture.audioBindings.RemoveAt(i); }
+                if (capture.audioBindings.Count >= MaximumBindings) { capture.bindingLimitHits++; return; }
+            }
+            capture.audioBindingSet.Add(source); capture.audioBindings.Add(source);
+        }
+
+        public static void ObservePool(string pool, string reason, int used, int capacity, int cue = -1, UObject asset = null)
+        {
+            if (!Running) return;
+            var capture = instance;
+            using var diagnostic = PoolMarker.Auto();
+            long began = Stopwatch.GetTimestamp();
+            var key = (pool, reason);
+            capture.poolTotals.TryGetValue(key, out int total);
+            capture.poolTotals[key] = total + 1;
+            int assetId = asset ? asset.GetInstanceID() : 0;
+            if (assetId != 0 && capture.poolAssetNames.Count < 512 && !capture.poolAssetNames.ContainsKey(assetId))
+                capture.poolAssetNames.Add(assetId, asset.name);
+            if (capture.poolEventCount < capture.poolEvents.Length)
+                capture.poolEvents[capture.poolEventCount++] = new PoolEvent { frame = Time.frameCount,
+                    seconds = Milliseconds(capture.captureStarted, began) / 1000d, pool = pool, reason = reason,
+                    used = used, capacity = capacity, cue = cue, asset = assetId };
+            else capture.droppedPoolEvents++;
+            capture.current.observerMs += Milliseconds(began, Stopwatch.GetTimestamp());
+        }
+
         void OnHit(CombatHealth health, DamageInfo info, float damage, bool fatal)
         {
             if (!active || damage <= 0f) return;
+            using var diagnostic = HitMarker.Auto();
             long begin = Stopwatch.GetTimestamp();
             if (trackedFrame == Time.frameCount)
             {
@@ -333,6 +395,7 @@ namespace Overburst.DebugTools
 
         void ObserveAudio()
         {
+            using var diagnostic = AudioMarker.Auto();
             foreach (AudioSource source in audioBindings)
             {
                 if (source == null) continue;
@@ -340,6 +403,7 @@ namespace Overburst.DebugTools
                 AudioClip clip = source.clip;
                 bool playing = clip != null && source.isPlaying;
                 int clipId = clip != null ? clip.GetInstanceID() : 0;
+                if (source.isPlaying) { current.audioPlaying++; if (source.isVirtual) current.audioVirtual++; }
                 int position = playing ? source.timeSamples : -1;
                 bool known = audioStates.TryGetValue(id, out AudioState old);
                 bool restarted = playing && (!known || !old.playing || old.clip != clipId || position < old.position);
@@ -358,6 +422,14 @@ namespace Overburst.DebugTools
             }
         }
 
+        bool IncludeMetric(string name)
+        {
+            if (includedMetricPrefixes == null || Array.IndexOf(EngineMetrics, name) >= 0) return true;
+            foreach (string prefix in includedMetricPrefixes)
+                if (name.StartsWith(prefix, StringComparison.Ordinal)) return true;
+            return false;
+        }
+
         void BindMetrics()
         {
             var handles = new List<ProfilerRecorderHandle>();
@@ -370,7 +442,8 @@ namespace Overburst.DebugTools
             foreach (var handle in handles)
             {
                 var description = ProfilerRecorderHandle.GetDescription(handle);
-                if (!WantedMetric(description.Name) || metrics.Count >= MaximumMetrics) continue;
+                if (!WantedMetric(description.Name) || !IncludeMetric(description.Name)) continue;
+                if (metrics.Count >= MaximumMetrics) { omittedMetrics.Add(description.Name); continue; }
                 var recorder = ProfilerRecorder.StartNew(description.Category, description.Name, 1);
                 metrics.Add(new Metric { name = description.Name, unit = description.UnitType.ToString(),
                     timeNanoseconds = description.UnitType == ProfilerMarkerDataUnit.TimeNanoseconds,
@@ -397,7 +470,7 @@ namespace Overburst.DebugTools
             active = false;
             stopReason = reason;
             Release();
-            try { Export(); LastFolder = folder; LastStatus = "기록 저장 · " + frameCount + "프레임"; }
+            try { using (ExportMarker.Auto()) Export(); LastFolder = folder; LastStatus = "기록 저장 · " + frameCount + "프레임"; }
             catch (Exception error) { LastStatus = "저장 실패: " + error.Message; UDebug.LogWarning("[CombatStutterCapture] " + LastStatus); }
             if (instance == this) instance = null;
             Destroy(gameObject);
@@ -405,8 +478,8 @@ namespace Overburst.DebugTools
 
         void Release()
         {
-            foreach (CombatHealth health in healthBindings) if (health != null) health.OnDamageResolved -= OnHit;
-            healthBindings.Clear();
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+            audioBindings.Clear(); audioBindingSet.Clear(); audioStates.Clear();
             foreach (Metric metric in metrics) if (metric.recorder.Valid) metric.recorder.Dispose();
             if (binaryOwned)
             {

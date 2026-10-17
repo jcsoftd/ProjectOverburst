@@ -13,20 +13,23 @@ namespace Overburst.DebugTools
 {
     public sealed partial class CombatStutterCapture
     {
-        const int MaximumSeconds = 600, MaximumBindings = 512, MaximumMetrics = 96;
+        const int MaximumSeconds = 600, MaximumBindings = 512, MaximumMetrics = 128;
         // Allocate once before sampling, with room for 300 FPS and 256 events/sec.
         static int FrameCapacity(double seconds) => Math.Max(18000, (int)Math.Ceiling(seconds * 300));
         static int EventCapacity(double seconds) => Math.Max(16384, (int)Math.Ceiling(seconds * 256));
         static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;
         static readonly string[] EngineMetrics = {
-            "Main Thread", "Render Thread", "PlayerLoop", "GC.Collect", "GC Allocated In Frame",
+            "Main Thread", "Render Thread", "PlayerLoop", "FixedUpdate.ScriptRunBehaviourFixedUpdate", "FixedUpdate.PhysicsFixedUpdate", "Mono.JIT", "GC.Collect", "GC Allocated In Frame",
             "GC Used Memory", "GC Reserved Memory", "Gfx.WaitForPresentOnGfxThread", "Gfx.WaitForRenderThread",
             "WaitForTargetFPS", "WaitForLastPresentation", "Semaphore.WaitForSignal",
             "ParticleSystem.UpdateJob", "ParticleSystem.GeometryJob", "ParticleSystem.Draw",
             "ParticleSystem.WaitForPreviousRenderingToFinish", "VFX.Update", "VFX.Prepare",
             "RenderLoop.DrawSRPBatcher", "Animators.Update", "Physics.Simulate",
             "Audio.Update", "AudioClip.LoadAudioData", "Resources.Load", "Resources.UnloadUnusedAssets",
-            "Shader.CreateGPUProgram", "CreateGPUProgram", "Gfx.CreateGraphicsPipeline", "Draw Calls Count"
+            "Shader.CreateGPUProgram", "CreateGPUProgram", "Gfx.CreateGraphicsPipeline", "Draw Calls Count",
+            "Gfx Used Memory", "Gfx Reserved Memory", "GfxDeviceD3D12.ReserveScratchMemory",
+            "CreateCommittedResourceWithTag", "ParticleSystem.ScheduleGeometryJobs",
+            "GfxDeviceD3D12.WaitForLastPresentation.WaitForGPU"
         };
         struct Metric
         {
@@ -49,14 +52,22 @@ namespace Overburst.DebugTools
             public bool newlyBound;
             public double seconds;
         }
+        struct PoolEvent
+        {
+            public int frame, used, capacity, cue, asset;
+            public double seconds;
+            public string pool, reason;
+        }
         [Serializable] struct Frame
         {
-            public int frame, hitCount, criticalCount, dotCount, audioStarts;
-            public int mapArea, mapAlive, mapSpawned, mapKills;
+            public int frame, hitCount, criticalCount, dotCount, audioStarts, targetFrameRate, vsyncCount;
+            public long startTimestamp, endTimestamp;
+            public bool applicationFocused;
+            public int mapArea, mapAlive, mapSpawned, mapKills, fixedTicks, audioPlaying, audioVirtual;
             public int gc0, gc1, gc2, maintenanceOps, targetCount, healthBindings, audioBindings;
             public int bloodPlayed, bloodRequests, bloodPlayedDelta, bloodRequestDelta, bloodVariation, bloodGraphId, bloodVariationDelta;
             public int auraControllers, auraLeases, saveWrites, saveWriteDelta, element;
-            public float energy, timeScale;
+            public float energy, timeScale, fixedDeltaMs;
             public double seconds, wallMs, unscaledDeltaMs, observerMs, gpuMs, cpuTimingMs;
             public ulong frameTimingStamp;
             public bool endObserved, registryScan, pendingSave;
@@ -64,14 +75,16 @@ namespace Overburst.DebugTools
         [Serializable] sealed class MetricInfo { public string name, category, unit; public bool nanoseconds; }
         [Serializable] sealed class Summary
         {
-            public string schema = "overburst-combat-stutter-v2";
+            public string schema = "overburst-combat-stutter-v3";
             public string stopReason, unityVersion, platform, graphicsApi, activeScene, recordedUtc, sampleOrigin;
-            public string frameTimingOrigin, audioOrigin, hitOrigin, bloodOrigin;
+            public string frameTimingOrigin, audioOrigin, hitOrigin, bloodOrigin, captureStartedUtc, clockOrigin;
+            public long clockFrequency, captureStartedTimestamp;
             public bool objectRebinding;
-            public string[] unavailableEngineMetrics;
+            public string[] unavailableEngineMetrics, omittedMetrics, includedMetricPrefixes;
             public MetricInfo[] metrics;
             public int frames, hits, audioObservations, hitches, droppedHits, droppedSounds, bindingLimitHits;
-            public int hitsBeforeFrameCallback;
+            public int hitsBeforeFrameCallback, poolEvents, droppedPoolEvents;
+            public string poolOrigin;
             public int maxFrames, maxEvents, maxBindings;
             public float thresholdMs;
             public bool binaryProfilerRequested, binaryProfilerFilePresent, profilerOwnershipLost, includesIncompleteLastFrame;
@@ -80,8 +93,8 @@ namespace Overburst.DebugTools
         }
 
         static int MetricPriority(string name) => name.StartsWith("OVERBURST.MapSpawn", StringComparison.Ordinal) ? 0
-            : Array.IndexOf(EngineMetrics, name) >= 0 ? 1
-            : name.StartsWith("Overburst.Loot.", StringComparison.Ordinal) ? 2 : 3;
+            : Array.IndexOf(EngineMetrics, name) >= 0 || name.StartsWith("Overburst.Diagnostics.", StringComparison.Ordinal) ? 1
+            : name.StartsWith("Overburst.Account.", StringComparison.Ordinal) || name.StartsWith("Overburst.LootReserve.", StringComparison.Ordinal) || name.StartsWith("Overburst.Melee.", StringComparison.Ordinal) || name.StartsWith("Overburst.AI.", StringComparison.Ordinal) || name.StartsWith("Overburst.EnemyMotor.", StringComparison.Ordinal) || name.StartsWith("Overburst.CaveBoundary.", StringComparison.Ordinal) || name.StartsWith("Overburst.Loot.", StringComparison.Ordinal) ? 2 : 3;
 
         static bool WantedMetric(string name)
         {
@@ -151,6 +164,7 @@ namespace Overburst.DebugTools
             var unavailable = new List<string>();
             foreach (string wanted in EngineMetrics)
             {
+                if (!IncludeMetric(wanted)) continue;
                 bool found = false;
                 foreach (Metric metric in metrics) if (metric.name == wanted) { found = true; break; }
                 if (!found) unavailable.Add(wanted);
@@ -172,19 +186,23 @@ namespace Overburst.DebugTools
                 stopReason = stopReason, unityVersion = Application.unityVersion, platform = Application.platform.ToString(),
                 graphicsApi = SystemInfo.graphicsDeviceType.ToString(), activeScene = SceneManager.GetActiveScene().name,
                 recordedUtc = DateTime.UtcNow.ToString("O", Invariant), thresholdMs = threshold,
+                captureStartedUtc = captureStartedUtc.ToString("O", Invariant), captureStartedTimestamp = captureStarted, clockFrequency = Stopwatch.Frequency,
+                clockOrigin = "System.Diagnostics.Stopwatch.GetTimestamp; shared within this process. Not assumed to share the native profiler or Python QPC epoch.",
                 frames = frameCount, hits = hitCount, audioObservations = soundCount, hitches = hitches,
                 maxWallMs = maxWall, maxObserverMs = maxObserver, worstFrames = worst.ToArray(),
                 droppedHits = droppedHits, droppedSounds = droppedSounds, bindingLimitHits = bindingLimitHits,
                 hitsBeforeFrameCallback = hitsBeforeFrameCallback,
+                poolEvents = poolEventCount, droppedPoolEvents = droppedPoolEvents,
+                poolOrigin = "Instrumented enemy/VFX/audio acquisition paths only. Growth, capacity rejection, cue limit, cooldown and voice replacement are separate. pool-totals.csv remains exact if the bounded event buffer fills. A rejection is not proof of a frame hitch.",
                 maxFrames = frames.Length, maxEvents = hits.Length, maxBindings = MaximumBindings, durationSeconds = duration,
-                metrics = info, unavailableEngineMetrics = unavailable.ToArray(),
+                metrics = info, unavailableEngineMetrics = unavailable.ToArray(), omittedMetrics = omittedMetrics.ToArray(), includedMetricPrefixes = includedMetricPrefixes,
                 binaryProfilerRequested = binaryRequested, binaryProfilerFilePresent = File.Exists(Path.Combine(folder, "profiler.raw")),
                 profilerOwnershipLost = profilerOwnershipLost, includesIncompleteLastFrame = false,
                 sampleOrigin = "Wall=first early FixedUpdate/Update callback to the next frame's first callback; context/events=completed game frame. Profiler columns=latest completed recorder sample, not a guaranteed frame ID. Nested/all-thread marker totals overlap; never sum them into wall time.",
                 frameTimingOrigin = "FrameTimingManager is delayed; only a new nonzero timestamp is reported. -1 means unavailable. GPU timing is not attributed to the context frame.",
-                objectRebinding = rebindObjects,
-                audioOrigin = (rebindObjects ? "Binding scan each second. " : "Fixed bindings taken before measurement; newly spawned sources/targets are not scanned. ") + "AudioSource state observation at late frame; newlyBound is not proof of first-ever playback. Very short or same-frame retriggers and newly-created voices may be missed; use profiler.raw for CPU call hierarchy.",
-                hitOrigin = "OnDamageResolved subscribers; no damage/input/status injection. Targets appearing between binding scans may be missed. Events share actual Time.frameCount. Events before our first frame callback remain in hits.csv and are counted separately from frame-context hits.",
+                objectRebinding = false,
+                audioOrigin = "Initial/scene-load bindings plus registered runtime voices; no periodic global search. audio_playing/audio_virtual cover tracked sources only, not Unity global output counts. Late-frame AudioSource state misses PlayOneShot clips, short/same-frame retriggers and unregistered third-party voices.",
+                hitOrigin = "Source-level resolved damage, including new/pooled targets; health_bindings=0. No damage/input injection. Events before the first callback remain in hits.csv.",
                 bloodOrigin = "Existing service counters and last sweep variation only; multiple blood plays in a frame cannot be mapped individually. -1 is unavailable variation." };
             File.WriteAllText(Path.Combine(folder, "summary.json"), JsonUtility.ToJson(summary, true), new UTF8Encoding(false));
             File.WriteAllText(Path.Combine(folder, "effect-ab.json"), JsonUtility.ToJson(CombatEffectDiagnosticControls.Snapshot(), true), new UTF8Encoding(false));
@@ -193,14 +211,16 @@ namespace Overburst.DebugTools
             WriteFrames(Path.Combine(folder, "hitch-windows.csv"), windows);
             WriteHits();
             WriteSounds();
+            WritePools();
         }
 
         void WriteFrames(string path, bool[] selected)
         {
             using (var writer = new StreamWriter(path, false, new UTF8Encoding(false)))
             {
-                writer.Write("completed_frame,seconds,wall_ms,unscaled_delta_ms,time_scale,observer_ms,registry_scan,end_observed,hits,critical,dot,energy,element,gc0,gc1,gc2,maintenance_ops,targets,health_bindings,audio_bindings,aura_controllers,aura_leases,blood_requests,blood_request_delta,blood_played,blood_played_delta,last_blood_variation,blood_variation_delta,last_new_sweep_graph_id,save_writes,save_write_delta,pending_save,audio_starts,delayed_cpu_ms,delayed_gpu_ms,timing_timestamp,map_area,map_alive,map_spawned,map_kills");
+                writer.Write("completed_frame,seconds,wall_ms,unscaled_delta_ms,time_scale,observer_ms,registry_scan,end_observed,hits,critical,dot,energy,element,gc0,gc1,gc2,maintenance_ops,targets,health_bindings,audio_bindings,aura_controllers,aura_leases,blood_requests,blood_request_delta,blood_played,blood_played_delta,last_blood_variation,blood_variation_delta,last_new_sweep_graph_id,save_writes,save_write_delta,pending_save,audio_starts,delayed_cpu_ms,delayed_gpu_ms,timing_timestamp,map_area,map_alive,map_spawned,map_kills,fixed_ticks,fixed_delta_ms,audio_playing,audio_virtual");
                 foreach (Metric metric in metrics) writer.Write("," + Csv(metric.category + "/" + metric.name + (metric.timeNanoseconds ? " [ms]" : " [" + metric.unit + "]")));
+                writer.Write(",stopwatch_start_ticks,stopwatch_end_ticks,application_focused,target_frame_rate,vsync_count");
                 writer.WriteLine();
                 for (int i = 0; i < frameCount; i++)
                 {
@@ -216,14 +236,34 @@ namespace Overburst.DebugTools
                         f.bloodPlayed.ToString(Invariant), f.bloodPlayedDelta.ToString(Invariant), f.bloodVariation.ToString(Invariant),
                         f.bloodVariationDelta.ToString(Invariant), f.bloodGraphId.ToString(Invariant),
                         f.saveWrites.ToString(Invariant), f.saveWriteDelta.ToString(Invariant), f.pendingSave ? "1" : "0", f.audioStarts.ToString(Invariant),
-                        f.cpuTimingMs < 0 ? "" : Number(f.cpuTimingMs), f.gpuMs < 0 ? "" : Number(f.gpuMs), f.frameTimingStamp.ToString(Invariant), f.mapArea.ToString(Invariant), f.mapAlive.ToString(Invariant), f.mapSpawned.ToString(Invariant), f.mapKills.ToString(Invariant) }));
+                        f.cpuTimingMs < 0 ? "" : Number(f.cpuTimingMs), f.gpuMs < 0 ? "" : Number(f.gpuMs), f.frameTimingStamp.ToString(Invariant), f.mapArea.ToString(Invariant), f.mapAlive.ToString(Invariant), f.mapSpawned.ToString(Invariant), f.mapKills.ToString(Invariant), f.fixedTicks.ToString(Invariant), Number(f.fixedDeltaMs), f.audioPlaying.ToString(Invariant), f.audioVirtual.ToString(Invariant) }));
                     for (int m = 0; m < metrics.Count; m++)
                     {
                         int cell = i * metrics.Count + m;
                         writer.Write("," + MetricNumber(metricValues[cell], metricAvailable[cell] != 0, metrics[m].timeNanoseconds));
                     }
+                    writer.Write("," + f.startTimestamp.ToString(Invariant) + "," + f.endTimestamp.ToString(Invariant) + "," + (f.applicationFocused ? "1" : "0") + "," + f.targetFrameRate.ToString(Invariant) + "," + f.vsyncCount.ToString(Invariant));
                     writer.WriteLine();
                 }
+            }
+        }
+
+        void WritePools()
+        {
+            using (var writer = new StreamWriter(Path.Combine(folder, "pool-events.csv"), false, new UTF8Encoding(false)))
+            {
+                writer.WriteLine("frame,seconds,pool,reason,used,capacity,cue,asset_id,asset");
+                for (int i = 0; i < poolEventCount; i++)
+                {
+                    var e = poolEvents[i]; poolAssetNames.TryGetValue(e.asset, out string name);
+                    writer.WriteLine(string.Join(",", e.frame.ToString(Invariant), Number(e.seconds), Csv(e.pool), Csv(e.reason),
+                        e.used.ToString(Invariant), e.capacity.ToString(Invariant), e.cue.ToString(Invariant), e.asset.ToString(Invariant), Csv(name)));
+                }
+            }
+            using (var writer = new StreamWriter(Path.Combine(folder, "pool-totals.csv"), false, new UTF8Encoding(false)))
+            {
+                writer.WriteLine("pool,reason,count");
+                foreach (var pair in poolTotals) writer.WriteLine(Csv(pair.Key.pool) + "," + Csv(pair.Key.reason) + "," + pair.Value.ToString(Invariant));
             }
         }
 

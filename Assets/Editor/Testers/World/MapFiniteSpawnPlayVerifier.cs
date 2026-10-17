@@ -79,6 +79,7 @@ public static class MapFiniteSpawnPlayVerifier
             var resumed = roster.Members.First(m => m.AreaIndex == first.AreaIndex && !m.Initial && m.State == MapRunRoster.Life.Active);
             check(field.TryGetActor(resumed.Index,out var boundaryActor), label + ": boundary-resume actor exists");
             int boundaryLease = resumed.Lease, boundaryVisible = field.VisibleEdgeSpawnCount; float boundaryHp = boundaryActor.Health.CurrentHp;
+            int boundaryPack = boundaryActor.AI.SpawnPackId;
             EnemySpawnService.Current.Release(boundaryActor);
             typeof(MapMonsterField).GetMethod("ReconcileFinite",System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).Invoke(field,null);
             check(resumed.State == MapRunRoster.Life.Pending, label + ": boundary-resume keeps the living logical ID pending");
@@ -88,6 +89,8 @@ public static class MapFiniteSpawnPlayVerifier
             check(resumed.State == MapRunRoster.Life.Active && resumed.Lease > boundaryLease && field.TryGetActor(resumed.Index,out boundaryActor)
                 && Mathf.Abs(boundaryActor.Health.CurrentHp - boundaryHp) < .01f && roster.Kills == killed,
                 label + ": real budget resumes completed offscreen search and restores the same ID/HP without a synthetic death");
+            check(boundaryPack > 0 && boundaryActor.AI.SpawnPackId == boundaryPack,
+                label + ": live pool return preserves the logical spawn pack independently of Actor lease");
             check(field.VisibleEdgeSpawnCount > boundaryVisible, label + ": deferred edge phase actually spawns with the full platform visible");
             MapFiniteSpawnIndexVerifier.VerifyVisiblePositions(field, check, output);
             check(roster.Kills == killed && roster.Total == total, label + ": reinforcement and placement retries do not fabricate kills");
@@ -304,7 +307,8 @@ public static class MapFiniteSpawnPlayVerifier
         }
         foreach (var area in roster.Areas)
         {
-            var point = area.Ground.Points.OrderBy(p => (p - area.Ground.Center).sqrMagnitude).First();
+            var point = area.Ground.Index == roster.EntryAreaIndex && area.Ground.Points.Count == 0
+                ? area.Ground.Center : area.Ground.Points.OrderBy(p => (p - area.Ground.Center).sqrMagnitude).First();
             var path = new UnityEngine.AI.NavMeshPath(); int cell = map.CellAt(point);
             check(UnityEngine.AI.NavMesh.CalculatePath(entry, point, UnityEngine.AI.NavMesh.AllAreas, path)
                 && path.status == UnityEngine.AI.NavMeshPathStatus.PathComplete, label + ": NavMesh reaches area " + area.Ground.Index);

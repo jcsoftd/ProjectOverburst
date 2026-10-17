@@ -6,6 +6,12 @@ namespace Overburst.Caves
     // Edited prefab outlines plus installed connectors own the boundary; legacy decks use colliders.
     public static class CaveFallProtection
     {
+        static readonly Unity.Profiling.ProfilerMarker ResolveMarker = new Unity.Profiling.ProfilerMarker("Overburst.CaveBoundary.Resolve");
+        static readonly Unity.Profiling.ProfilerMarker AnchorMarker = new Unity.Profiling.ProfilerMarker("Overburst.CaveBoundary.AnchorSweep");
+        static readonly Unity.Profiling.ProfilerMarker TargetMarker = new Unity.Profiling.ProfilerMarker("Overburst.CaveBoundary.TargetSweep");
+        static readonly Unity.Profiling.ProfilerMarker SlideXMarker = new Unity.Profiling.ProfilerMarker("Overburst.CaveBoundary.SlideX");
+        static readonly Unity.Profiling.ProfilerMarker SlideZMarker = new Unity.Profiling.ProfilerMarker("Overburst.CaveBoundary.SlideZ");
+        public static bool HasActiveWorld => surfaces.Count > 0;
         const float CellSize = 8f;
         const float SweepStep = .2f;
         const float StepHeight = 3f; // Authored stair/platform seams include rises above 2m.
@@ -81,7 +87,31 @@ namespace Overburst.Caves
                 }
             }
 
-            public bool Ground(Vector3 near, float up, float down, out Vector3 point, CavePlatformBoundary owner = null)
+            public bool ConnectorWaypoint(Vector3 from, Vector3 goal, float radius, out Vector3 point)
+            {
+                point = from; Prepare();
+                if (connections == null) return false;
+                foreach (var link in connections)
+                {
+                    if (!link || link.stairCount > 0 || !link.Sample(from, .8f, .8f, out _)) continue;
+                    var axis = link.end - link.start; axis.y = 0; float length = axis.magnitude;
+                    if (length < .1f || link.walkWidth <= radius * 2 + .1f) continue;
+                    axis /= length;
+                    float along = Vector3.Dot(from - link.start, axis);
+                    float target = Vector3.Dot(goal - link.start, axis);
+                    bool forward = target > along;
+                    // Give the platform path back control after crossing; Sample includes a 2m seam overlap.
+                    if (forward ? along >= length + 1f : along <= -1f) continue;
+                    // Only a destination beyond this installed passage owns its approach.
+                    if (forward ? target < length + .5f : target > -.5f) continue;
+                    float next = forward ? Mathf.Min(length + 1.5f, along + 3f) : Mathf.Max(-1.5f, along - 3f);
+                    point = link.start + axis * next; point.y = from.y;
+                    return true;
+                }
+                return false;
+            }
+
+            public bool Ground(Vector3 near, float up, float down, out Vector3 point, CavePlatformBoundary owner = null, bool allowStairs = true)
             {
                 point = near;
                 if (!world || !world.isActiveAndEnabled) return false;
@@ -95,7 +125,7 @@ namespace Overburst.Caves
                         if (exits.TryGetValue(owner, out var links))
                             foreach (var link in links)
                             {
-                                if (!link || !link.Sample(near, up, down, out var p)) continue;
+                                if (!link || !allowStairs && link.stairCount > 0 || !link.Sample(near, up, down, out var p)) continue;
                                 float difference = Mathf.Abs(p.y - near.y);
                                 if (difference < ownerDistance) { ownerDistance = difference; point = p; found = true; }
                             }
@@ -146,32 +176,32 @@ namespace Overburst.Caves
                 return best;
             }
 
-            CavePlatformBoundary NextOwner(CavePlatformBoundary owner, Vector3 near)
+            CavePlatformBoundary NextOwner(CavePlatformBoundary owner, Vector3 near, bool allowStairs)
             {
                 if (!owner || !exits.TryGetValue(owner, out var links)) return owner;
                 foreach (var link in links)
                 {
-                    if (!link || !link.Sample(near, StepHeight, StepHeight, out _)) continue;
+                    if (!link || !allowStairs && link.stairCount > 0 || !link.Sample(near, StepHeight, StepHeight, out _)) continue;
                     var other = link.boundaryA == owner ? link.boundaryB : link.boundaryA;
                     if (other.Sample(near, StepHeight, StepHeight, out _) && !owner.ContainsLocal(owner.transform.InverseTransformPoint(near))) return other;
                 }
                 return owner;
             }
 
-            public bool Supported(Vector3 near, float margin, out Vector3 ground, CavePlatformBoundary owner = null)
+            public bool Supported(Vector3 near, float margin, out Vector3 ground, CavePlatformBoundary owner = null, bool allowStairs = true)
             {
-                if (!Ground(near, StepHeight, StepHeight, out ground, owner)) return false;
+                if (!Ground(near, StepHeight, StepHeight, out ground, owner, allowStairs)) return false;
                 // Check the footprint, not just the centre, so capsules cannot balance over an edge.
                 for (int i = 0; i < 4 && margin > 0; i++)
                 {
                     Vector3 offset = i < 2 ? Vector3.right * (i == 0 ? margin : -margin)
                         : Vector3.forward * (i == 2 ? margin : -margin);
-                    if (!Ground(ground + offset, StepHeight, StepHeight, out _, owner)) return false;
+                    if (!Ground(ground + offset, StepHeight, StepHeight, out _, owner, allowStairs)) return false;
                 }
                 return true;
             }
 
-            public Vector3 Sweep(Vector3 start, Vector3 target, float margin, ref CavePlatformBoundary owner)
+            public Vector3 Sweep(Vector3 start, Vector3 target, float margin, ref CavePlatformBoundary owner, bool allowStairs = true)
             {
                 Vector3 delta = target - start; delta.y = 0;
                 if (delta.sqrMagnitude < .00000001f) return start;
@@ -180,15 +210,15 @@ namespace Overburst.Caves
                 for (int i = 1; i <= steps; i++)
                 {
                     Vector3 next = start + delta * (i / (float)steps); next.y = safe.y;
-                    var candidateOwner = NextOwner(owner, next);
-                    if (Supported(next, margin, out var ground, candidateOwner)) { safe = ground; owner = candidateOwner; continue; }
+                    var candidateOwner = NextOwner(owner, next, allowStairs);
+                    if (Supported(next, margin, out var ground, candidateOwner, allowStairs)) { safe = ground; owner = candidateOwner; continue; }
                     // Keep the full continuous segment inside the deck, including high-speed dashes.
                     Vector3 blocked = next;
                     for (int j = 0; j < 6; j++)
                     {
                         Vector3 middle = Vector3.Lerp(safe, blocked, .5f);
-                        candidateOwner = NextOwner(owner, middle);
-                        if (Supported(middle, margin, out ground, candidateOwner)) { safe = ground; owner = candidateOwner; }
+                        candidateOwner = NextOwner(owner, middle, allowStairs);
+                        if (Supported(middle, margin, out ground, candidateOwner, allowStairs)) { safe = ground; owner = candidateOwner; }
                         else blocked = middle;
                     }
                     break;
@@ -210,6 +240,13 @@ namespace Overburst.Caves
             return result;
         }
 
+        public static bool TryConnectorWaypoint(Vector3 from, Vector3 goal, float radius, out Vector3 point)
+        {
+            foreach (var surface in surfaces)
+                if (surface.world && surface.world.isActiveAndEnabled && surface.ConnectorWaypoint(from, goal, radius, out point)) return true;
+            point = from; return false;
+        }
+
         // Each motor owns its last supported point, including while jumping or being pushed by physics.
         public struct Movement
         {
@@ -220,8 +257,9 @@ namespace Overburst.Caves
             bool CaveActive => surface != null && surface.world && surface.world.isActiveAndEnabled;
             public bool Active => CaveActive || desert.Active;
 
-            public Vector3 Resolve(Vector3 from, Vector3 target, float radius, float rootAboveFoot = 0)
+            public Vector3 Resolve(Vector3 from, Vector3 target, float radius, float rootAboveFoot = 0, bool allowStairs = true)
             {
+                using var sample = ResolveMarker.Auto();
                 if (Overburst.Mojave.DesertRunWorld.BoundaryWorld)
                     return desert.Resolve(from, target, radius);
                 desert = default;
@@ -229,11 +267,14 @@ namespace Overburst.Caves
                 if (surface == null) return target;
                 float margin = Mathf.Clamp(radius * .7f, .12f, .45f);
                 // Physics contacts may have moved 'from' since the previous call; sweep that displacement too.
-                safeGround = surface.Sweep(safeGround, from, margin, ref owner);
-                Vector3 next = surface.Sweep(safeGround, target, margin, ref owner);
+                using (AnchorMarker.Auto()) safeGround = surface.Sweep(safeGround, from, margin, ref owner, allowStairs);
+                Vector3 next;
+                using (TargetMarker.Auto()) next = surface.Sweep(safeGround, target, margin, ref owner, allowStairs);
                 var ownerX = owner; var ownerZ = owner;
-                Vector3 alongX = surface.Sweep(next, new Vector3(target.x, next.y, next.z), margin, ref ownerX);
-                Vector3 alongZ = surface.Sweep(next, new Vector3(next.x, next.y, target.z), margin, ref ownerZ);
+                Vector3 alongX;
+                using (SlideXMarker.Auto()) alongX = surface.Sweep(next, new Vector3(target.x, next.y, next.z), margin, ref ownerX, allowStairs);
+                Vector3 alongZ;
+                using (SlideZMarker.Auto()) alongZ = surface.Sweep(next, new Vector3(next.x, next.y, target.z), margin, ref ownerZ, allowStairs);
                 if ((alongX - next).sqrMagnitude > (alongZ - next).sqrMagnitude) { next = alongX; owner = ownerX; }
                 else { next = alongZ; owner = ownerZ; }
                 safeGround = next;

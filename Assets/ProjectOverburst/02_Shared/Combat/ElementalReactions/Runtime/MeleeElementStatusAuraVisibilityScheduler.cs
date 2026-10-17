@@ -120,6 +120,24 @@ public sealed class MeleeElementStatusAuraVisibilityScheduler : MonoBehaviour
         instance.BeginWarmPlay();
     }
 
+    public static System.Collections.IEnumerator PrepareForMap(MapRunRoster roster, double deadline, System.Func<bool> cancelled)
+    {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (!Overburst.DebugTools.CombatEffectDiagnosticControls.Allowed(Overburst.DebugTools.CombatDiagnosticEffect.StatusAura)) yield break;
+#endif
+        if (roster == null || instance == null || !instance.warmPoolEnabled) yield break;
+        int target = instance.bootPrewarm;
+        foreach (var area in roster.Areas) target = Mathf.Max(target, area.ConcurrentLimit);
+        target = Mathf.Min(target, PresentationCapacity);
+        // Prepare one platform's peak during loading. Existing caps, visible effects and runtime top-up remain intact.
+        while (instance != null && instance.createdPresentationCount < target)
+        {
+            if (cancelled?.Invoke() == true || Time.realtimeSinceStartupAsDouble >= deadline) yield break;
+            if (instance.CreatesThisFrame() == 0 && !instance.CreatePooledPresentation()) yield break;
+            yield return null;
+        }
+    }
+
     private void BeginWarmPlay()
     {
         if (warmPlayDone || warmPlayPresentation != null)
@@ -292,6 +310,9 @@ public sealed class MeleeElementStatusAuraVisibilityScheduler : MonoBehaviour
     {
         if (inactivePresentationCount >= inactivePresentations.Length)
             return false;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        Overburst.DebugTools.CombatStutterCapture.ObservePool("StatusAura", "prepare", createdPresentationCount, PresentationCapacity);
+#endif
         MeleeElementStatusAuraPresentation created = InstantiatePresentation();
         if (created == null)
             return false;
@@ -500,7 +521,15 @@ public sealed class MeleeElementStatusAuraVisibilityScheduler : MonoBehaviour
             // Pool short (a burst before the warm pool caught up): build a few this frame; the other owners
             // retry on the next scheduler pass and show their aura a few frames later instead of freezing one.
             if (createdPresentationCount >= leaseLimit || CreatesThisFrame() >= maxCreatesPerFrame)
+            {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Overburst.DebugTools.CombatStutterCapture.ObservePool("StatusAura", "defer_lease", leasedPresentationCount, leaseLimit);
+#endif
                 return null;
+            }
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Overburst.DebugTools.CombatStutterCapture.ObservePool("StatusAura", "grow", createdPresentationCount, leaseLimit);
+#endif
             leased = InstantiatePresentation();
             if (leased == null)
                 return null;

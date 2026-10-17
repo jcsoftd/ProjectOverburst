@@ -40,7 +40,7 @@ namespace Overburst.Persistence
 
         public bool RequestPortalExit()
         {
-            if (!AccountInvariants.IsCompleted(AccountGameplaySession.Current?.ReadRun()?.phase)
+            if (!AccountInvariants.IsCompleted(AccountGameplaySession.Current?.CurrentRunPhase)
                 || PlayerContext.Instance?.CurrentActorHealth?.IsDead != false) return false;
             if (!portalRequested) portalRequestFrame = Time.frameCount;
             portalRequested = true;
@@ -86,13 +86,13 @@ namespace Overburst.Persistence
             // 멈춘 동안은 정산하지 않고, 보스를 잡은 뒤 멈춰 있던 시간만큼 그 시계를 늦춰 준다.
             if (OverburstTimeEffectArbiter.IsPaused)
             {
-                if (AccountGameplaySession.Current?.ReadRun()?.phase == RunPhase.BossCleared)
+                if (AccountGameplaySession.Current?.CurrentRunPhase == RunPhase.BossCleared)
                     pausedTicksSinceBossClear += (long)(Time.unscaledDeltaTime * TimeSpan.TicksPerSecond);
                 return;
             }
             if (Time.unscaledTime < nextPoll) return;
             nextPoll = Time.unscaledTime + .25f;
-            if (AccountGameplaySession.Current?.ReadRun()?.phase != RunPhase.BossCleared) pausedTicksSinceBossClear = 0;
+            if (AccountGameplaySession.Current?.CurrentRunPhase != RunPhase.BossCleared) pausedTicksSinceBossClear = 0;
             Poll(DateTime.UtcNow.Ticks - pausedTicksSinceBossClear);
         }
 

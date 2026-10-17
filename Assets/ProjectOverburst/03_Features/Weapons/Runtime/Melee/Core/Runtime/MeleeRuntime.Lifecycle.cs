@@ -3,6 +3,15 @@ using UnityEngine;
 // MeleeRuntime partial: 공격 갱신, 강공 원소 방출 확정, 취소·종료, 공격 상태 요청. 필드와 Unity 수명주기는 MeleeRuntime.cs에 있다.
 public partial class MeleeRuntime
 {
+    static readonly Unity.Profiling.ProfilerMarker MovementCostMarker = new Unity.Profiling.ProfilerMarker("Overburst.Melee.Advance.Movement");
+    static readonly Unity.Profiling.ProfilerMarker VisualHeightCostMarker = new Unity.Profiling.ProfilerMarker("Overburst.Melee.Advance.VisualHeight");
+    static readonly Unity.Profiling.ProfilerMarker TrailCostMarker = new Unity.Profiling.ProfilerMarker("Overburst.Melee.Advance.Trail");
+    static readonly Unity.Profiling.ProfilerMarker HitPhasesCostMarker = new Unity.Profiling.ProfilerMarker("Overburst.Melee.Advance.HitPhases");
+    static readonly Unity.Profiling.ProfilerMarker HeavyAreaCostMarker = new Unity.Profiling.ProfilerMarker("Overburst.Melee.Advance.HeavyArea");
+    static readonly Unity.Profiling.ProfilerMarker DischargeTickCostMarker = new Unity.Profiling.ProfilerMarker("Overburst.Melee.Advance.DischargeTick");
+    static readonly Unity.Profiling.ProfilerMarker ComboContinueCostMarker = new Unity.Profiling.ProfilerMarker("Overburst.Melee.Advance.ComboContinue");
+    static readonly Unity.Profiling.ProfilerMarker FinishCostMarker = new Unity.Profiling.ProfilerMarker("Overburst.Melee.Advance.Finish");
+    static readonly Unity.Profiling.ProfilerMarker SwingAudioCostMarker = new Unity.Profiling.ProfilerMarker("Overburst.Melee.Advance.SwingAudio");
     private void UpdateAttack()
     {
         if (!isAttacking)
@@ -21,24 +30,24 @@ public partial class MeleeRuntime
 
         if (!shouldContinueCombo && !shouldCancelByMoveInput)
         {
-            attackMovementExecutor.Tick(normalizedTime);
-            attackVisualHeight.Tick(normalizedTime);
-            attackTrailExecutor.Tick(normalizedTime);
+            using (MovementCostMarker.Auto()) attackMovementExecutor.Tick(normalizedTime);
+            using (VisualHeightCostMarker.Auto()) attackVisualHeight.Tick(normalizedTime);
+            using (TrailCostMarker.Auto()) attackTrailExecutor.Tick(normalizedTime);
         }
 
         CommitHeavyDischargeAtImpact(normalizedTime);
         if (!isAttacking) return;
-        attackPhaseExecutor.Tick(normalizedTime); // 전환·취소 프레임의 마지막 검끝 표본까지 먼저 판정
+        using (HitPhasesCostMarker.Auto()) attackPhaseExecutor.Tick(normalizedTime); // 전환·취소 프레임의 마지막 검끝 표본까지 먼저 판정
         if (!isAttacking) return;
         if (activeDodgeFollowUp != PlayerDodgeFollowUpKind.Heavy
             || normalizedTime >= activeAttackPhases[0].SafeEnd)
-            heavyDischargeExecutor.ResolvePendingArea();
+            using (HeavyAreaCostMarker.Auto()) heavyDischargeExecutor.ResolvePendingArea();
         CompleteDashHeavyWave(normalizedTime);
-        heavyDischargeExecutor.Tick(Time.deltaTime);
+        using (DischargeTickCostMarker.Auto()) heavyDischargeExecutor.Tick(Time.deltaTime);
 
         if (shouldContinueCombo)
         {
-            ContinueActiveCombo();
+            using (ComboContinueCostMarker.Auto()) ContinueActiveCombo();
             return;
         }
 
@@ -52,10 +61,10 @@ public partial class MeleeRuntime
             return;
         }
 
-        TickSwingSfx(normalizedTime);
+        using (SwingAudioCostMarker.Auto()) TickSwingSfx(normalizedTime);
 
         if (normalizedTime >= 1f)
-            FinishActiveAttack();
+            using (FinishCostMarker.Auto()) FinishActiveAttack();
     }
 
     private float GetAttackNormalizedTime()

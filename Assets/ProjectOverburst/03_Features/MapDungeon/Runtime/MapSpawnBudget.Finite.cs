@@ -14,6 +14,8 @@ public sealed partial class MapSpawnBudget
     static readonly ProfilerMarker ReinforcementMarker = new ProfilerMarker("OVERBURST.MapSpawnFinite.Refresh.Detail.Reinforcement");
     static readonly ProfilerMarker PriorityMarker = new ProfilerMarker("OVERBURST.MapSpawnFinite.Priority");
     static readonly ProfilerMarker PlayerAreaMarker = new ProfilerMarker("OVERBURST.MapSpawnFinite.PlayerArea");
+    static readonly ProfilerMarker PlayerNavMarker = new ProfilerMarker("OVERBURST.MapSpawnFinite.PlayerArea.NavMesh");
+    static readonly ProfilerMarker PlayerContainsMarker = new ProfilerMarker("OVERBURST.MapSpawnFinite.PlayerArea.Containment");
     RunWorldGate runGate;
     int playerAreaFrame = -1, playerAreaIndex = -1;
     Vector3 playerAreaPosition, playerAreaSafe;
@@ -158,6 +160,8 @@ public sealed partial class MapSpawnBudget
                     if (!attempted || LastSpawnMilliseconds >= FrameBudgetMilliseconds) break;
                 }
             }
+            if (!preparing && SpawnedThisFrame == 0 && ReservePreparationFrame != Time.frameCount
+                && Time.unscaledDeltaTime < .025f && HasFiniteTime(started)) runGate.LootReserve?.PrepareOne();
         }
     }
     // Completion and reinforcement share the current floor, separate from the last safe completion area.
@@ -169,17 +173,22 @@ public sealed partial class MapSpawnBudget
         {
             playerAreaFrame = Time.frameCount; playerAreaPosition = position; playerAreaSafe = default;
             int previous = playerAreaIndex; playerAreaIndex = -1;
-            if (runGate && runGate.Roster != null && NavMesh.SamplePosition(position, out var nav, 1f, NavMesh.AllAreas)
-                && Mathf.Abs(nav.position.y - position.y) <= .75f)
+            if (runGate && runGate.Roster != null)
             {
-                var areas = runGate.Roster.Areas;
-                if (previous >= 0 && previous < areas.Count && MapCombatGeometry.Contains(areas[previous].Ground, position))
-                    playerAreaIndex = previous;
-                else
-                    for (int i = 0; i < areas.Count; i++)
-                        if (i != previous && MapCombatGeometry.Contains(areas[i].Ground, position))
-                        { playerAreaIndex = i; break; }
-                if (playerAreaIndex >= 0) playerAreaSafe = nav.position;
+                bool onNav; NavMeshHit nav;
+                using (PlayerNavMarker.Auto()) onNav = NavMesh.SamplePosition(position, out nav, 1f, NavMesh.AllAreas);
+                if (onNav && Mathf.Abs(nav.position.y - position.y) <= .75f)
+                using (PlayerContainsMarker.Auto())
+                {
+                    var areas = runGate.Roster.Areas;
+                    if (previous >= 0 && previous < areas.Count && MapCombatGeometry.Contains(areas[previous].Ground, position))
+                        playerAreaIndex = previous;
+                    else
+                        for (int i = 0; i < areas.Count; i++)
+                            if (i != previous && MapCombatGeometry.Contains(areas[i].Ground, position))
+                            { playerAreaIndex = i; break; }
+                    if (playerAreaIndex >= 0) playerAreaSafe = nav.position;
+                }
             }
             safe = playerAreaSafe; return playerAreaIndex;
         }

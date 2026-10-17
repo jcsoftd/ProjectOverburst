@@ -239,9 +239,19 @@ public sealed class MeleeElementSfxService : MonoBehaviour
     {
         float now = Time.unscaledTime;
         if (nextAllowedTime.TryGetValue(cooldownKey, out float allowedTime) && now < allowedTime)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Overburst.DebugTools.CombatStutterCapture.ObservePool("MeleeElementSfx", "cooldown", -1, settings.maxVoices, cooldownKey, clip);
+#endif
             return false;
+        }
         if (settings.maxVoices > 0 && CountActive(cooldownKey) >= settings.maxVoices)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Overburst.DebugTools.CombatStutterCapture.ObservePool("MeleeElementSfx", "cue_limit", settings.maxVoices, settings.maxVoices, cooldownKey, clip);
+#endif
             return false;
+        }
 
         Voice voice = AcquireVoice();
         if (voice == null || voice.Source == null)
@@ -287,7 +297,18 @@ public sealed class MeleeElementSfxService : MonoBehaviour
     {
         Voice voice = available.Count > 0 ? available.Pop() : null;
         if (voice == null && createdVoiceCount < MaximumPoolSize)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Overburst.DebugTools.CombatStutterCapture.ObservePool("MeleeElementSfx", "grow", active.Count, MaximumPoolSize);
+#endif
             voice = CreateVoice();
+        }
+        else if (voice == null)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Overburst.DebugTools.CombatStutterCapture.ObservePool("MeleeElementSfx", "capacity_reject", active.Count, MaximumPoolSize);
+#endif
+        }
         if (voice?.Source != null)
             voice.Source.gameObject.SetActive(true);
         return voice;
@@ -298,6 +319,9 @@ public sealed class MeleeElementSfxService : MonoBehaviour
         GameObject voiceObject = new GameObject("MeleeSfxVoice_" + createdVoiceCount);
         voiceObject.transform.SetParent(transform, false);
         AudioSource source = voiceObject.AddComponent<AudioSource>();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        Overburst.DebugTools.CombatStutterCapture.TrackAudioSource(source);
+#endif
         ResetSource(source);
         voiceObject.SetActive(false);
         createdVoiceCount++;

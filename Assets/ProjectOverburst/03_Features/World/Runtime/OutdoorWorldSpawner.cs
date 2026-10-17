@@ -23,8 +23,10 @@ public sealed class OutdoorWorldSpawner : MonoBehaviour
     private readonly Queue<Pending> pending = new Queue<Pending>();
     private readonly List<Lease> leases = new List<Lease>();
     private readonly System.Random random = new System.Random(73130);
+    private int nextSpawnPackId;
     private sealed class SpawnGroup
     {
+        public int id;
         public Vector3 point;
         public bool placed;
     }
@@ -127,7 +129,7 @@ public sealed class OutdoorWorldSpawner : MonoBehaviour
                 pending.Enqueue(next); continue; }
             var context = new EncounterContext(null, next.level, ItemGrade.Common, outdoorSessionId: SessionId);
             var request = new EnemySpawnRequest(next.definition, point, Quaternion.Euler(0, random.Next(360), 0),
-                player.transform, gameObject, transform, enemiesRoot, seed: next.seed, context: context);
+                player.transform, gameObject, transform, enemiesRoot, seed: next.seed, context: context, packId: next.group != null ? next.group.id : 0);
             if (!spawn.TrySpawn(request, out var actor)) { pending.Enqueue(next); continue; }
             if (next.group != null && !next.group.placed) { next.group.point = point; next.group.placed = true; }
             leases.Add(new Lease(actor)); created++;
@@ -158,7 +160,7 @@ public sealed class OutdoorWorldSpawner : MonoBehaviour
         for (int i = 0; i < requests.Count; i++)
         {
             if (used[i]) continue;
-            var group = new SpawnGroup();
+            var group = new SpawnGroup { id = ++nextSpawnPackId };
             int remaining = MapCombatGeometry.GroupSize(MapSpawnPolicy.Tier(theme, requests[i].definition));
             for (int j = i; j < requests.Count && remaining > 0; j++)
             {

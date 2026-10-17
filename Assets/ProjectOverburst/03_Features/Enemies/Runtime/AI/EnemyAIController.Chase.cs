@@ -142,7 +142,7 @@ public sealed partial class EnemyAIController
 
     private Vector3 ContinueObservedChaseHeading()
     {
-        if (!continuesObservedHeading || movement == null) return cachedChasePlan;
+        if (navigationActive || !continuesObservedHeading || movement == null) return cachedChasePlan;
         Vector3 remaining = cachedChasePlan - transform.position; remaining.y = 0f;
         if (Vector3.Dot(remaining, observedChaseHeading) > .2f) return cachedChasePlan;
         Vector3 step = EnemyApproachSteering.ResolveShortHorizonDestination(transform.position, observedChaseHeading, movement.ActiveMoveSpeed);
@@ -168,7 +168,7 @@ public sealed partial class EnemyAIController
             densityApproachActive = false;
             ClearClusterFanOutActivity(false);
             ClearChaseBypassActivity();
-            return ResolveSquadPursuitSteeredDestination(squadPlan.Destination);
+            return ResolveNavigatedChase(ResolveSquadPursuitSteeredDestination(squadPlan.Destination), squadPlan.Destination);
         }
 
         ClearSquadPursuitMove();
@@ -194,7 +194,7 @@ public sealed partial class EnemyAIController
                 && TryResolveClusterFanOutDestination(navigationDirection, out Vector3 fanOutDestination))
             {
                 densityApproachActive = false;
-                return fanOutDestination; // 연결 군집 중·뒷열을 양측으로 전개
+                return ResolveNavigatedChase(fanOutDestination, target.position);
             }
 
             ClearClusterFanOutActivity(true);
@@ -207,7 +207,7 @@ public sealed partial class EnemyAIController
             && TryResolveChaseBypassDestination(navigationDirection, out Vector3 bypassDestination))
         {
             densityApproachActive = false;
-            return bypassDestination; // 앞줄 정체 시 빈 측면으로 나선형 추월
+            return ResolveNavigatedChase(bypassDestination, target.position);
         }
 
         if (!UsesClusterFanOutSteering)
@@ -220,9 +220,8 @@ public sealed partial class EnemyAIController
             && TargetDistance <= EnemyApproachSteering.LocalSteeringStartDistance)
         {
             densityApproachActive = true;
-            return ResolveDensityApproachDestination(
-                preferredRadius,
-                navigationDirection); // 근거리는 Flow 방향과 밀도 조향 합성
+            return ResolveNavigatedChase(ResolveDensityApproachDestination(
+                preferredRadius, navigationDirection), target.position);
         }
 
         densityApproachActive = false;
@@ -234,7 +233,7 @@ public sealed partial class EnemyAIController
                 preferredRadius); // 장거리는 공유 방향장의 다음 셀만 추적
         }
 
-        return ResolveNaturalApproachDestination(preferredRadius); // 보행 데이터나 유효 경로가 없을 때 폴백
+        return ResolveNavigatedChase(ResolveNaturalApproachDestination(preferredRadius), target != null ? target.position : transform.position);
     }
 
     internal void BeginChaseApproach(bool preferSide, bool forceRefresh = false)
@@ -249,6 +248,7 @@ public sealed partial class EnemyAIController
     internal void RefreshChaseApproachDirection()
     {
         hasCachedChasePlan = false;
+        nextNavigationTime = 0f;
         if (clusterFanOutActive)
         {
             EnemyClusterFanOutService.Invalidate(target); // 같은 측면을 유지한 채 군집 외피만 갱신
@@ -274,6 +274,7 @@ public sealed partial class EnemyAIController
     internal void EndChaseApproach()
     {
         ResetChaseObservation();
+        ResetNavigation();
         hasCachedChasePlan = false;
         ClearSquadPursuitMove();
         densityApproachActive = false;

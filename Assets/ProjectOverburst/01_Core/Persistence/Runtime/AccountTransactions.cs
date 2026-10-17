@@ -180,11 +180,17 @@ namespace Overburst.Persistence
         public int BaseUnlockedSlots => current.baseUnlockedSlots;
         public AccountSnapshot Read() => ItemSnapshotCodec.CopyValues(current);
         public List<QuestSnapshot> ReadQuests() => ItemSnapshotCodec.CopyValues(current.quests);
+        public QuestSnapshot ReadTrackedQuest()
+        {
+            var quest = current.quests.Find(q => q.questId == current.trackedQuestId);
+            return quest == null ? null : ItemSnapshotCodec.CopyValues(quest);
+        }
         public SkillTreeSnapshot ReadSkillTree() => current.skillTree?.Copy();
         public CharacterAppearanceSnapshot ReadAppearance() => current.appearance?.Copy();
         internal int CurrentLevel => current.level;
         internal bool CanAcquireFromRun(string runId) => current.run != null && current.run.runId == runId && AccountInvariants.IsRunning(current.run.phase);
         public RunSnapshot ReadRun() => ItemSnapshotCodec.CopyValues(current.run);
+        public RunPhase? CurrentRunPhase => current.run?.phase;
 
         public AccountTransactions(AccountSnapshot initial, EasySaveAccountStore store, AccountContentRegistry registry, bool deferDiskWrites = false)
         {

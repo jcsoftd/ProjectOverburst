@@ -115,8 +115,7 @@ public sealed class MapEmergencyExit : MonoBehaviour, IInteractable
         if (!isActiveAndEnabled || !gate || !player || !health || health.IsDead
             || WorldSessionState.Phase != WorldPhase.Run || WorldSessionState.ContentScene != gameObject.scene
             || PersistentSceneFlow.Instance?.IsSwitching == true) return false;
-        var run = AccountGameplaySession.Current?.ReadRun();
-        return run != null && run.runId == RunId && AccountInvariants.IsRunning(run.phase);
+        return AccountGameplaySession.Current?.CanAcquireFromRun(RunId) == true;
     }
     bool InRange()
     {

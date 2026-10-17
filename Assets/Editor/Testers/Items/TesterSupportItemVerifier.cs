@@ -32,12 +32,16 @@ public static class TesterSupportItemVerifier
         Action<bool, string> require = (value, label) => { if (!value) throw new Exception(label); checks.Add(label); };
         var instanceField = typeof(PlayerAccountInventoryService).GetField("instance", PrivateStatic);
         var previousService = instanceField.GetValue(null);
+        var sessionProperty = typeof(AccountGameplaySession).GetProperty("Current");
+        var previousSession = sessionProperty.GetValue(null);
         var random = Random.state;
         var debug = CombatDebugSettings.RunLootOverride;
         var fixture = new GameObject("TesterSupportNative") { hideFlags = HideFlags.HideAndDontSave };
         string failure = null;
         try
         {
+            // EditMode after Play can retain a detached session; this fixture owns only its local inventory.
+            sessionProperty.SetValue(null, null);
             var registry = Resources.Load<AccountContentRegistry>(AccountContentRegistry.ResourcePath);
             var data = registry.Resolve<TesterSupportItemData>(TesterSupportItemData.ContentId);
             require(data.icon != null && data.sellPrice == 0 && data.weight == 0, "saved item icon, zero weight and value");
@@ -49,14 +53,14 @@ public static class TesterSupportItemVerifier
             var questState=ItemSnapshotCodec.CopyValues(state);
             var questXp=typeof(Overburst.Quests.AccountQuestCommands).GetMethod("GrantExperience",PrivateStatic);
             questXp.Invoke(null,new object[]{questState,11});
-            require(questState.experience==22,"quest reward uses saved inventory final multiplier");
+            require(questState.experience==11,"quest reward ignores tester support multiplier");
             var stashed=Charm(questState); questState.inventory[questState.inventory.IndexOf(stashed.instanceId)]=null;
             questState.stashTabs[0].slots[0]=stashed.instanceId;
             questXp.Invoke(null,new object[]{questState,11});
-            require(questState.experience==33 && TesterSupportItemData.Multiplier(questState)==1,"stash item gives no experience bonus");
+            require(questState.experience==22 && TesterSupportItemData.Multiplier(questState)==1,"quest reward remains unchanged after stashing the support item");
             var item = ItemSnapshotCodec.Restore(Charm(state), registry);
             string tooltip = SimpleItemTooltipBuilder.Build(item);
-            require(tooltip.Contains("경험치 획득량") && tooltip.Contains("아이템 드롭확률") && tooltip.Contains("2배") && tooltip.Contains("즉시 효과가 해제"), "normal item tooltip explains both bonuses and removal");
+            require(tooltip.Contains("사냥 경험치 획득량") && tooltip.Contains("아이템 드롭확률") && tooltip.Contains("2배") && tooltip.Contains("즉시 효과가 해제"), "normal item tooltip explains hunting-only XP, drop bonus and removal");
             var store = new EasySaveAccountStore(Path.Combine(output, "LegacyAccount"));
             RemoveCharm(state); state.testerSupportGranted = false;
             store.Save(state, "old-character");
@@ -108,13 +112,13 @@ public static class TesterSupportItemVerifier
             require(Mathf.Abs(TesterSupportItemData.ApplyDropChance(.2f*1.5f)-.6f)<.00001f,"drop bonus multiplies after other modifiers");
             require(TesterSupportItemData.ApplyDropChance(.8f)==1 && TesterSupportItemData.ApplyDropChance(0)==0,"probability cap and zero preserved");
             progression.AddExperience(11);
-            require(progression.Experience==22,"direct experience doubles exactly once");
+            require(progression.Experience==11,"non-kill experience ignores the support multiplier");
             progression.AddKillExperience(10,50,1.5f);
-            require(progression.Experience==67,"kill experience final multiplier preserves fractional carry");
+            require(progression.Experience==56,"kill experience final multiplier preserves fractional carry");
             inventory.RemoveItem(item); progression.AddExperience(11);
-            require(progression.Experience==78 && TesterSupportItemData.CurrentMultiplier==1,"removal immediately restores experience and drop baseline");
+            require(progression.Experience==67 && TesterSupportItemData.CurrentMultiplier==1,"removal immediately restores experience and drop baseline");
             inventory.AddItem(item);
-            progression.AddExperience(progression.ExperienceToNext-progression.Experience,applyRewardMultiplier:false);
+            progression.AddExperience(progression.ExperienceToNext-progression.Experience);
             require(progression.Level==2 && progression.Experience==0,"exact level command bypasses reward multiplier");
             inventory.RemoveItem(item);
             CombatDebugSettings.SetRunLootOverride(RunLootDebugOverride.Default);
@@ -168,6 +172,7 @@ public static class TesterSupportItemVerifier
         finally
         {
             Object.DestroyImmediate(fixture); instanceField.SetValue(null,previousService);
+            sessionProperty.SetValue(null, previousSession);
             Random.state=random; CombatDebugSettings.SetRunLootOverride(debug);
             File.WriteAllText(Path.Combine(output,"Native.json"),JsonConvert.SerializeObject(new{status=failure==null?"PASS":"FAIL",checks,failure},Formatting.Indented));
         }
@@ -182,10 +187,10 @@ public static class TesterSupportItemVerifier
         var item=inventory.Items.Single(x=>x?.baseData is TesterSupportItemData);
         require(item!=null && TesterSupportItemData.CurrentMultiplier==2,"boot grants charm and activates support");
         require(SimpleItemTooltipBuilder.Build(item).Contains("즉시 효과가 해제"),"production tooltip includes removal explanation");
-        progression.AddExperience(9); require(progression.FlushPendingExperience(),"boosted direct XP commits");
-        require(progression.Experience==18,"account XP doubles once");
+        progression.AddExperience(9); require(progression.FlushPendingExperience(),"direct XP commits without hunting bonus");
+        require(progression.Experience==9,"non-kill account XP stays unchanged while holding support");
         progression.AddKillExperience(10,50,1.5f); require(progression.FlushPendingExperience(),"boosted fractional kill XP commits");
-        require(progression.Experience==63,"account kill XP multiplies after density and additive bonuses");
+        require(progression.Experience==54,"account kill XP multiplies after density and additive bonuses");
         var fixture=new GameObject("TesterSupportDropSlot",typeof(RectTransform));
         var old=new List<WorldItemPickup>(); WorldItemPickup.CopyActivePickups(old);
         var ids=new HashSet<int>(old.Select(x=>x.GetInstanceID()));
@@ -198,7 +203,7 @@ public static class TesterSupportItemVerifier
                 Inventory=inventory,SourceSlot=slot,FallbackTransform=PlayerContext.Instance.CurrentActor.transform });
             require(result.Succeeded,"real inventory world drop succeeds");
             require(TesterSupportItemData.CurrentMultiplier==1,"world drop immediately removes support");
-            progression.AddExperience(9); require(progression.FlushPendingExperience() && progression.Experience==72,"XP returns to baseline after discard");
+            progression.AddExperience(9); require(progression.FlushPendingExperience() && progression.Experience==63,"non-kill XP stays unchanged after discard");
             require(session.FlushPendingSave(),"discarded state persists");
             var registry=Resources.Load<AccountContentRegistry>(AccountContentRegistry.ResourcePath);
             var reloaded=MapAccountMigration.Load(new EasySaveAccountStore(AccountBootstrap.SaveDirectory),registry);

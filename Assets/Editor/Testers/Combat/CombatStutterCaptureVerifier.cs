@@ -8,6 +8,7 @@ public static class CombatStutterCaptureVerifier
 {
     const string Root = "OVERBURST/테스트/전투 끊김/";
     public const string NextRunKey = "OVERBURST.CombatStutterCapture.NextRunProfiler";
+    const string BinaryKey = NextRunKey + ".binary";
     static double nextRunCheck;
     static CombatStutterCaptureVerifier()
     {
@@ -24,15 +25,18 @@ public static class CombatStutterCaptureVerifier
         Debug.Log("[CombatStutterCapture] 다음 사용자 Play에서120초 관찰. 자동 Play/계정 전환 없음.");
     }
     [MenuItem(Root + "다음 지도 전투 Profiler 기록 예약")]
-    public static void ArmNextRunWithProfiler()
+    public static void ArmNextRunWithProfiler() => ArmNextRun(true);
+    [MenuItem(Root + "다음 지도 전투 10분 경량 기록 예약")]
+    public static void ArmNextRunLightweight() => ArmNextRun(false);
+    static void ArmNextRun(bool binary)
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
             || UnityEngine.Profiling.Profiler.enabled || UnityEngine.Profiling.Profiler.enableBinaryLog)
             throw new System.InvalidOperationException("Use an idle Editor with no existing profiler capture.");
         SessionState.EraseBool(CombatStutterCapture.ArmKey);
-        SessionState.SetBool(NextRunKey, true); nextRunCheck = 0;
+        SessionState.SetBool(NextRunKey, true); SessionState.SetBool(BinaryKey, binary); nextRunCheck = 0;
         EditorApplication.update -= AwaitRun; EditorApplication.update += AwaitRun;
-        Debug.Log("[CombatStutterCapture] 다음 사용자 Play의 지도 입장 완료부터 최대10분 상세 기록. Play 종료 시 저장.");
+        Debug.Log("[CombatStutterCapture] 다음 지도 입장 후 최대10분 " + (binary ? "상세 Profiler" : "경량") + " 기록. Play 종료 시 저장.");
     }
     static void AwaitRun()
     {
@@ -44,10 +48,11 @@ public static class CombatStutterCaptureVerifier
         var gate = Object.FindFirstObjectByType<RunWorldGate>();
         if (gate == null || !gate.IsReady || gate.SpawnBudget == null) return;
         SessionState.EraseBool(NextRunKey); EditorApplication.update -= AwaitRun;
-        Report(CombatStutterCapture.Start(600, 50, true));
+        bool binary = SessionState.GetBool(BinaryKey, false); SessionState.EraseBool(BinaryKey);
+        Report(CombatStutterCapture.Start(600, 50, binary));
     }
     [MenuItem(Root + "다음 Play 예약 해제")]
-    static void Disarm() { SessionState.EraseBool(CombatStutterCapture.ArmKey); SessionState.EraseBool(NextRunKey); EditorApplication.update -= AwaitRun; }
+    static void Disarm() { SessionState.EraseBool(CombatStutterCapture.ArmKey); SessionState.EraseBool(NextRunKey); SessionState.EraseBool(BinaryKey); EditorApplication.update -= AwaitRun; }
     [MenuItem(Root + "현재 Play 관찰 시작")]
     static void Start() { Report(CombatStutterCapture.Start()); }
     [MenuItem(Root + "현재 Play 관찰 시작", true)]
@@ -71,7 +76,7 @@ public static class CombatStutterCaptureVerifier
     static void OnPlayState(PlayModeStateChange state)
     {
         if (state == PlayModeStateChange.ExitingPlayMode)
-        { SessionState.EraseBool(NextRunKey); EditorApplication.update -= AwaitRun; StopBeforeReload(); }
+        { SessionState.EraseBool(NextRunKey); SessionState.EraseBool(BinaryKey); EditorApplication.update -= AwaitRun; StopBeforeReload(); }
     }
     static void Report(DebugResult result)
     {

@@ -32,6 +32,15 @@ public readonly struct AttackPhaseHit
 
 public sealed class AttackPhaseExecutor
 {
+    static readonly Unity.Profiling.ProfilerMarker CaptureTargetsMarker = new Unity.Profiling.ProfilerMarker("Overburst.Melee.Phase.CaptureTargets");
+    static readonly Unity.Profiling.ProfilerMarker ProgressMarker = new Unity.Profiling.ProfilerMarker("Overburst.Melee.Phase.Progress");
+    static readonly Unity.Profiling.ProfilerMarker ScanTargetsMarker = new Unity.Profiling.ProfilerMarker("Overburst.Melee.Phase.ScanTargets");
+    static readonly Unity.Profiling.ProfilerMarker SortTargetsMarker = new Unity.Profiling.ProfilerMarker("Overburst.Melee.Phase.SortTargets");
+    static readonly Unity.Profiling.ProfilerMarker ContactMarker = new Unity.Profiling.ProfilerMarker("Overburst.Melee.Phase.Contact");
+    static readonly Unity.Profiling.ProfilerMarker CallbackMarker = new Unity.Profiling.ProfilerMarker("Overburst.Melee.Phase.Callback");
+    static readonly Unity.Profiling.ProfilerMarker VfxBeginMarker = new Unity.Profiling.ProfilerMarker("Overburst.Melee.Phase.VfxBegin");
+    static readonly Unity.Profiling.ProfilerMarker VfxTraceMarker = new Unity.Profiling.ProfilerMarker("Overburst.Melee.Phase.VfxTrace");
+    static readonly Unity.Profiling.ProfilerMarker VfxTickMarker = new Unity.Profiling.ProfilerMarker("Overburst.Melee.Phase.VfxTick");
     private readonly struct ReachedTarget
     {
         public readonly CombatTarget Target;
@@ -211,6 +220,8 @@ public sealed class AttackPhaseExecutor
                 normalizedTime);
             bool canApplyHits;
             float resolvedProgress;
+            using (ProgressMarker.Auto())
+            {
             if (state.Phase.progressSource == AttackProgressSource.NormalizedTime)
             {
                 resolvedProgress = state.Pattern.EvaluateProgress(linearProgress);
@@ -228,16 +239,18 @@ public sealed class AttackPhaseExecutor
                 state.ProgressSample = sample;
                 resolvedProgress = sample.ResolvedProgress;
             }
+            }
 
             if (canApplyHits)
                 ApplyReachedTargets(state, resolvedProgress);
 
             if (canApplyHits)
             {
-                AttackProgressSample vfxSample = ResolveVfxTraceSample(
+                AttackProgressSample vfxSample;
+                using (VfxTraceMarker.Auto()) vfxSample = ResolveVfxTraceSample(
                     state.ProgressSample,
                     resolvedProgress);
-                state.VfxPlayer.Tick(
+                using (VfxTickMarker.Auto()) state.VfxPlayer.Tick(
                     state.Pattern,
                     state.Basis,
                     resolvedProgress,
@@ -296,8 +309,8 @@ public sealed class AttackPhaseExecutor
         state.Started = true;
         state.HitRegistry.Clear();
         state.Basis = new AttackPatternBasis(owner.position, attackForward);
-        state.Targets.Capture(state.Pattern, state.Basis, sourceTarget);
-        state.VfxPlayer.Begin(state.Phase);
+        using (CaptureTargetsMarker.Auto()) state.Targets.Capture(state.Pattern, state.Basis, sourceTarget);
+        using (VfxBeginMarker.Auto()) state.VfxPlayer.Begin(state.Phase);
     }
 
     private AttackProgressSample ResolveVfxTraceSample(
@@ -322,6 +335,7 @@ public sealed class AttackPhaseExecutor
         state.ReachedTargets.Clear();
         IReadOnlyList<AttackTargetSnapshot.Entry> targets = state.Targets.Entries;
 
+        using (ScanTargetsMarker.Auto())
         for (int i = 0; i < targets.Count; i++)
         {
             AttackTargetSnapshot.Entry entry = targets[i];
@@ -347,7 +361,7 @@ public sealed class AttackPhaseExecutor
                 state.ReachedTargets.Add(new ReachedTarget(target, currentRequiredProgress));
         }
 
-        state.ReachedTargets.Sort(CompareReachedTargets);
+        using (SortTargetsMarker.Auto()) state.ReachedTargets.Sort(CompareReachedTargets);
         for (int i = 0; i < state.ReachedTargets.Count; i++)
         {
             ReachedTarget reached = state.ReachedTargets[i];
@@ -355,6 +369,7 @@ public sealed class AttackPhaseExecutor
             if (target == null || !state.HitRegistry.TryRegister(target.TargetId))
                 continue;
 
+            using var contactScope = ContactMarker.Auto();
             CombatTargetVolume hurtVolume = target.CurrentHurtVolume;
             Vector3 hitPoint = hurtVolume.Center;
             Vector3 direction;
@@ -374,7 +389,7 @@ public sealed class AttackPhaseExecutor
 
             // Place contact feedback on the same authored volume used for the hit.
             hitPoint -= direction * hurtVolume.Radius;
-            onHit?.Invoke(new AttackPhaseHit(
+            using (CallbackMarker.Auto()) onHit?.Invoke(new AttackPhaseHit(
                 state.Phase,
                 state.RuntimeData,
                 target,

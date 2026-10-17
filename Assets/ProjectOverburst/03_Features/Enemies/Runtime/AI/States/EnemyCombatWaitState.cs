@@ -39,6 +39,11 @@ public sealed class EnemyCombatWaitState : IEnemyState // 대치와 공격 순�
             return;
         }
 
+        if (Time.time >= readyTime && !owner.HasNavigationApproachToTarget())
+        {
+            owner.ChangeToChase();
+            return;
+        }
         owner.UpdateCombatWaitSeparation(); // 겹친 대기 몬스터만 천천히 분리
         owner.FaceTarget();
         if (Time.time >= readyTime)

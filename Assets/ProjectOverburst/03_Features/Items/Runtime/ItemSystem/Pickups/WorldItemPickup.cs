@@ -35,6 +35,9 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
     private Collider[] pickupColliders; // 충돌체 캐시
     private WorldItemDropMotion dropMotion; // 비물리 드랍 연출
     private Transform weaponGradeVfxAnchor;
+    private bool reserved;
+    private WorldItemGroundShadow groundShadow;
+    private static MaterialPropertyBlock mapColor;
     private bool CanShowGradeVfx => isActiveAndEnabled && !pickedUp && runtimeItem != null
         && (dropMotion == null || dropMotion.IsLanded);
 
@@ -47,6 +50,7 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
 
     private void Awake()
     {
+        if (reserved) return;
         ResolveReferences(); // 인벤토리/플레이어 참조 확보
         BuildRuntimeItemIfNeeded(); // 에셋 기반 테스트 아이템 생성
         ApplyItemVisualPresentation();
@@ -60,6 +64,7 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
 
     private void OnEnable()
     {
+        if (reserved) return;
         if (dropMotion != null)
         {
             dropMotion.Landed -= HandleDropLanded;
@@ -74,6 +79,7 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
 
     private void OnDisable()
     {
+        if (groundShadow) groundShadow.Hide();
         if (spawnedGradeVfx != null) spawnedGradeVfx.SetActive(false);
         UnbindDropMotion();
         if (activePickups.Remove(this))
@@ -89,7 +95,7 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
     {
         get
         {
-            return !pickedUp
+            return !reserved && !pickedUp
                 && runtimeItem != null
                 && runtimeItem.HasValidBaseData
                 && WeaponContentPolicy.IsAllowedRuntimeItem(runtimeItem)
@@ -152,7 +158,7 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
 
     public bool TryPickup(PlayerInventory inventory)
     {
-        if (pickedUp || inventory == null || runtimeItem == null || !WeaponContentPolicy.IsAllowedRuntimeItem(runtimeItem))
+        if (reserved || pickedUp || inventory == null || runtimeItem == null || !WeaponContentPolicy.IsAllowedRuntimeItem(runtimeItem))
             return false; // 중복 획득/무효 인벤토리 차단
 
         if (!string.IsNullOrEmpty(runtimeItem.originRunId))
@@ -229,6 +235,7 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
 
         transform.position = position; // 테스트 배치물은 드랍 산개 없이 지정 위치에 고정
         SetAuthoredVisualOnGround();
+        GetComponent<WorldItemGroundShadow>()?.Place();
     }
 
     private void SetAuthoredVisualOnGround()
@@ -238,7 +245,10 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
         MeshRenderer[] renderers = visualRoot.GetComponentsInChildren<MeshRenderer>(false);
         float visualBottom = float.PositiveInfinity;
         for (int i = 0; i < renderers.Length; i++)
+        {
+            if (renderers[i].name == "Baked Item Shadow") continue;
             visualBottom = Mathf.Min(visualBottom, renderers[i].bounds.min.y);
+        }
         if (float.IsPositiveInfinity(visualBottom)) return;
 
         RaycastHit[] hits = Physics.RaycastAll(transform.position + Vector3.up * 3f,
@@ -275,6 +285,7 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
 
     private void LateUpdate()
     {
+        if (reserved) return;
         if (runtimeItem != null && (spawnedGradeVfx == null || renderedGrade != runtimeItem.grade))
             RefreshGradeVfx();
         if (CanShowGradeVfx && spawnedGradeVfx != null && !spawnedGradeVfx.activeSelf) spawnedGradeVfx.SetActive(true);
@@ -289,8 +300,7 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
     {
         if (!CanShowGradeVfx)
         {
-            if (spawnedGradeVfx != null) { spawnedGradeVfx.SetActive(false); Destroy(spawnedGradeVfx); }
-            spawnedGradeVfx = null;
+            if (spawnedGradeVfx != null) spawnedGradeVfx.SetActive(false);
             return;
         }
         if (spawnedGradeVfx != null && renderedGrade == runtimeItem.grade
@@ -308,6 +318,16 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
     {
         if (runtimeItem == null)
             return;
+
+        if (runtimeItem.baseData is MapItemData)
+        {
+            var renderer = transform.Find("ModelRoot")?.GetComponent<Renderer>();
+            if (renderer)
+            {
+                if (mapColor == null) mapColor = new MaterialPropertyBlock();
+                mapColor.Clear(); mapColor.SetColor("_BaseColor", runtimeItem.color); renderer.SetPropertyBlock(mapColor);
+            }
+        }
 
         WorldPickupPresentation presentation = GetComponent<WorldPickupPresentation>();
         if (presentation == null && runtimeItem.baseData is WeaponItemData)
@@ -362,6 +382,8 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
 
     private void BeginScriptedDrop()
     {
+        if (!groundShadow) groundShadow = GetComponent<WorldItemGroundShadow>();
+        if (groundShadow) groundShadow.Hide();
         if (!useScriptedDrop || runtimeItem == null)
             return;
 
@@ -376,6 +398,8 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
 
     private void HandleDropLanded()
     {
+        if (reserved) return;
+        if (groundShadow) groundShadow.Place();
         if (runtimeItem != null)
         {
             RefreshGradeVfx(); // 실제 착지 위치에서 등급 효과와 소리를 함께 시작
@@ -413,5 +437,51 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
         legacyRigidbody.isKinematic = true;
         legacyRigidbody.detectCollisions = false;
         Destroy(legacyRigidbody);
+    }
+
+    internal void PrepareReserved(ItemData item)
+    {
+        reserved = true; runtimeItem = item; pickedUp = false; gradeVfxSet = null;
+        ApplyItemVisualPresentation(); ConfigurePickupColliders();
+        groundShadow = GetComponent<WorldItemGroundShadow>();
+        dropMotion = GetComponent<WorldItemDropMotion>();
+        if (!dropMotion) dropMotion = gameObject.AddComponent<WorldItemDropMotion>();
+        dropMotion.ResetForPool();
+        if (!GetComponent<WorldPickupPresentation>()) gameObject.AddComponent<WorldPickupPresentation>();
+    }
+
+    internal void ReleaseReserved(Vector3 position, PlayerInventory inventory, Transform owner)
+    {
+        transform.SetParent(null, true); transform.position = position;
+        targetInventory = inventory; player = owner;
+        // Awake/OnEnable run while guarded, so they cannot start a second drop or build an authored item.
+        gameObject.SetActive(true);
+        reserved = false;
+        if (spawnedGradeVfx) spawnedGradeVfx.transform.SetParent(null, true);
+        BeginScriptedDrop(); RefreshGradeVfx();
+        enabled = true;
+        if (activePickups.Add(this)) NotifyRegistryChanged();
+    }
+
+    internal void PrepareReservedVfx()
+    {
+        var prefab = PickupGradeVfxSet.Default ? PickupGradeVfxSet.Default.GetPrefab(runtimeItem.grade) : null;
+        if (!prefab) return;
+        var anchor = ResolveGradeVfxAnchor();
+        spawnedGradeVfx = Instantiate(prefab, transform);
+        spawnedGradeVfx.SetActive(false);
+        var follow = spawnedGradeVfx.GetComponent<VfxFollowTarget>();
+        if (!follow) follow = spawnedGradeVfx.AddComponent<VfxFollowTarget>();
+        follow.Initialize(anchor, prefab.transform.localPosition, false, true);
+        renderedGrade = runtimeItem.grade; renderedDefinition = runtimeItem.baseData; renderedSet = null;
+        if (runtimeItem.baseData is FlaskItemData) spawnedGradeVfx.transform.localScale *= .40f;
+    }
+
+    internal void WarmReserved()
+    {
+        var parent = transform.parent;
+        transform.SetParent(parent.parent, true);
+        try { gameObject.SetActive(true); if (spawnedGradeVfx) { spawnedGradeVfx.SetActive(true); spawnedGradeVfx.SetActive(false); } }
+        finally { gameObject.SetActive(false); transform.SetParent(parent, true); }
     }
 }

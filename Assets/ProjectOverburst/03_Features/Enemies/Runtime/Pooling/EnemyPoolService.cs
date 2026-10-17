@@ -68,6 +68,10 @@ public sealed class EnemyPoolService : MonoBehaviour
         int created = 0;
         while (queue.Count < requested)
         {
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Overburst.DebugTools.CombatStutterCapture.ObservePool("Enemy", "prepare", queue.Count, requested, asset: prefab);
+#endif
             EnemyActor actor = CreateInactive(prefab);
             if (actor == null)
                 break;
@@ -99,7 +103,12 @@ public sealed class EnemyPoolService : MonoBehaviour
         }
 
         if (actor == null)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Overburst.DebugTools.CombatStutterCapture.ObservePool("Enemy", "grow", leasedPrefabByActor.Count, -1, asset: prefab);
+#endif
             actor = CreateInactive(prefab);
+        }
         if (actor == null)
             return null;
 

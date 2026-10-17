@@ -21,6 +21,17 @@ namespace Overburst.Persistence
     public sealed class EasySaveAccountStore
     {
         public const int SchemaVersion = 3;
+        static readonly Unity.Profiling.ProfilerMarker LockMarker = new Unity.Profiling.ProfilerMarker("Overburst.Account.DiskSave.Lock");
+        static readonly Unity.Profiling.ProfilerMarker ScanMarker = new Unity.Profiling.ProfilerMarker("Overburst.Account.DiskSave.ScanSlots");
+        static readonly Unity.Profiling.ProfilerMarker SerializeMarker = new Unity.Profiling.ProfilerMarker("Overburst.Account.DiskSave.SerializeSnapshot");
+        static readonly Unity.Profiling.ProfilerMarker ChecksumMarker = new Unity.Profiling.ProfilerMarker("Overburst.Account.DiskSave.Checksum");
+        static readonly Unity.Profiling.ProfilerMarker WriterMarker = new Unity.Profiling.ProfilerMarker("Overburst.Account.DiskSave.CreateWriter");
+        static readonly Unity.Profiling.ProfilerMarker EnvelopeMarker = new Unity.Profiling.ProfilerMarker("Overburst.Account.DiskSave.WriteEnvelope");
+        static readonly Unity.Profiling.ProfilerMarker CommitMarker = new Unity.Profiling.ProfilerMarker("Overburst.Account.DiskSave.CommitFile");
+        static readonly Unity.Profiling.ProfilerMarker ReadbackMarker = new Unity.Profiling.ProfilerMarker("Overburst.Account.DiskSave.Readback");
+        static readonly Unity.Profiling.ProfilerMarker ReadBytesMarker = new Unity.Profiling.ProfilerMarker("Overburst.Account.DiskSave.ReadBytes");
+        static readonly Unity.Profiling.ProfilerMarker CompareMarker = new Unity.Profiling.ProfilerMarker("Overburst.Account.DiskSave.CompareBytes");
+        static readonly Unity.Profiling.ProfilerMarker ParseMarker = new Unity.Profiling.ProfilerMarker("Overburst.Account.DiskSave.ParseEnvelope");
         private readonly string directory;
         private readonly string profileId;
         private readonly bool memoryOnly;
@@ -149,7 +160,9 @@ namespace Overburst.Persistence
                 return;
             }
             Directory.CreateDirectory(directory);
-            using (AcquireLock()) SaveCore(snapshot, transactionId);
+            FileStream accountLock;
+            using (LockMarker.Auto()) accountLock = AcquireLock();
+            using (accountLock) SaveCore(snapshot, transactionId);
         }
 
         private void SaveCore(AccountSnapshot snapshot, string transactionId)
@@ -158,6 +171,7 @@ namespace Overburst.Persistence
             if (snapshot == null || snapshot.schemaVersion != SchemaVersion || snapshot.profileId != profileId || string.IsNullOrWhiteSpace(transactionId))
                 throw new InvalidDataException("Invalid account save request.");
             if (latest != null && latest.schemaVersion != SchemaVersion && latest.schemaVersion != 2) throw new InvalidDataException("Cannot overwrite a newer schema.");
+            using (ScanMarker.Auto())
             for (int slot = 0; slot < 2; slot++)
             {
                 if (!File.Exists(FilePath(slot))) continue;
@@ -170,8 +184,9 @@ namespace Overburst.Persistence
             var envelope = new AccountSaveEnvelope
             {
                 profileId = profileId, generation = checked(Generation + 1), transactionId = transactionId,
-                writtenAtUtcTicks = DateTime.UtcNow.Ticks, payload = ES3.Serialize(snapshot)
+                writtenAtUtcTicks = DateTime.UtcNow.Ticks
             };
+            using (SerializeMarker.Auto()) envelope.payload = ES3.Serialize(snapshot);
             envelope.checksum = Checksum(envelope);
             FaultInjector?.Invoke("before-write");
             try
@@ -179,10 +194,12 @@ namespace Overburst.Persistence
                 // Each slot is one complete account envelope, not a shared key store.
                 // Skip merging the obsolete slot (also permits replacing a corrupt
                 // inactive generation) while retaining ES3's temp-file commit.
-                using (var writer = ES3Writer.Create(Settings(target)))
+                ES3Writer writer;
+                using (WriterMarker.Auto()) writer = ES3Writer.Create(Settings(target));
+                using (writer)
                 {
-                    writer.Write<AccountSaveEnvelope>("account", envelope);
-                    writer.Save(false);
+                    using (EnvelopeMarker.Auto()) writer.Write<AccountSaveEnvelope>("account", envelope);
+                    using (CommitMarker.Auto()) writer.Save(false);
                 }
                 FaultInjector?.Invoke("after-write");
             }
@@ -191,7 +208,8 @@ namespace Overburst.Persistence
                 var uncertain = TryRead(target);
                 if (uncertain == null || uncertain.transactionId != transactionId || uncertain.checksum != envelope.checksum) throw;
             }
-            var readback = TryRead(target);
+            AccountSaveEnvelope readback;
+            using (ReadbackMarker.Auto()) readback = TryRead(target);
             if (readback == null || readback.generation != envelope.generation || readback.transactionId != transactionId || readback.checksum != envelope.checksum)
                 throw new IOException("Account save readback failed; prior generation is preserved.");
             latest = readback;
@@ -205,9 +223,13 @@ namespace Overburst.Persistence
                 var settings = Settings(slot);
                 // Read the actual file under account.lock on every check. Reuse parsing
                 // only for byte-identical, checksum-verified contents, never timestamps.
-                byte[] bytes = ES3.LoadRawBytes(settings);
-                if (SameBytes(bytes, verifiedBytes[slot])) return verifiedEnvelopes[slot];
-                var value = new ES3File(bytes, settings).Load<AccountSaveEnvelope>("account");
+                byte[] bytes;
+                using (ReadBytesMarker.Auto()) bytes = ES3.LoadRawBytes(settings);
+                bool same;
+                using (CompareMarker.Auto()) same = SameBytes(bytes, verifiedBytes[slot]);
+                if (same) return verifiedEnvelopes[slot];
+                AccountSaveEnvelope value;
+                using (ParseMarker.Auto()) value = new ES3File(bytes, settings).Load<AccountSaveEnvelope>("account");
                 if (value == null || value.magic != "OVERBURST_ACCOUNT" || value.profileId != profileId || value.generation < 1 || value.payload == null || value.checksum != Checksum(value)) return null;
                 verifiedBytes[slot] = bytes;
                 verifiedEnvelopes[slot] = value;
@@ -227,6 +249,7 @@ namespace Overburst.Persistence
 
         public static string Checksum(AccountSaveEnvelope e)
         {
+            using var diagnostic = ChecksumMarker.Auto();
             using (var bytes = new MemoryStream())
             using (var writer = new BinaryWriter(bytes, Encoding.UTF8, true))
             using (var sha = SHA256.Create())

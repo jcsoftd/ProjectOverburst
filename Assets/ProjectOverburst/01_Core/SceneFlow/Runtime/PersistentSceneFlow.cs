@@ -23,16 +23,74 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
     private bool titleMovementWasEnabled;
     private double presentationWaitSeconds;
     private const float PresentationWaitBudget = 10f;
+    private static readonly string[] CommonPresentationPaths =
+    {
+        CombatActionSfxCatalog.ResourcePath,
+        ItemDropSfxCatalog.ResourcePath,
+        "Combat/SFX/CombatAction/PlayerLevelUp",
+        "VFX/PF_PlayerLevelUpVfx",
+        PlayerLevelUpFeedback.ZoomBlurResourcePath,
+        PlayerLevelUpNotification.ResourcePath,
+        "Items/WorldPickups/PF_SharedGear_Bag",
+        "UI/Fonts/DamageFloating/NotoSerifKR_Damage SDF",
+        "UI/Fonts/DamageFloating/NotoSerifKR_Stun SDF",
+        "UI/Fonts/DamageFloating/NotoSerifKR_Parry SDF",
+        "Enemies/Balance/EnemyTelegraphVisualLibrary",
+        "Combat/SFX/CombatAction/GreatswordGround01",
+        "Combat/VFX/PF_ParryZoomBlur_Normal",
+        "Combat/VFX/PF_ParryZoomBlur_Perfect"
+    };
+    private readonly Object[] commonPresentation = new Object[CommonPresentationPaths.Length];
+    private readonly ResourceRequest[] commonRequests = new ResourceRequest[CommonPresentationPaths.Length];
 
     // Count only time spent in presentation preparation, not account/world/scene loading.
-    private IEnumerator PrepareCommonPresentation(System.Func<bool> cancelled = null)
+    private IEnumerator PrepareCommonPresentation(System.Func<bool> cancelled = null, MapRunRoster roster = null, RunWorldGate gate = null)
     {
         double began = Time.realtimeSinceStartupAsDouble;
         try
         {
             float remaining = Mathf.Max(0f, PresentationWaitBudget - (float)presentationWaitSeconds);
-            yield return CombatImpactFeel.PrepareForGameplay(remaining, cancelled);
-
+            double deadline = began + remaining;
+            if (cancelled?.Invoke() == true || Time.realtimeSinceStartupAsDouble >= deadline) yield break;
+            var equipment = FindPlayer()?.GetComponent<PlayerEquipment>();
+            if (equipment && !equipment.GetComponent<OverburstElementEnergy>())
+            {
+                // Bind at zero energy while loading, so the first hit does not build weapon/HUD effects.
+                equipment.gameObject.AddComponent<OverburstElementEnergy>();
+                yield return null;
+            }
+            yield return CombatImpactFeel.PrepareForGameplay(Mathf.Max(0f, (float)(deadline - Time.realtimeSinceStartupAsDouble)), cancelled);
+            for (int i = 0; i < CommonPresentationPaths.Length; i++)
+            {
+                if (cancelled?.Invoke() == true || Time.realtimeSinceStartupAsDouble >= deadline) yield break;
+                if (commonPresentation[i]) continue;
+                // Retain outstanding requests across cancellation/timeouts; do not queue duplicate loads.
+                if (commonRequests[i] == null) commonRequests[i] = Resources.LoadAsync<Object>(CommonPresentationPaths[i]);
+                while (!commonRequests[i].isDone)
+                {
+                    if (cancelled?.Invoke() == true || Time.realtimeSinceStartupAsDouble >= deadline) yield break;
+                    yield return null;
+                }
+                commonPresentation[i] = commonRequests[i].asset;
+            }
+            // Keep existing caps; prepare one silent voice or one first-use parry effect per frame.
+            while (Time.realtimeSinceStartupAsDouble < deadline && cancelled?.Invoke() != true)
+            {
+                if (!CombatActionSfxService.PrepareOneVoice() && !ItemDropSfxService.PrepareOneVoice()
+                    && !ParryFeedbackService.PrepareOne()) break;
+                yield return null;
+            }
+            var dash = FindPlayer()?.GetComponent<PlayerDashVfx>();
+            if (dash && Time.realtimeSinceStartupAsDouble < deadline && cancelled?.Invoke() != true)
+                yield return dash.PrepareForGameplay(deadline, cancelled);
+            if (roster != null && Time.realtimeSinceStartupAsDouble < deadline && cancelled?.Invoke() != true)
+            {
+                yield return BloodHitVfxService.PrepareGroundMaterials(roster, deadline, cancelled);
+                yield return MeleeElementStatusAuraVisibilityScheduler.PrepareForMap(roster, deadline, cancelled);
+            }
+            var loot = gate ? MapLootReserve.Attach(gate) : null;
+            while (loot && Time.realtimeSinceStartupAsDouble < deadline && cancelled?.Invoke() != true && loot.PrepareOne())
+                yield return null;
         }
         finally { presentationWaitSeconds += Time.realtimeSinceStartupAsDouble - began; }
     }
@@ -274,7 +332,8 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         bool addedEntryGuard = false;
         if (RunEntryError == null)
         {
-            yield return PrepareCommonPresentation(() => cancelRunEntry);
+            MapLootReserve.Attach(gate);
+            yield return PrepareCommonPresentation(() => cancelRunEntry, gate.Roster, gate);
             if (cancelRunEntry) RunEntryError = "입장을 취소했습니다.";
         }
         if (RunEntryError == null && pendingMap.generationVersion > 0)

@@ -74,6 +74,16 @@ public static class MapRunRosterVerifier
                         && safeEntry.Target == MapRunRoster.CaveTarget(safeEntry.Total), theme.ThemeId + ": entry " + entry + " excludes option population while preserving area indices and the completion target");
                     Check(Signature(safeEntry) == Signature(MapRunRoster.Build("safe-entry-repeat", map, areas, entryArea: entry)),
                         theme.ThemeId + ": entry-excluded roster is deterministic");
+                    var emptyEntryAreas = new List<MapCombatGeometry.Area>(areas);
+                    emptyEntryAreas[entry] = new MapCombatGeometry.Area(entry, areas[entry].Name, areas[entry].Center,
+                        areas[entry].Band, new List<Vector3>());
+                    var emptyEntry = MapRunRoster.Build("empty-entry", map, emptyEntryAreas, entryArea: entry);
+                    Check(emptyEntry.Areas[entry].Count == 0 && emptyEntry.Areas[entry].InitialCount == 0
+                        && emptyEntry.Total > 0, theme.ThemeId + ": noncombat entry may have zero spawn candidates");
+                    bool emptyCombatRejected = false;
+                    try { MapRunRoster.Build("empty-combat", map, emptyEntryAreas); }
+                    catch (InvalidOperationException) { emptyCombatRejected = true; }
+                    Check(emptyCombatRejected, theme.ThemeId + ": empty combat floor remains invalid");
                 }
                 int[] before = { a.Areas.Sum(x => x.Small), a.Areas.Sum(x => x.Medium), a.Areas.Sum(x => x.Elite) };
                 int[] after = { boosted.Areas.Sum(x => x.Small), boosted.Areas.Sum(x => x.Medium), boosted.Areas.Sum(x => x.Elite) };

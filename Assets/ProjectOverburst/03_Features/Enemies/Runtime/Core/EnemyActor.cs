@@ -3,6 +3,20 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class EnemyActor : MonoBehaviour
 {
+    private static readonly Unity.Profiling.ProfilerMarker PrepareReferencesMarker = new Unity.Profiling.ProfilerMarker("OVERBURST.MapSpawn.Detail.Actor.References");
+    private static readonly Unity.Profiling.ProfilerMarker PrepareIdentityMarker = new Unity.Profiling.ProfilerMarker("OVERBURST.MapSpawn.Detail.Actor.Identity");
+    private static readonly Unity.Profiling.ProfilerMarker PrepareBodyMarker = new Unity.Profiling.ProfilerMarker("OVERBURST.MapSpawn.Detail.Actor.Body");
+    private static readonly Unity.Profiling.ProfilerMarker PrepareTintMarker = new Unity.Profiling.ProfilerMarker("OVERBURST.MapSpawn.Detail.Actor.Tint");
+    private static readonly Unity.Profiling.ProfilerMarker PrepareAnimatorMarker = new Unity.Profiling.ProfilerMarker("OVERBURST.MapSpawn.Detail.Actor.Animator");
+    private static readonly Unity.Profiling.ProfilerMarker PrepareHealthMarker = new Unity.Profiling.ProfilerMarker("OVERBURST.MapSpawn.Detail.Actor.Health");
+    private static readonly Unity.Profiling.ProfilerMarker PrepareMovementMarker = new Unity.Profiling.ProfilerMarker("OVERBURST.MapSpawn.Detail.Actor.Movement");
+    private static readonly Unity.Profiling.ProfilerMarker PrepareAbilitiesMarker = new Unity.Profiling.ProfilerMarker("OVERBURST.MapSpawn.Detail.Actor.Abilities");
+    private static readonly Unity.Profiling.ProfilerMarker PrepareAIMarker = new Unity.Profiling.ProfilerMarker("OVERBURST.MapSpawn.Detail.Actor.AI");
+    private static readonly Unity.Profiling.ProfilerMarker TintCreateMarker = new Unity.Profiling.ProfilerMarker("OVERBURST.MapSpawn.Detail.Tint.CreateBlock");
+    private static readonly Unity.Profiling.ProfilerMarker TintMaterialsMarker = new Unity.Profiling.ProfilerMarker("OVERBURST.MapSpawn.Detail.Tint.Materials");
+    private static readonly Unity.Profiling.ProfilerMarker TintGetBlockMarker = new Unity.Profiling.ProfilerMarker("OVERBURST.MapSpawn.Detail.Tint.GetBlock");
+    private static readonly Unity.Profiling.ProfilerMarker TintColorMarker = new Unity.Profiling.ProfilerMarker("OVERBURST.MapSpawn.Detail.Tint.Color");
+    private static readonly Unity.Profiling.ProfilerMarker TintSetBlockMarker = new Unity.Profiling.ProfilerMarker("OVERBURST.MapSpawn.Detail.Tint.SetBlock");
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
     private static readonly int ColorId = Shader.PropertyToID("_Color");
 
@@ -151,83 +165,104 @@ public sealed class EnemyActor : MonoBehaviour
         EnemyRuntimeStats stats,
         in EnemySpawnRequest request)
     {
-        CaptureAuthoredState();
-        ResolveOptionalComponents();
-        if (!IsAuthoringValid || enemyDefinition == null || !enemyDefinition.IsValid)
-            return false;
-
-        leased = true;
-        LeaseVersion++;
-        definition = enemyDefinition;
-        runtimeStats = stats;
-        NaturalProgressMultiplier = 1f; progressBaseMaxHp = 0f;
-        identity?.SetDefinition(enemyDefinition);
-        rank?.ConfigureEncounter(request.Encounter);
-        rank?.ConfigureFromDefinition(enemyDefinition);
-        lootDropper?.ConfigureEncounter(request.Encounter);
-
-        transform.localScale = Vector3.one; // ActorRoot 크기는 변형에 사용하지 않음
-        visualRoot.localScale = stats.VisualScale;
-        collisionRoot.localScale = stats.CollisionScale;
-        anchors.localScale = stats.AnchorScale;
-        RestoreColliderStates();
-        if (TryGetComponent(out CombatTarget combatTarget))
+        using (PrepareReferencesMarker.Auto())
         {
-            combatTarget.RefreshVolumeFromCollider(
-                collisionRoot.GetComponentInChildren<CapsuleCollider>(true));
-            // 몸 부피는 커진 충돌체에서 다시 재지만, 전용 피격 판정과 오라 기준 부피는 크기 1 기준 값이라 겉모습 배율을 따로 넣는다.
-            combatTarget.SetVariantHurtScale(stats.VisualScale);
+            CaptureAuthoredState();
+            ResolveOptionalComponents();
+            if (!IsAuthoringValid || enemyDefinition == null || !enemyDefinition.IsValid)
+                return false;
         }
-        if (TryGetComponent(out CombatTargetVfxPlacement vfxPlacement))
-            vfxPlacement.SetVariantScale(stats.VisualScale);
-        ApplyTint(stats.Tint);
-
-        EnemyAnimationProfile animationProfile = enemyDefinition.AnimationProfile;
-        if (animator != null && animationProfile != null)
+        using (PrepareIdentityMarker.Auto())
         {
-            animator.runtimeAnimatorController = animationProfile.RuntimeController;
-            animator.applyRootMotion = false;
+            leased = true;
+            LeaseVersion++;
+            definition = enemyDefinition;
+            runtimeStats = stats;
+            NaturalProgressMultiplier = 1f; progressBaseMaxHp = 0f;
+            identity?.SetDefinition(enemyDefinition);
+            rank?.ConfigureEncounter(request.Encounter);
+            rank?.ConfigureFromDefinition(enemyDefinition);
+            lootDropper?.ConfigureEncounter(request.Encounter);
         }
-
-        health.SetMaxHp(stats.MaxHealth, true);
-        rank?.ApplyLevelToHealth(stats.MaxHealth);
-        health.ResetHealth();
-        movement.enabled = true;
-        movement.SetProfile(enemyDefinition.MovementProfile);
-        float levelProgress = (OverburstGrowthRules.ClampLevel(rank != null ? rank.Level : 1) - 1) / 99f;
-        var balance = OverburstBalanceTable.Current;
-        movement.SetRuntimeSpeedMultiplier(Mathf.Min(balance.EnemyMoveCap, stats.MoveSpeedMultiplier * (1f + balance.EnemyMoveGrowth * levelProgress)));
-        movement.ResolveReferences();
-        movement.StopMovement();
-
-        animationBridge.enabled = true;
-        melee.enabled = true;
-        abilityController.enabled = true;
-        abilityController.ResetForReuse();
-        abilityController.Configure(
-            enemyDefinition.AbilitySet,
-            stats.DamageMultiplier,
-            MapOptionPolicy.AttackSpeedMultiplier(stats, request.Encounter.Map, rank != null ? rank.Level : 1,
-                enemyDefinition.Grade != null && enemyDefinition.Grade.GradeType == EnemyGradeType.Boss),
-            enemyDefinition.Grade != null && enemyDefinition.Grade.GradeType == EnemyGradeType.Boss ? 0f : stats.AttackInterval);
-        bossOutcomeController?.ResetForPool();
-        if (bossPhaseController != null
-            && !bossPhaseController.PrepareForLease(this))
+        using (PrepareBodyMarker.Auto())
         {
-            return false;
+            transform.localScale = Vector3.one; // ActorRoot 크기는 변형에 사용하지 않음
+            visualRoot.localScale = stats.VisualScale;
+            collisionRoot.localScale = stats.CollisionScale;
+            anchors.localScale = stats.AnchorScale;
+            RestoreColliderStates();
+            if (TryGetComponent(out CombatTarget combatTarget))
+            {
+                combatTarget.RefreshVolumeFromCollider(
+                    collisionRoot.GetComponentInChildren<CapsuleCollider>(true));
+                // 몸 부피는 커진 충돌체에서 다시 재지만, 전용 피격 판정과 오라 기준 부피는 크기 1 기준 값이라 겉모습 배율을 따로 넣는다.
+                combatTarget.SetVariantHurtScale(stats.VisualScale);
+            }
+            if (TryGetComponent(out CombatTargetVfxPlacement vfxPlacement))
+                vfxPlacement.SetVariantScale(stats.VisualScale);
         }
-
-        ai.enabled = true;
-        ai.RefreshCombatRangesFromAbilities();
-        ai.SetBehaviorProfile(enemyDefinition.BehaviorProfile);
-        ai.SetTacticalProfile(enemyDefinition.TacticalProfile);
-        ai.SetSquadPursuitProfile(
-            enemyDefinition.SquadPursuitPreset,
-            enemyDefinition.SquadParticipationMode);
-        ai.SetHomePosition(request.Position);
-        ai.SetTarget(request.Target);
-        ai.SetSquadEncounter(request.EncounterOwner, request.EncounterAnchor);
-        return true;
+        using (PrepareTintMarker.Auto())
+        {
+            ApplyTint(stats.Tint);
+        }
+        using (PrepareAnimatorMarker.Auto())
+        {
+            EnemyAnimationProfile animationProfile = enemyDefinition.AnimationProfile;
+            if (animator != null && animationProfile != null)
+            {
+                animator.runtimeAnimatorController = animationProfile.RuntimeController;
+                animator.applyRootMotion = false;
+            }
+        }
+        using (PrepareHealthMarker.Auto())
+        {
+            health.SetMaxHp(stats.MaxHealth, true);
+            rank?.ApplyLevelToHealth(stats.MaxHealth);
+            health.ResetHealth();
+        }
+        using (PrepareMovementMarker.Auto())
+        {
+            movement.enabled = true;
+            movement.SetProfile(enemyDefinition.MovementProfile);
+            float levelProgress = (OverburstGrowthRules.ClampLevel(rank != null ? rank.Level : 1) - 1) / 99f;
+            var balance = OverburstBalanceTable.Current;
+            movement.SetRuntimeSpeedMultiplier(Mathf.Min(balance.EnemyMoveCap, stats.MoveSpeedMultiplier * (1f + balance.EnemyMoveGrowth * levelProgress)));
+            movement.ResolveReferences();
+            movement.StopMovement();
+        }
+        using (PrepareAbilitiesMarker.Auto())
+        {
+            animationBridge.enabled = true;
+            melee.enabled = true;
+            abilityController.enabled = true;
+            abilityController.ResetForReuse();
+            abilityController.Configure(
+                enemyDefinition.AbilitySet,
+                stats.DamageMultiplier,
+                MapOptionPolicy.AttackSpeedMultiplier(stats, request.Encounter.Map, rank != null ? rank.Level : 1,
+                    enemyDefinition.Grade != null && enemyDefinition.Grade.GradeType == EnemyGradeType.Boss),
+                enemyDefinition.Grade != null && enemyDefinition.Grade.GradeType == EnemyGradeType.Boss ? 0f : stats.AttackInterval);
+            bossOutcomeController?.ResetForPool();
+            if (bossPhaseController != null
+                && !bossPhaseController.PrepareForLease(this))
+            {
+                return false;
+            }
+        }
+        using (PrepareAIMarker.Auto())
+        {
+            ai.enabled = true;
+            ai.RefreshCombatRangesFromAbilities();
+            ai.SetBehaviorProfile(enemyDefinition.BehaviorProfile);
+            ai.SetTacticalProfile(enemyDefinition.TacticalProfile);
+            ai.SetSquadPursuitProfile(
+                enemyDefinition.SquadPursuitPreset,
+                enemyDefinition.SquadParticipationMode);
+            ai.SetHomePosition(request.Position);
+            ai.SetTarget(request.Target);
+            ai.SetSquadEncounter(request.EncounterOwner, request.EncounterAnchor, request.SpawnPackId);
+            return true;
+        }
     }
 
     internal bool FinalizeLeaseAfterActivation()
@@ -376,7 +411,7 @@ public sealed class EnemyActor : MonoBehaviour
         if (visualRenderers == null)
             return;
         if (propertyBlock == null)
-            propertyBlock = new MaterialPropertyBlock();
+            using (TintCreateMarker.Auto()) propertyBlock = new MaterialPropertyBlock();
 
         for (int i = 0; i < visualRenderers.Length; i++)
         {
@@ -384,25 +419,28 @@ public sealed class EnemyActor : MonoBehaviour
             if (targetRenderer == null)
                 continue;
 
-            Material[] materials = targetRenderer.sharedMaterials;
+            Material[] materials;
+            using (TintMaterialsMarker.Auto()) materials = targetRenderer.sharedMaterials;
             for (int materialIndex = 0; materialIndex < materials.Length; materialIndex++)
             {
                 Material material = materials[materialIndex];
                 if (material == null)
                     continue;
 
-                targetRenderer.GetPropertyBlock(propertyBlock, materialIndex);
-                if (material.HasProperty(BaseColorId))
-                    propertyBlock.SetColor(BaseColorId, material.GetColor(BaseColorId) * tint);
-                else if (material.HasProperty(ColorId))
-                    propertyBlock.SetColor(ColorId, material.GetColor(ColorId) * tint);
-                else
+                using (TintGetBlockMarker.Auto()) targetRenderer.GetPropertyBlock(propertyBlock, materialIndex);
+                using (TintColorMarker.Auto())
                 {
-                    propertyBlock.Clear();
-                    continue;
+                    if (material.HasProperty(BaseColorId))
+                        propertyBlock.SetColor(BaseColorId, material.GetColor(BaseColorId) * tint);
+                    else if (material.HasProperty(ColorId))
+                        propertyBlock.SetColor(ColorId, material.GetColor(ColorId) * tint);
+                    else
+                    {
+                        propertyBlock.Clear();
+                        continue;
+                    }
                 }
-
-                targetRenderer.SetPropertyBlock(propertyBlock, materialIndex);
+                using (TintSetBlockMarker.Auto()) targetRenderer.SetPropertyBlock(propertyBlock, materialIndex);
                 propertyBlock.Clear();
             }
         }

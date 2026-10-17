@@ -297,6 +297,10 @@ public static class TransientVfxPool
         }
 
         GetCounters(prefab).Misses++;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        Overburst.DebugTools.CombatStutterCapture.ObservePool("TransientVfx", "grow", GetCounters(prefab).Active, -1, asset: prefab);
+#endif
+
         return CreateInstance(prefab, host.transform);
     }
 
