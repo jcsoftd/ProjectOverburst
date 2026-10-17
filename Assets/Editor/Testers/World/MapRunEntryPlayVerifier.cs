@@ -339,6 +339,11 @@ public static class MapRunEntryPlayVerifier
             var roster = gate.Roster;
             Check(roster != null && roster.PlacementReady && roster.Total >= roster.Areas.Count(a => a.Ground.AllowsMonsters && a.Ground.Index != roster.EntryAreaIndex && (gate.BossArena == null || a.Ground.Index != gate.BossArena.Ground.Index)) * (item.map.terrain == MapTerrainKind.Cave ? 8 : 40), label + ": entry-excluded finite population and physical placements prepared before consumption");
             DesertMovementBoundaryVerifier.VerifyEntry(gate, Check);
+            Write("initial-roster-" + item.map.terrain + "-" + item.map.areaCount + ".json", new {
+                roster.ThemeId, expectedTheme = item.map.monsterThemeId, areas = roster.Areas.Count, expectedAreas = MapGenerationPolicy.EffectiveAreaCount(item.map),
+                roster.Kills, roster.Active, roster.Pending, roster.Total, gate.SpawnBudget.InitialPreparedCount, gate.SpawnBudget.InitialReady,
+                frame = Time.frameCount, runPhase = WorldSessionState.Phase.ToString()
+            });
             Check(roster.ThemeId == item.map.monsterThemeId && roster.Areas.Count == MapGenerationPolicy.EffectiveAreaCount(item.map)
                 && roster.Kills == 0 && roster.Active == gate.SpawnBudget.InitialPreparedCount && gate.SpawnBudget.InitialReady
                 && roster.Active + roster.Pending == roster.Total, label + ": stored single theme and finite initial actors prepared before entry");

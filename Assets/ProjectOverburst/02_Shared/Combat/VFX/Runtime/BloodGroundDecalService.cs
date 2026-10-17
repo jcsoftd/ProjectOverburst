@@ -77,6 +77,48 @@ public sealed class BloodGroundDecalService : MonoBehaviour
     public int SkippedPoolCount { get; private set; }
     public int MaterialVariantCount => materials.Count;
     public uint PackShownVariants { get; private set; }
+    public bool RegistrationPrepared { get; private set; }
+    public int PreparedRegistrationCount { get; private set; }
+    public double RegistrationMilliseconds { get; private set; }
+    private static readonly ProfilerMarker PrepareRegistrationMarker = new ProfilerMarker("Overburst.BloodDecal.PrepareRegistration");
+
+    private System.Collections.IEnumerator PrepareRegistration(double deadline, System.Func<bool> cancelled)
+    {
+        if (RegistrationPrepared || ActiveCount != 0 || pendingCount != 0 || cancelled?.Invoke() == true
+            || Time.realtimeSinceStartupAsDouble >= deadline) yield break;
+        var projector = slots[0].Projector;
+        var template = catalog.directionalDecal.GetComponent<DecalProjector>();
+        if (!projector || !template || !template.material || projector.gameObject.activeSelf) yield break;
+        Material original = projector.material;
+        float originalFade = projector.fadeFactor, originalDistance = projector.drawDistance;
+        try
+        {
+            long began = System.Diagnostics.Stopwatch.GetTimestamp();
+            using (PrepareRegistrationMarker.Auto())
+            {
+                projector.material = template.material;
+                projector.fadeFactor = 0f;
+                projector.drawDistance = 0f;
+                projector.gameObject.SetActive(true);
+            }
+            RegistrationMilliseconds = (System.Diagnostics.Stopwatch.GetTimestamp() - began) * 1000d / System.Diagnostics.Stopwatch.Frequency;
+            // One hidden frame also covers a renderer that attaches its decal manager lazily.
+            yield return null;
+            if (cancelled?.Invoke() != true && Time.realtimeSinceStartupAsDouble < deadline)
+            { RegistrationPrepared = true; PreparedRegistrationCount++; }
+        }
+        finally
+        {
+            if (projector)
+            {
+                projector.gameObject.SetActive(false);
+                projector.material = original;
+                projector.fadeFactor = originalFade;
+                projector.drawDistance = originalDistance;
+            }
+        }
+    }
+
 
     public void Configure(BloodHitCatalog source)
     {
@@ -352,7 +394,9 @@ public sealed class BloodGroundDecalService : MonoBehaviour
     // Only this run's blood colours and the selected style; no decals, hits or random draws are emitted.
     public System.Collections.IEnumerator PrepareMaterials(MapRunRoster roster, BloodEffectStyle style, double deadline, System.Func<bool> cancelled)
     {
-        if (catalog == null || roster == null) yield break;
+        if (catalog == null) yield break;
+        yield return PrepareRegistration(deadline, cancelled);
+        if (roster == null) yield break;
         var profiles = new HashSet<BloodHitProfile>();
         var definitions = new HashSet<EnemyDefinition>();
         var playerProfile = Resources.Load<BloodHitProfile>(BloodHitVfxService.PlayerProfilePath);

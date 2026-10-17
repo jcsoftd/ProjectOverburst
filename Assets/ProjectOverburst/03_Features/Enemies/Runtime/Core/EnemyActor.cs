@@ -17,6 +17,9 @@ public sealed class EnemyActor : MonoBehaviour
     private static readonly Unity.Profiling.ProfilerMarker TintMaterialsMarker = new Unity.Profiling.ProfilerMarker("OVERBURST.MapSpawn.Detail.Tint.Materials");
     private static readonly Unity.Profiling.ProfilerMarker TintGetBlockMarker = new Unity.Profiling.ProfilerMarker("OVERBURST.MapSpawn.Detail.Tint.GetBlock");
     private static readonly Unity.Profiling.ProfilerMarker TintColorMarker = new Unity.Profiling.ProfilerMarker("OVERBURST.MapSpawn.Detail.Tint.Color");
+    private static readonly Unity.Profiling.ProfilerMarker TintHasPropertyMarker = new Unity.Profiling.ProfilerMarker("OVERBURST.MapSpawn.Detail.Tint.HasProperty");
+    private static readonly Unity.Profiling.ProfilerMarker TintReadColorMarker = new Unity.Profiling.ProfilerMarker("OVERBURST.MapSpawn.Detail.Tint.ReadColor");
+    private static readonly Unity.Profiling.ProfilerMarker TintWriteColorMarker = new Unity.Profiling.ProfilerMarker("OVERBURST.MapSpawn.Detail.Tint.WriteColor");
     private static readonly Unity.Profiling.ProfilerMarker TintSetBlockMarker = new Unity.Profiling.ProfilerMarker("OVERBURST.MapSpawn.Detail.Tint.SetBlock");
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
     private static readonly int ColorId = Shader.PropertyToID("_Color");
@@ -438,14 +441,29 @@ public sealed class EnemyActor : MonoBehaviour
                 using (TintGetBlockMarker.Auto()) targetRenderer.GetPropertyBlock(propertyBlock, materialIndex);
                 using (TintColorMarker.Auto())
                 {
-                    if (material.HasProperty(BaseColorId))
-                        propertyBlock.SetColor(BaseColorId, material.GetColor(BaseColorId) * tint);
-                    else if (material.HasProperty(ColorId))
-                        propertyBlock.SetColor(ColorId, material.GetColor(ColorId) * tint);
+                    bool hasBaseColor;
+                    using (TintHasPropertyMarker.Auto()) hasBaseColor = material.HasProperty(BaseColorId);
+                    if (hasBaseColor)
+                    {
+                        Color baseColor;
+                        using (TintReadColorMarker.Auto()) baseColor = material.GetColor(BaseColorId);
+                        using (TintWriteColorMarker.Auto()) propertyBlock.SetColor(BaseColorId, baseColor * tint);
+                    }
                     else
                     {
-                        propertyBlock.Clear();
-                        continue;
+                        bool hasColor;
+                        using (TintHasPropertyMarker.Auto()) hasColor = material.HasProperty(ColorId);
+                        if (hasColor)
+                        {
+                            Color sourceColor;
+                            using (TintReadColorMarker.Auto()) sourceColor = material.GetColor(ColorId);
+                            using (TintWriteColorMarker.Auto()) propertyBlock.SetColor(ColorId, sourceColor * tint);
+                        }
+                        else
+                        {
+                            propertyBlock.Clear();
+                            continue;
+                        }
                     }
                 }
                 using (TintSetBlockMarker.Auto()) targetRenderer.SetPropertyBlock(propertyBlock, materialIndex);

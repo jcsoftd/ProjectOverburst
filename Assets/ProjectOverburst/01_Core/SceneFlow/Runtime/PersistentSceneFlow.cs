@@ -42,6 +42,83 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
     };
     private readonly Object[] commonPresentation = new Object[CommonPresentationPaths.Length];
     private readonly ResourceRequest[] commonRequests = new ResourceRequest[CommonPresentationPaths.Length];
+    private static readonly Unity.Profiling.ProfilerMarker FirstHitMethodMarker = new Unity.Profiling.ProfilerMarker("Overburst.FirstHit.PrepareMethod");
+    [field: System.NonSerialized]
+    public bool FirstHitMethodsReady { get; private set; }
+    [field: System.NonSerialized]
+    public int FirstHitPreparedMethods { get; private set; }
+    [field: System.NonSerialized]
+    public int FirstHitPreparationFailures { get; private set; }
+    [field: System.NonSerialized]
+    public double FirstHitMaximumMethodMilliseconds { get; private set; }
+
+    // Loading only: obtain Mono code addresses without invoking damage, observers, or presentation.
+    private IEnumerator PrepareFirstHitMethods(double deadline, System.Func<bool> cancelled)
+    {
+        if (FirstHitMethodsReady || cancelled?.Invoke() == true || Time.realtimeSinceStartupAsDouble >= deadline) yield break;
+        FirstHitPreparedMethods = 0; FirstHitPreparationFailures = 0; FirstHitMaximumMethodMilliseconds = 0;
+#if ENABLE_MONO
+        var targets = new[] { typeof(CombatHealth), typeof(OverburstElementCombat), typeof(OverburstElementEnergy),
+            typeof(ElementalStatusController), typeof(DamageNumberSpawner), typeof(DamageNumberPopup), typeof(DamageNumberStyles),
+            typeof(DamageNumberFx), typeof(EnemyHitResponseCoordinator), typeof(EnemyTargetHpHud), typeof(EnemyTargetHpReporter),
+            typeof(EnemySoundEmitter), typeof(EnemyAnimationBridge), typeof(HitFlashFeedback), typeof(CombatVfx),
+            typeof(OverburstElementState), typeof(OverburstElementRules), typeof(OverburstElementTuning),
+            typeof(ElementalStatusRules), typeof(ElementalStatusApplication), typeof(ElementalStatusOwnerSnapshot),
+            typeof(ElementalStatusSnapshot), typeof(ElementalStatusScheduler), typeof(MeleeElementStatusAuraController),
+            typeof(FloatingFeedbackTextStyle), typeof(DamageNumberFxSprites), typeof(MapMonsterField),
+            typeof(System.Collections.Generic.HashSet<(int, int)>), typeof(System.Collections.Generic.Queue<(int, int)>),
+            typeof(System.Collections.Generic.HashSet<(int, int, int)>), typeof(System.Collections.Generic.Queue<(int, int, int)>),
+            typeof(System.ValueTuple<int, int>), typeof(System.ValueTuple<int, int, int>) };
+        const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic
+            | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.DeclaredOnly;
+        int operations = 0;
+        long slice = System.Diagnostics.Stopwatch.GetTimestamp();
+        foreach (var source in targets)
+        {
+            var types = new System.Collections.Generic.List<System.Type> { source };
+            types.AddRange(source.GetNestedTypes(flags));
+            foreach (var type in types)
+            {
+                if (type.ContainsGenericParameters) continue;
+                var methods = new System.Collections.Generic.List<System.Reflection.MethodBase>(type.GetMethods(flags));
+                methods.AddRange(type.GetConstructors(flags));
+                foreach (var method in methods)
+                {
+                    if (cancelled?.Invoke() == true || Time.realtimeSinceStartupAsDouble >= deadline) yield break;
+                    if (method.IsAbstract || method.ContainsGenericParameters || method.GetMethodBody() == null) continue;
+                    if ((System.Diagnostics.Stopwatch.GetTimestamp() - slice) * 1000d / System.Diagnostics.Stopwatch.Frequency >= 2d)
+                    { yield return null; operations = 0; slice = System.Diagnostics.Stopwatch.GetTimestamp(); }
+                    if (cancelled?.Invoke() == true || Time.realtimeSinceStartupAsDouble >= deadline) yield break;
+                    long began = System.Diagnostics.Stopwatch.GetTimestamp();
+                    try
+                    {
+                        using (FirstHitMethodMarker.Auto())
+                        {
+                            // RuntimeHelpers.PrepareMethod is a no-op in Unity's Mono; this compiles without a call.
+                            if (method.MethodHandle.GetFunctionPointer() == System.IntPtr.Zero) FirstHitPreparationFailures++;
+                            else FirstHitPreparedMethods++;
+                        }
+                    }
+                    catch (System.Exception error)
+                    {
+                        FirstHitPreparationFailures++;
+                        Debug.LogWarning("[첫 타격 준비] " + type.Name + "." + method.Name + ": " + error.Message, this);
+                    }
+                    long now = System.Diagnostics.Stopwatch.GetTimestamp();
+                    FirstHitMaximumMethodMilliseconds = System.Math.Max(FirstHitMaximumMethodMilliseconds,
+                        (now - began) * 1000d / System.Diagnostics.Stopwatch.Frequency);
+                    if (++operations >= 8 || (now - slice) * 1000d / System.Diagnostics.Stopwatch.Frequency >= 2d)
+                    { yield return null; operations = 0; slice = System.Diagnostics.Stopwatch.GetTimestamp(); }
+                }
+            }
+        }
+#endif
+        if (cancelled?.Invoke() == true || Time.realtimeSinceStartupAsDouble >= deadline) yield break;
+        // Pure style curves otherwise initialize inside the first floating damage number.
+        System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(DamageNumberStyles).TypeHandle);
+        FirstHitMethodsReady = FirstHitPreparationFailures == 0;
+    }
+
 
     // Count only time spent in presentation preparation, not account/world/scene loading.
     private IEnumerator PrepareCommonPresentation(System.Func<bool> cancelled = null, MapRunRoster roster = null, RunWorldGate gate = null)
@@ -83,11 +160,13 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
             var dash = FindPlayer()?.GetComponent<PlayerDashVfx>();
             if (dash && Time.realtimeSinceStartupAsDouble < deadline && cancelled?.Invoke() != true)
                 yield return dash.PrepareForGameplay(deadline, cancelled);
-            if (roster != null && Time.realtimeSinceStartupAsDouble < deadline && cancelled?.Invoke() != true)
+            if (Time.realtimeSinceStartupAsDouble < deadline && cancelled?.Invoke() != true)
             {
+                yield return PrepareFirstHitMethods(deadline, cancelled);
                 yield return BloodHitVfxService.PrepareGroundMaterials(roster, deadline, cancelled);
-                yield return MeleeElementStatusAuraVisibilityScheduler.PrepareForMap(roster, deadline, cancelled);
             }
+            if (roster != null && Time.realtimeSinceStartupAsDouble < deadline && cancelled?.Invoke() != true)
+                yield return MeleeElementStatusAuraVisibilityScheduler.PrepareForMap(roster, deadline, cancelled);
             var loot = gate ? MapLootReserve.Attach(gate) : null;
             while (loot && Time.realtimeSinceStartupAsDouble < deadline && cancelled?.Invoke() != true && loot.PrepareOne())
                 yield return null;

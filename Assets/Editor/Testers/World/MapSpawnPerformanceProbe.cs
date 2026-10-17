@@ -11,11 +11,12 @@ using UnityEngine;
 // Controlled real-actor deaths and replenishment; not a Player FPS or direct-input benchmark.
 public static class MapSpawnPerformanceProbe
 {
-    [Serializable] sealed class RepeatOptions { public bool warmLoot; public bool verifyPreparedLoot; public int targetFrameRate; public double seconds = 75; public string traceGroup; public bool platformTour; public int startArea = -1; public bool memoryProfiler; public bool allocationCallstacks; public double stopHitchMs; public double stopPrepareMs; public double minimumHitchSeconds = 10; public int stopHitchArea = -1; }
+    [Serializable] sealed class RepeatOptions { public bool warmLoot; public bool verifyPreparedLoot; public int targetFrameRate; public double seconds = 75; public string traceGroup; public bool platformTour; public int startArea = -1; public bool memoryProfiler; public int profilerHistoryFrames = 600; public bool allocationCallstacks; public double stopHitchMs; public double stopMainThreadMs; public double stopPrepareMs; public double minimumHitchSeconds = 10; public int stopHitchArea = -1; }
     static CombatPerformanceRecorder recorder;
     static MapSpawnBudget budget;
     static long tick;
     static readonly string[] Metrics = {
+        "Overburst.Health.Core", "Overburst.Health.Scaling", "Overburst.Health.Element", "Overburst.Health.Reaction", "Overburst.Health.Sound", "Overburst.Health.ResolvedObservers", "Overburst.Health.DamagedObservers", "Overburst.Health.HealthObservers", "Overburst.Health.Number", "Overburst.Health.Death",
         "Overburst.ElementHit.Maintenance",
         "OVERBURST.MapSpawn.Detail.Tint.CreateBlock", "OVERBURST.MapSpawn.Detail.Tint.Materials", "OVERBURST.MapSpawn.Detail.Tint.GetBlock", "OVERBURST.MapSpawn.Detail.Tint.Color", "OVERBURST.MapSpawn.Detail.Tint.SetBlock",
         "OVERBURST.MapSpawn.Detail.Placement", "OVERBURST.MapSpawn.Detail.Stats", "OVERBURST.MapSpawn.Detail.Actor.References", "OVERBURST.MapSpawn.Detail.Actor.Identity", "OVERBURST.MapSpawn.Detail.Actor.Body", "OVERBURST.MapSpawn.Detail.Actor.Tint", "OVERBURST.MapSpawn.Detail.Actor.Animator", "OVERBURST.MapSpawn.Detail.Actor.Health", "OVERBURST.MapSpawn.Detail.Actor.Movement", "OVERBURST.MapSpawn.Detail.Actor.Abilities", "OVERBURST.MapSpawn.Detail.Actor.AI",
@@ -83,6 +84,30 @@ public static class MapSpawnPerformanceProbe
             ready=Enumerable.Range(0,3).Select(t=>gate.LootReserve.ReadyCount((EnemyThemeTier)t)).ToArray(), channels=gate.LootReserve.DiagnosticSnapshot(), vfx=MeleeElementPoolMaintenance.Snapshot(), vfxBudget=new{MeleeElementPoolMaintenance.LastOperations,MeleeElementPoolMaintenance.PeakOperations,MeleeElementPoolMaintenance.PeakMilliseconds},
             explicitWarmup=repeat?.warmLoot,seconds=repeat?.seconds ?? 75
         },Formatting.Indented));
+        var readinessFlow = PersistentSceneFlow.Instance;
+        var readinessDecals = UnityEngine.Object.FindFirstObjectByType<BloodGroundDecalService>();
+        File.WriteAllText(Path.Combine(output, "first-hit-readiness.json"), JsonConvert.SerializeObject(new {
+            methodsReady = readinessFlow && readinessFlow.FirstHitMethodsReady,
+            methods = readinessFlow ? readinessFlow.FirstHitPreparedMethods : 0,
+            failures = readinessFlow ? readinessFlow.FirstHitPreparationFailures : -1,
+            maximumMethodMs = readinessFlow ? readinessFlow.FirstHitMaximumMethodMilliseconds : 0,
+            registrationReady = readinessDecals && readinessDecals.RegistrationPrepared,
+            registrationCount = readinessDecals ? readinessDecals.PreparedRegistrationCount : 0,
+            registrationMs = readinessDecals ? readinessDecals.RegistrationMilliseconds : 0,
+            activeDecals = readinessDecals ? readinessDecals.ActiveCount : -1,
+            requestedDecals = readinessDecals ? readinessDecals.RequestedCount : -1,
+            shownDecals = readinessDecals ? readinessDecals.ShownCount : -1,
+            gpuProfiler = UnityEditorInternal.ProfilerDriver.profileGPU
+        }, Formatting.Indented));
+        if (playerCombat)
+        {
+            check(readinessFlow && readinessFlow.FirstHitMethodsReady && readinessFlow.FirstHitPreparationFailures == 0,
+                "First-hit loading preparation finishes without invoking damage or observers");
+            // This snapshot follows fixture movement and stock warmup: natural enemy hits may already have emitted decals.
+            // Zero side effects of the loading iterator are checked separately by its isolated lifecycle regression.
+            check(readinessDecals && readinessDecals.RegistrationPrepared && readinessDecals.PreparedRegistrationCount == 1,
+                "Hidden first URP registration completed once before measured combat");
+        }
         System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(MeleeDamageResolver).TypeHandle);
         System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(AttackPhaseExecutor).TypeHandle);
         System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(CombatPerformanceRecorder).TypeHandle);
@@ -95,7 +120,7 @@ public static class MapSpawnPerformanceProbe
         int previousHistory = 0;
         var prepareTrigger = default(Unity.Profiling.ProfilerRecorder);
         bool prepareTriggerOwned = false;
-        double detectedPrepareMs = 0, detectedWallMs = 0;
+        double detectedPrepareMs = 0, detectedWallMs = 0, detectedMainThreadMs = 0;
         int detectedFrame = -1;
         try
         {
@@ -113,7 +138,7 @@ public static class MapSpawnPerformanceProbe
                 previousHistory = (int)settingsType.GetProperty("frameCount", flags).GetValue(null);
                 setHistory = typeof(UnityEditorInternal.ProfilerDriver).GetMethod("SetMaxFrameHistoryLength", flags);
                 memoryOwned = true;
-                setHistory.Invoke(null, new object[] { 600 });
+                setHistory.Invoke(null, new object[] { Mathf.Clamp(repeat.profilerHistoryFrames, 600, 2000) });
                 UnityEditorInternal.ProfilerDriver.ClearAllFrames();
                 if (repeat.allocationCallstacks)
                 {
@@ -127,6 +152,7 @@ public static class MapSpawnPerformanceProbe
             {
                 var prefixes = repeat?.traceGroup == "Melee" ? new[] { "Main Thread", "PlayerLoop", "Mono.JIT", "GC", "Animators.Update", "Physics.Simulate", "ParticleSystem.ScheduleGeometryJobs", "GfxDeviceD3D12", "CreateCommittedResourceWithTag", "Overburst.Diagnostics.", "Overburst.Melee.", "Overburst.Cost.", "Overburst.ElementHit.", "Overburst.Feel.", "Overburst.BloodDecal.", "OVERBURST.CSP.", "Overburst.Loot." } : repeat?.traceGroup == "Spawn" ? new[] { "Main Thread", "PlayerLoop", "Mono.JIT", "GC", "Physics.Simulate", "Animators.Update", "ParticleSystem.ScheduleGeometryJobs", "GfxDeviceD3D12", "CreateCommittedResourceWithTag", "Overburst.Diagnostics.", "Overburst.Account.", "Overburst.LootReserve.", "Overburst.Loot.", "Overburst.Melee.Update", "Overburst.AI.", "Overburst.EnemyMotor.", "Overburst.CaveBoundary.", "OVERBURST.MapSpawn", "OVERBURST.CSP." } : null;
                 if (repeat?.traceGroup == "Spawn") prefixes = prefixes.Concat(new[] { "Overburst.ElementHit." }).ToArray();
+                if (prefixes != null) prefixes = prefixes.Concat(new[] { "Overburst.Health." }).ToArray();
                 var result = Overburst.DebugTools.CombatStutterCapture.Start(playerCombat ? (float)((repeat?.seconds ?? 75) + 30) : 60, 50, detailed, null, false, prefixes, deferExport: true);
                 if (!result.Success) throw new InvalidOperationException(Overburst.DebugTools.CombatStutterCapture.LastStatus);
                 captureOwned = true;
@@ -145,12 +171,13 @@ public static class MapSpawnPerformanceProbe
             if (playerCombat)
             {
                 var tourFields = repeat?.platformTour == true ? budget.Fields.Where(f => f.FiniteArea.Count > f.FiniteArea.InitialCount && f.FiniteArea.Ground.Points.Count > 0).ToArray() : null;
-                Func<bool> stopRequested = repeat != null && (repeat.stopHitchMs > 0 || repeat.stopPrepareMs > 0) ? () => {
+                Func<bool> stopRequested = repeat != null && (repeat.stopHitchMs > 0 || repeat.stopPrepareMs > 0 || repeat.stopMainThreadMs > 0) ? () => {
                     double prepareMs = prepareTriggerOwned && prepareTrigger.Count > 0 ? prepareTrigger.LastValue / 1000000d : 0;
                     bool detected = (repeat.stopHitchMs > 0 && recorder.LastWallMilliseconds >= repeat.stopHitchMs)
+                        || (repeat.stopMainThreadMs > 0 && recorder.LastMainThreadMilliseconds >= repeat.stopMainThreadMs)
                         || (repeat.stopPrepareMs > 0 && prepareMs >= repeat.stopPrepareMs);
                     if (!detected || (repeat.stopHitchArea >= 0 && budget.CurrentPlayerArea != repeat.stopHitchArea)) return false;
-                    detectedPrepareMs = prepareMs; detectedWallMs = recorder.LastWallMilliseconds; detectedFrame = Time.frameCount; return true;
+                    detectedPrepareMs = prepareMs; detectedWallMs = recorder.LastWallMilliseconds; detectedMainThreadMs = recorder.LastMainThreadMilliseconds; detectedFrame = Time.frameCount; return true;
                 } : (Func<bool>)null;
                 int previousRate = Application.targetFrameRate, previousVsync = QualitySettings.vSyncCount;
                 try
@@ -189,7 +216,7 @@ public static class MapSpawnPerformanceProbe
         finally
         {
             recorder.End(Path.Combine(output, "SpawnCapture")); recorder.Dispose(); recorder = null; budget = null;
-            if (prepareTriggerOwned) File.WriteAllText(Path.Combine(output, "capture-trigger.json"), JsonConvert.SerializeObject(new { detectedFrame, detectedPrepareMs, detectedWallMs, prepareThreshold = repeat.stopPrepareMs, wallThreshold = repeat.stopHitchMs, scope = "Latest completed profiler samples; trigger context is not an exact same-frame attribution" }, Formatting.Indented));
+            if (prepareTriggerOwned || repeat?.stopMainThreadMs > 0 || repeat?.stopHitchMs > 0) File.WriteAllText(Path.Combine(output, "capture-trigger.json"), JsonConvert.SerializeObject(new { detectedFrame, detectedPrepareMs, detectedWallMs, detectedMainThreadMs, prepareThreshold = repeat.stopPrepareMs, wallThreshold = repeat.stopHitchMs, mainThreadThreshold = repeat.stopMainThreadMs, scope = "Latest completed profiler samples; trigger context is not an exact same-frame attribution" }, Formatting.Indented));
             File.WriteAllText(Path.Combine(output, "spawn-capture.json"), JsonConvert.SerializeObject(new { area = ground.Index, kills,
                 released = field.ReinforcementReleased - initialReleased, field.ReservePrewarmedCount, total, missing, scope = playerCombat ? "Editor Play; virtual keyboard/mouse -> production attacks, natural hits/deaths; fixture death prevention; not human/Player FPS" : "Editor Play; real actors, injected deaths, live AI; no Player or direct input claim" }, Formatting.Indented));
         }

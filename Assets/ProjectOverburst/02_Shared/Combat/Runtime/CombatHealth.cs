@@ -1,10 +1,21 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Profiling;
 using UnityEngine;
 
 public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
 {
+    private static readonly ProfilerMarker CoreMarker = new ProfilerMarker("Overburst.Health.Core");
+    private static readonly ProfilerMarker ScalingMarker = new ProfilerMarker("Overburst.Health.Scaling");
+    private static readonly ProfilerMarker ElementMarker = new ProfilerMarker("Overburst.Health.Element");
+    private static readonly ProfilerMarker ReactionMarker = new ProfilerMarker("Overburst.Health.Reaction");
+    private static readonly ProfilerMarker SoundMarker = new ProfilerMarker("Overburst.Health.Sound");
+    private static readonly ProfilerMarker ResolvedObserversMarker = new ProfilerMarker("Overburst.Health.ResolvedObservers");
+    private static readonly ProfilerMarker DamagedObserversMarker = new ProfilerMarker("Overburst.Health.DamagedObservers");
+    private static readonly ProfilerMarker HealthObserversMarker = new ProfilerMarker("Overburst.Health.HealthObservers");
+    private static readonly ProfilerMarker NumberMarker = new ProfilerMarker("Overburst.Health.Number");
+    private static readonly ProfilerMarker DeathMarker = new ProfilerMarker("Overburst.Health.Death");
     [Header("Health")]
     [SerializeField] private float maxHp = 100f;
     [SerializeField] private float currentHp = 100f;
@@ -96,6 +107,7 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
 
     private void TakeDamageCore(DamageInfo info, float residualFraction, bool parryResidual)
     {
+        using var diagnostic = CoreMarker.Auto();
         info.isParryResidualDamage = parryResidual;
         if (IsDead || IsDamageImmune)
             return; // 사망 후 또는 조작 불가 연출 중 피해 차단
@@ -120,6 +132,7 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
         // Keep health/death/evade gates, but never apply that hit's stat scaling twice.
         if (!(info.isDamageOverTime && info.usesResolvedTickDamage && !info.triggersOnHitEffects))
         {
+            using var scalingDiagnostic = ScalingMarker.Auto();
             ApplyProgressionDamageModifiers(ref info, ref damage, out float incomingBeforeMitigation);
             ApplyAimDamageModifier(ref info, ref damage);
             ApplyEnemyDefenseModifier(ref info, ref damage);
@@ -143,36 +156,39 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
         bool suppressMotion = parryResidual || info.suppressRepeatedAttackReaction;
         try
         {
-            OverburstElementCombat.ReportConfirmedHit(this, info, actualDamage); // 적중 에너지·독립 상태 축적
-            PlayerKnockdownController knockdown = GetComponentInParent<PlayerKnockdownController>();
-            bool reactionOwnsMotion = knockdown != null
-                && (!suppressMotion || currentHp <= 0f)
-                && knockdown.ResolveDamageReaction(info, actualDamage, currentHp <= 0f);
-            if (!suppressMotion && !reactionOwnsMotion) ApplyKnockback(info); // 전용 반응과 일반 넉백을 중복 적용하지 않는다.
-
-            if (actualDamage > 0f
-                && CombatTeamUtility.IsPlayerActorHealth(this)
-                && CanOpenPlayerCombatMode())
+            using (ElementMarker.Auto()) OverburstElementCombat.ReportConfirmedHit(this, info, actualDamage); // 적중 에너지·독립 상태 축적
+            using (ReactionMarker.Auto())
             {
-                PlayerCombatModeController.EnterSharedCombatMode(PlayerCombatModeReason.Damaged);
-                if (!suppressMotion && !reactionOwnsMotion && currentHp > 0f) PlayCombatDamagedHitAnimation(info);
+                PlayerKnockdownController knockdown = GetComponentInParent<PlayerKnockdownController>();
+                bool reactionOwnsMotion = knockdown != null
+                    && (!suppressMotion || currentHp <= 0f)
+                    && knockdown.ResolveDamageReaction(info, actualDamage, currentHp <= 0f);
+                if (!suppressMotion && !reactionOwnsMotion) ApplyKnockback(info); // 전용 반응과 일반 넉백을 중복 적용하지 않는다.
+
+                if (actualDamage > 0f
+                    && CombatTeamUtility.IsPlayerActorHealth(this)
+                    && CanOpenPlayerCombatMode())
+                {
+                    PlayerCombatModeController.EnterSharedCombatMode(PlayerCombatModeReason.Damaged);
+                    if (!suppressMotion && !reactionOwnsMotion && currentHp > 0f) PlayCombatDamagedHitAnimation(info);
+                }
             }
 
-            EnemySoundEmitter.PlayConfirmedHit(info, actualDamage);
-            RaiseDamageResolved(info, actualDamage, currentHp <= 0f);
-            RaiseDamageEvent(OnDamaged, info); // 기존 UI·어그로·사망 표현 구독자 유지
-            RaiseHealthChanged(); // HP바 갱신
+            using (SoundMarker.Auto()) EnemySoundEmitter.PlayConfirmedHit(info, actualDamage);
+            using (ResolvedObserversMarker.Auto()) RaiseDamageResolved(info, actualDamage, currentHp <= 0f);
+            using (DamagedObserversMarker.Auto()) RaiseDamageEvent(OnDamaged, info); // 기존 UI·어그로·사망 표현 구독자 유지
+            using (HealthObserversMarker.Auto()) RaiseHealthChanged(); // HP바 갱신
 
             if (showDamageNumbers)
             {
-                try { SpawnDamageNumber(info, damage, actualDamage); }
+                try { using (NumberMarker.Auto()) SpawnDamageNumber(info, damage, actualDamage); }
                 catch (Exception error) { Debug.LogException(error, this); }
             }
         }
         finally
         {
             // HP was committed already. A reaction/presentation failure must not leave a live 0-HP actor.
-            if (currentHp <= 0f) Die(info);
+            if (currentHp <= 0f) using (DeathMarker.Auto()) Die(info);
         }
     }
 

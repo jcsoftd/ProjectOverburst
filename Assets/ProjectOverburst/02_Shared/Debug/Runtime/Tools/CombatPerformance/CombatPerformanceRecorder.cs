@@ -43,6 +43,7 @@ namespace Overburst.DebugTools.Performance
         double[] metricValues;
         long[] metricSampleCounts;
         int count, eventCount, timingCount, droppedEvents, tracked = -1, hitchStreak;
+        int mainThreadMetric = -1;
         long start, previous;
         DateTime startedUtc;
         ulong lastTiming;
@@ -55,6 +56,8 @@ namespace Overburst.DebugTools.Performance
         public string[] MissingRequestedMetrics { get; }
         public bool CapacityReached => count >= frames.Length;
         public double LastWallMilliseconds { get; private set; }
+        public double LastMainThreadMilliseconds => count > 0 && mainThreadMetric >= 0
+            ? metricValues[(count - 1) * recorders.Count + mainThreadMetric] : 0d;
         public double ElapsedSeconds => Milliseconds(start, Stopwatch.GetTimestamp()) / 1000d;
 
         public CombatPerformanceRecorder(CombatPerformanceProfile profile, CombatPerformanceSegment segment, BloodHitVfxService bloodService, int maximumMetrics = MaximumMetrics, bool captureSampleCounts = false, string[] metricNames = null)
@@ -74,6 +77,7 @@ namespace Overburst.DebugTools.Performance
                 var recorder = ProfilerRecorder.StartNew(d.Category, d.Name, 1,
                     ProfilerRecorderOptions.StartImmediately | ProfilerRecorderOptions.WrapAroundWhenCapacityReached | ProfilerRecorderOptions.SumAllSamplesInFrame);
                 if (!recorder.Valid) { recorder.Dispose(); continue; }
+                if (d.Name == "Main Thread") mainThreadMetric = recorders.Count;
                 recorders.Add(recorder);
                 descriptors.Add(new CombatPerformanceMetric { name = d.Name, category = d.Category.Name, unit = d.UnitType.ToString(), nanoseconds = d.UnitType == ProfilerMarkerDataUnit.TimeNanoseconds });
             }
