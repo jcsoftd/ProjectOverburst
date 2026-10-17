@@ -59,7 +59,7 @@ public partial class EnemyAnimationBridge
         foreach (string parameter in new[] { "BossMoveX", "BossMoveZ", "BossMotionRate", "TurnMagnitude", "AttackAnimSpeed" })
             if (!HasFloatParameter(parameter)) { MotionConfigurationError = "Missing Float parameter: " + parameter; return false; }
         bool hasOwnedFlag = false;
-        foreach (var parameter in animator.parameters) if (parameter.name == "OwnedMotionPlayback" && parameter.type == AnimatorControllerParameterType.Bool) hasOwnedFlag = true;
+        foreach (var parameter in GetCachedParameters()) if (parameter.name == "OwnedMotionPlayback" && parameter.type == AnimatorControllerParameterType.Bool) hasOwnedFlag = true;
         if (!hasOwnedFlag || motionActor == null || motionActor.Movement == null || motionActor.AbilityController == null
             || GetComponent<EnemyLocomotionAnimator>() == null || GetComponent<EnemyBossMaterialExecutor>() == null || GetComponent<EnemyBossCompositePatternExecutor>() == null)
         { MotionConfigurationError = "Required playback consumer or opt-in parameter missing."; return false; }
@@ -80,10 +80,10 @@ public partial class EnemyAnimationBridge
     }
 
     private void SetOwnedControllerFlag(bool value)
-    { if (animator != null) foreach (var p in animator.parameters) if (p.name == "OwnedMotionPlayback" && p.type == AnimatorControllerParameterType.Bool) { animator.SetBool(p.nameHash, value); break; } }
+    { if (animator != null) foreach (var p in GetCachedParameters()) if (p.name == "OwnedMotionPlayback" && p.type == AnimatorControllerParameterType.Bool) { animator.SetBool(p.nameHash, value); break; } }
 
     private bool HasFloatParameter(string name)
-    { foreach (var parameter in animator.parameters) if (parameter.name == name) return parameter.type == AnimatorControllerParameterType.Float; return false; }
+    { foreach (var parameter in GetCachedParameters()) if (parameter.name == name) return parameter.type == AnimatorControllerParameterType.Float; return false; }
     private static int MotionStateHash(string state) => Animator.StringToHash(state.StartsWith("Base Layer.", StringComparison.Ordinal) ? state : "Base Layer." + state);
     private static int Priority(EnemyMotionRole role)
     {

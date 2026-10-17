@@ -92,10 +92,20 @@ public sealed class CombatTarget : MonoBehaviour
 
     public bool HasCustomHurtVolume => useCustomHurtVolume;
 
+    private static float ResolvePlanarScale(Vector3 scale)
+    {
+        // Preserve the params overload's ordered comparisons, including its NaN behavior.
+        float planar = Mathf.Abs(scale.x);
+        float z = Mathf.Abs(scale.z);
+        if (z > planar) planar = z;
+        if (0.0001f > planar) planar = 0.0001f;
+        return planar;
+    }
+
     public CombatTargetVolume ResolveVolumeAtRootPosition(Vector3 rootWorldPosition)
     {
         Vector3 scale = transform.lossyScale;
-        float planarScale = Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z), 0.0001f);
+        float planarScale = ResolvePlanarScale(scale);
         float verticalScale = Mathf.Max(Mathf.Abs(scale.y), 0.0001f);
         return new CombatTargetVolume(
             rootWorldPosition + transform.TransformVector(localCenter),
@@ -117,7 +127,7 @@ public sealed class CombatTarget : MonoBehaviour
             return ResolveVolumeAtRootPosition(rootWorldPosition);
 
         Vector3 scale = transform.lossyScale;
-        float planarScale = Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z), 0.0001f);
+        float planarScale = ResolvePlanarScale(scale);
         float verticalScale = Mathf.Max(Mathf.Abs(scale.y), 0.0001f);
         float variantPlanar = Mathf.Max(Mathf.Abs(variantHurtScale.x), Mathf.Abs(variantHurtScale.z));
         return new CombatTargetVolume(
@@ -232,7 +242,7 @@ public sealed class CombatTarget : MonoBehaviour
             return;
 
         Vector3 scale = transform.lossyScale;
-        float planarScale = Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z), 0.0001f);
+        float planarScale = ResolvePlanarScale(scale);
         float verticalScale = Mathf.Max(Mathf.Abs(scale.y), 0.0001f);
         if (primaryCollider is CapsuleCollider capsule && capsule.direction == 1)
         {

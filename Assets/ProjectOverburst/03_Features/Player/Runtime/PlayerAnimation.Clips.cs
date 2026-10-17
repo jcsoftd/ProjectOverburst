@@ -5,6 +5,11 @@ using System.Collections.Generic;
 // PlayerAnimation partial: 애니메이터 파라미터 도우미와 클립 덮어쓰기·기본 클립 판별. 필드와 Unity 수명주기는 PlayerAnimation.cs에 있다.
 public partial class PlayerAnimation
 {
+    private Animator parameterAnimator;
+    private RuntimeAnimatorController parameterController;
+    private RuntimeAnimatorController parameterSource;
+    private AnimatorControllerParameter[] cachedParameters;
+
     private void ApplyClipOverride(Func<AnimationClip, bool> clipMatcher, AnimationClip desiredClip, ref AnimationClip activeClip)
     {
         if (weaponOverrideController == null || clipMatcher == null || desiredClip == null)
@@ -67,12 +72,36 @@ public partial class PlayerAnimation
         targetAnimator.SetBool(boolParameter, value);
     }
 
+    private AnimatorControllerParameter[] GetCachedParameters()
+    {
+        if (targetAnimator == null) return System.Array.Empty<AnimatorControllerParameter>();
+        RuntimeAnimatorController controller = targetAnimator.runtimeAnimatorController;
+        RuntimeAnimatorController source = controller;
+        while (source is AnimatorOverrideController overrides)
+        {
+            RuntimeAnimatorController next = overrides.runtimeAnimatorController;
+            if (next == source) break;
+            source = next;
+        }
+        // A clip override keeps its parameters; replacing the controller or its base invalidates them.
+        if (cachedParameters == null || cachedParameters.Length != targetAnimator.parameterCount
+            || parameterAnimator != targetAnimator
+            || parameterController != controller || parameterSource != source)
+        {
+            parameterAnimator = targetAnimator;
+            parameterController = controller;
+            parameterSource = source;
+            cachedParameters = targetAnimator.parameters;
+        }
+        return cachedParameters;
+    }
+
     private bool HasParameter(string parameterName, AnimatorControllerParameterType parameterType)
     {
         if (targetAnimator == null || string.IsNullOrEmpty(parameterName))
             return false;
 
-        AnimatorControllerParameter[] parameters = targetAnimator.parameters; // 파라미터 목록
+        AnimatorControllerParameter[] parameters = GetCachedParameters(); // 파라미터 목록
         for (int i = 0; i < parameters.Length; i++)
         {
             AnimatorControllerParameter parameter = parameters[i];

@@ -22,6 +22,10 @@ public partial class EnemyAnimationBridge : MonoBehaviour
     [SerializeField] private float hitStunDuration = 0.4f;
     [SerializeField] private float knockbackReactionDuration = 0.4f;
 
+    private Animator parameterAnimator;
+    private RuntimeAnimatorController parameterController;
+    private RuntimeAnimatorController parameterSource;
+    private AnimatorControllerParameter[] cachedParameters;
     private CombatHealth health;
     private EnemyHitResponseCoordinator hitResponseCoordinator;
     private int moveParameterHash;
@@ -479,7 +483,7 @@ public partial class EnemyAnimationBridge : MonoBehaviour
     // 무너짐 직전에 걸려 있던 공격·피격 트리거가 AnyState로 기절을 끊지 않게 비운다(사망은 남긴다).
     private void ResetActionTriggers()
     {
-        AnimatorControllerParameter[] parameters = animator.parameters;
+        AnimatorControllerParameter[] parameters = GetCachedParameters();
         for (int i = 0; i < parameters.Length; i++)
         {
             if (parameters[i].type == AnimatorControllerParameterType.Trigger && parameters[i].nameHash != deathTriggerHash)
@@ -863,6 +867,7 @@ public partial class EnemyAnimationBridge : MonoBehaviour
 
     private void CacheParameters()
     {
+        cachedParameters = null; // Rebind/pool activation can finish binding the same controller.
         moveParameterHash = Animator.StringToHash(moveParameter);
         attackTriggerHash = Animator.StringToHash(attackTrigger);
         hitTriggerHash = Animator.StringToHash(hitTrigger);
@@ -870,7 +875,7 @@ public partial class EnemyAnimationBridge : MonoBehaviour
         moveAnimSpeedHash = Animator.StringToHash(moveAnimSpeedParameter);
         attackAnimSpeedHash = Animator.StringToHash(attackAnimSpeedParameter);
 
-        AnimatorControllerParameter[] parameters = animator != null ? animator.parameters : null;
+        AnimatorControllerParameter[] parameters = animator != null ? GetCachedParameters() : null;
         hasMoveParameter = HasParameter(parameters, moveParameter, AnimatorControllerParameterType.Float);
         hasAttackTrigger = HasParameter(parameters, attackTrigger, AnimatorControllerParameterType.Trigger);
         hasHitTrigger = HasParameter(parameters, hitTrigger, AnimatorControllerParameterType.Trigger);
@@ -881,12 +886,36 @@ public partial class EnemyAnimationBridge : MonoBehaviour
             && HasParameter(parameters, "HitZ", AnimatorControllerParameterType.Float);
     }
 
+    private AnimatorControllerParameter[] GetCachedParameters()
+    {
+        if (animator == null) return System.Array.Empty<AnimatorControllerParameter>();
+        RuntimeAnimatorController controller = animator.runtimeAnimatorController;
+        RuntimeAnimatorController source = controller;
+        while (source is AnimatorOverrideController overrides)
+        {
+            RuntimeAnimatorController next = overrides.runtimeAnimatorController;
+            if (next == source) break;
+            source = next;
+        }
+        // A clip override keeps its parameters; replacing the controller or its base invalidates them.
+        if (cachedParameters == null || cachedParameters.Length != animator.parameterCount
+            || parameterAnimator != animator
+            || parameterController != controller || parameterSource != source)
+        {
+            parameterAnimator = animator;
+            parameterController = controller;
+            parameterSource = source;
+            cachedParameters = animator.parameters;
+        }
+        return cachedParameters;
+    }
+
     private bool HasParameter(string parameterName, AnimatorControllerParameterType parameterType)
     {
         if (animator == null || string.IsNullOrEmpty(parameterName))
             return false;
 
-        return HasParameter(animator.parameters, parameterName, parameterType);
+        return HasParameter(GetCachedParameters(), parameterName, parameterType);
     }
 
     private static bool HasParameter(
