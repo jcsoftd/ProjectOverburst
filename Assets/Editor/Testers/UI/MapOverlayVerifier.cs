@@ -87,7 +87,7 @@ public static class MapOverlayVerifier
                 probes.Add(new { step, frame = Time.frameCount, time = Time.unscaledTime, seen = map.RevealedCount,
                     builds = controller.TerrainBuildCount, sameMap = ReferenceEquals(map, controller.Exploration),
                     sameTexture = controller.Overlay.outline.texture == map.OutlineTexture,
-                    cell = map.CellAt(position), lastRevealCell = (int)typeof(MinimapExplorationMap).GetField("lastCell", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(map),
+                    cell = map.CellAt(position), lastRevealCell = typeof(MinimapExplorationMap).GetField("lastCell", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.GetValue(map),
                     position = new[] { position.x, position.y, position.z } });
                 File.WriteAllText(Path.Combine(output, "overlay-observation.json"), JsonConvert.SerializeObject(probes, Formatting.Indented));
             }

@@ -149,7 +149,7 @@ public sealed class PlayerProgression : MonoBehaviour
         int nextLevel = Level;
         Overburst.Persistence.AccountGameplaySession.Notify(() =>
         {
-            RefreshStats();
+            if (nextLevel != previousLevel) RefreshStats();
             if (nextLevel > previousLevel)
             {
                 // A level reward refills the final maximum, including run HP modifiers.

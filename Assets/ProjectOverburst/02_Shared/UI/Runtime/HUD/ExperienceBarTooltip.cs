@@ -54,12 +54,13 @@ public sealed class ExperienceBarTooltip : MonoBehaviour, IPointerEnterHandler, 
         if (track == null) return;
         var progression = PlayerProgression.Current;
         float fill = progression != null ? progression.ExperienceProgress : 0f;
-        Transform parent = tooltip.parent;
-        tooltip.SetParent(track, true);
+        Rect trackRect = track.rect;
         float half = tooltip.rect.width * .5f;
-        float x = Mathf.Clamp(track.rect.width * fill, half, Mathf.Max(half, track.rect.width - half));
-        tooltip.anchoredPosition = new Vector2(x, OffsetY);
-        tooltip.SetParent(parent, true);
+        float x = Mathf.Clamp(trackRect.width * fill, half, Mathf.Max(half, trackRect.width - half));
+        Vector3 point = track.InverseTransformPoint(tooltip.position);
+        point.x = trackRect.xMin + x;
+        point.y = trackRect.yMax + OffsetY;
+        tooltip.position = track.TransformPoint(point);
         tooltip.SetAsLastSibling();
     }
 }

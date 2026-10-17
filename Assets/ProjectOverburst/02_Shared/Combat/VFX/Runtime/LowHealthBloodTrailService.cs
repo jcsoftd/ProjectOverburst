@@ -35,8 +35,11 @@ public sealed class LowHealthBloodTrailService : MonoBehaviour
         float now = Time.time;
         if (now < nextTick) return;
         nextTick = now + .1f;
-        for (int i = 0; i < wounds.Length; i++)
-            if (wounds[i].active && !ShouldBleed(wounds[i].health)) { wounds[i] = default; TrackedCount--; }
+        if (TrackedCount > 0)
+        {
+            for (int i = 0; i < wounds.Length; i++)
+                if (wounds[i].active && !ShouldBleed(wounds[i].health)) { wounds[i] = default; TrackedCount--; }
+        }
         if (now >= nextRoster)
         {
             nextRoster = now + .5f;
@@ -46,23 +49,26 @@ public sealed class LowHealthBloodTrailService : MonoBehaviour
             foreach (var target in roster) Track(target.DamageReceiver, now);
             if (PlayerInputFacade.Current != null) Track(PlayerInputFacade.Current.GetComponent<CombatHealth>(), now);
         }
-        int sent = 0;
-        for (int n = 0; n < wounds.Length && sent < PerTickLimit; n++)
+        if (TrackedCount > 0)
         {
-            int i = (cursor + n) % wounds.Length;
-            var wound = wounds[i];
-            if (wound.health == null || now < wound.next) continue;
-            Vector3 position = wound.health.transform.position;
-            Vector3 delta = Vector3.ProjectOnPlane(position - wound.last, Vector3.up);
-            // Teleports restart the trail instead of drawing a streak between distant maps.
-            if (delta.sqrMagnitude > 25f) { wounds[i].last = position; continue; }
-            if (delta.sqrMagnitude < DropSpacing * DropSpacing) continue;
-            if (BloodHitVfxService.RequestBleed(wound.health, ProfileFor(wound.health), position, delta.normalized))
+            int sent = 0;
+            for (int n = 0; n < wounds.Length && sent < PerTickLimit; n++)
             {
-                if (CombatTeamUtility.IsPlayerActorHealth(wound.health)) PlayerDropCount++; else MonsterDropCount++;
-                sent++;
+                int i = (cursor + n) % wounds.Length;
+                var wound = wounds[i];
+                if (wound.health == null || now < wound.next) continue;
+                Vector3 position = wound.health.transform.position;
+                Vector3 delta = Vector3.ProjectOnPlane(position - wound.last, Vector3.up);
+                // Teleports restart the trail instead of drawing a streak between distant maps.
+                if (delta.sqrMagnitude > 25f) { wounds[i].last = position; continue; }
+                if (delta.sqrMagnitude < DropSpacing * DropSpacing) continue;
+                if (BloodHitVfxService.RequestBleed(wound.health, ProfileFor(wound.health), position, delta.normalized))
+                {
+                    if (CombatTeamUtility.IsPlayerActorHealth(wound.health)) PlayerDropCount++; else MonsterDropCount++;
+                    sent++;
+                }
+                wounds[i].last = position; wounds[i].next = now + DropInterval;
             }
-            wounds[i].last = position; wounds[i].next = now + DropInterval;
         }
         cursor = (cursor + PerTickLimit) % wounds.Length;
     }

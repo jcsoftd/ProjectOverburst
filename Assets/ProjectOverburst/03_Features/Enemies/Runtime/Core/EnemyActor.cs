@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
@@ -42,6 +43,7 @@ public sealed class EnemyActor : MonoBehaviour
     [SerializeField] private EnemyBossOutcomeController bossOutcomeController;
 
     private MaterialPropertyBlock propertyBlock;
+    private readonly List<Material> materialBuffer = new List<Material>();
     private Renderer[] visualRenderers;
     private Collider[] authoredColliders;
     private bool[] authoredColliderEnabled;
@@ -419,11 +421,10 @@ public sealed class EnemyActor : MonoBehaviour
             if (targetRenderer == null)
                 continue;
 
-            Material[] materials;
-            using (TintMaterialsMarker.Auto()) materials = targetRenderer.sharedMaterials;
-            for (int materialIndex = 0; materialIndex < materials.Length; materialIndex++)
+            using (TintMaterialsMarker.Auto()) targetRenderer.GetSharedMaterials(materialBuffer);
+            for (int materialIndex = 0; materialIndex < materialBuffer.Count; materialIndex++)
             {
-                Material material = materials[materialIndex];
+                Material material = materialBuffer[materialIndex];
                 if (material == null)
                     continue;
 
@@ -444,6 +445,7 @@ public sealed class EnemyActor : MonoBehaviour
                 propertyBlock.Clear();
             }
         }
+        materialBuffer.Clear();
     }
 
     private void ClearTint()
@@ -457,10 +459,11 @@ public sealed class EnemyActor : MonoBehaviour
             if (targetRenderer == null)
                 continue;
 
-            Material[] materials = targetRenderer.sharedMaterials;
-            for (int materialIndex = 0; materialIndex < materials.Length; materialIndex++)
+            targetRenderer.GetSharedMaterials(materialBuffer);
+            for (int materialIndex = 0; materialIndex < materialBuffer.Count; materialIndex++)
                 targetRenderer.SetPropertyBlock(null, materialIndex);
             targetRenderer.SetPropertyBlock(null);
         }
+        materialBuffer.Clear();
     }
 }

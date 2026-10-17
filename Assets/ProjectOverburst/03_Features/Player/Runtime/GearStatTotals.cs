@@ -16,6 +16,17 @@ public struct GearStatTotals
         return totals;
     }
 
+    // Reuse the already validated gem values captured for this same attack.
+    internal static GearStatTotals From(PlayerEquipment equipment, GearStatTotals gem)
+    {
+        var totals = new GearStatTotals();
+        if (equipment == null) return totals;
+        for (int i = 0; i < 6; i++)
+            totals.Add(equipment.GetGearSlotItem(i));
+        totals.Add(gem);
+        return totals;
+    }
+
     // 장착하지 않은 장비 목록의 합계. 밸런스 분석 도구가 장착 합계와 같은 행 계산으로 쓴다.
     public static GearStatTotals FromItems(IEnumerable<ItemData> items)
     {
@@ -30,12 +41,7 @@ public struct GearStatTotals
     {
         if (item?.baseData is ElementGemItemData)
         {
-            var gem = ElementGemQuality.Calculate(item).Common;
-            MaxHealth += gem.MaxHealth; Armor += gem.Armor; Attack += gem.Attack;
-            CriticalChance += gem.CriticalChance; AttackSpeed += gem.AttackSpeed;
-            NormalDamage += gem.NormalDamage; WeakDamage += gem.WeakDamage;
-            HeavyDamage += gem.HeavyDamage; EliteBossDamage += gem.EliteBossDamage;
-            ElementalDamage += gem.ElementalDamage; CriticalDamage += gem.CriticalDamage;
+            Add(ElementGemQuality.Calculate(item).Common);
             return;
         }
         if (item == null || !(item.baseData is GearItemData) || item.gearRolls == null) return;
@@ -44,6 +50,15 @@ public struct GearStatTotals
             float value = GearQuality.Value(item, row);
             AddValue(row.stat, value);
         }
+    }
+
+    private void Add(GearStatTotals gem)
+    {
+        MaxHealth += gem.MaxHealth; Armor += gem.Armor; Attack += gem.Attack;
+        CriticalChance += gem.CriticalChance; AttackSpeed += gem.AttackSpeed;
+        NormalDamage += gem.NormalDamage; WeakDamage += gem.WeakDamage;
+        HeavyDamage += gem.HeavyDamage; EliteBossDamage += gem.EliteBossDamage;
+        ElementalDamage += gem.ElementalDamage; CriticalDamage += gem.CriticalDamage;
     }
 
     public void AddValue(GearStat stat, float value)

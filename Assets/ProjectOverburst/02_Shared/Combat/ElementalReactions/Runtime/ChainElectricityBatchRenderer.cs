@@ -66,6 +66,7 @@ public sealed class ChainElectricityBatchRenderer : MonoBehaviour
         private float[] nextShape = new float[256];
         private ComputeBuffer linkBuffer, profileBuffer, segmentBuffer;
         private bool dirty;
+        private Bounds bounds;
         private Material material;
         private readonly float lifetime, refresh, mainAmplitude, branchAmplitude;
         private readonly Vector3 prefabScale;
@@ -181,15 +182,19 @@ public sealed class ChainElectricityBatchRenderer : MonoBehaviour
         {
             if(Count==0)return;
             // Small contiguous upload; unlike six LineRenderers per link, no per-strip native calls.
-            if(dirty) { linkBuffer.SetData(links,0,0,Count); dirty=false; }
-            Vector3 min=links[0].CenterTime,max=min;
-            for(int i=0;i<Count;i++)
+            if(dirty)
             {
-                Vector3 center=links[i].CenterTime, forward=links[i].Forward;
-                min=Vector3.Min(min,Vector3.Min(center-forward*.5f,center+forward*.5f));
-                max=Vector3.Max(max,Vector3.Max(center-forward*.5f,center+forward*.5f));
+                linkBuffer.SetData(links,0,0,Count);
+                Vector3 min=links[0].CenterTime,max=min;
+                for(int i=0;i<Count;i++)
+                {
+                    Vector3 center=links[i].CenterTime, forward=links[i].Forward;
+                    min=Vector3.Min(min,Vector3.Min(center-forward*.5f,center+forward*.5f));
+                    max=Vector3.Max(max,Vector3.Max(center-forward*.5f,center+forward*.5f));
+                }
+                bounds=new Bounds((min+max)*.5f,max-min+Vector3.one*4f);
+                dirty=false;
             }
-            Bounds bounds=new Bounds((min+max)*.5f,max-min+Vector3.one*4f);
             properties.SetFloat("_Now",now);
             Graphics.DrawProcedural(material,bounds,MeshTopology.Triangles,segmentCount*6,Count,null,properties,ShadowCastingMode.Off,false,renderLayer);
         }

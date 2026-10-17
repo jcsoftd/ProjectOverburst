@@ -129,11 +129,14 @@ public static class ElementGemQuality
         if (data == null || !ElementGemItemData.IsAllowed(data.element, grade) || grade != data.fixedGrade
             || level < 1 || level > 100 || count != 1 || state == null || !Enum.IsDefined(typeof(ElementGemArchetype), state.archetype)
             || state.rolls == null || state.rolls.Count != RowCount) return false;
-        var ids = new HashSet<string>();
         int positive = 0, negative = 0, special = 0;
-        foreach (var row in state.rolls)
+        for (int i = 0; i < state.rolls.Count; i++)
         {
-            if (row == null || !ids.Add(row.optionId) || row.stars == null || row.stars.Count > MaxStarsPerRow) return false;
+            var row = state.rolls[i];
+            if (row == null || row.stars == null || row.stars.Count > MaxStarsPerRow) return false;
+            // Four rows need at most six comparisons, without a temporary set.
+            for (int previous = 0; previous < i; previous++)
+                if (state.rolls[previous].optionId == row.optionId) return false;
             var option = Option(row.optionId);
             if (!Allowed(option, data) || (option.Special && ++special > 1)) return false;
             foreach (var color in row.stars)

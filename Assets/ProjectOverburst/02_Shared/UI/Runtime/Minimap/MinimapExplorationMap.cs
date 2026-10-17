@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEngine;
 
 // One run owns the topology, visit bits and two views of those same visit bits.
@@ -10,7 +11,8 @@ public sealed class MinimapExplorationMap : IDisposable
     readonly Color32[] terrainPixels, outlinePixels;
     readonly Color32[] basePixels;
     int[] queue = Array.Empty<int>();
-    int lastCell = -1, lastSteps = -1;
+    readonly BitArray completedOrigins;
+    int completedSteps = -1;
     public int Width { get; }
     public int Height { get; }
     public float CellSize { get; }
@@ -34,6 +36,7 @@ public sealed class MinimapExplorationMap : IDisposable
         cells = kinds; connections = links;
         basePixels = sourcePixels;
         visited = new bool[cells.Length]; queued = new bool[cells.Length];
+        completedOrigins = new BitArray(cells.Length);
         terrainPixels = new Color32[cells.Length]; outlinePixels = new Color32[cells.Length];
     }
 
@@ -56,8 +59,12 @@ public sealed class MinimapExplorationMap : IDisposable
         int start = CellAt(position);
         if (!IsGround(start)) return false;
         int steps = Mathf.Clamp(Mathf.FloorToInt(radius / CellSize), 0, 256);
-        if (lastCell == start && lastSteps == steps) return false;
-        lastCell = start; lastSteps = steps;
+        if (completedSteps != steps)
+        {
+            completedOrigins.SetAll(false);
+            completedSteps = steps;
+        }
+        if (completedOrigins[start]) return false;
         int capacity = Mathf.Min(cells.Length, 1 + 2 * steps * (steps + 1));
         if (queue.Length < capacity) queue = new int[capacity];
         int head = 0, tail = 1, layerEnd = 1, depth = 0, before = RevealedCount;
@@ -82,6 +89,8 @@ public sealed class MinimapExplorationMap : IDisposable
             if (head == layerEnd) { layerEnd = tail; depth++; }
         }
         for (int i = 0; i < tail; i++) queued[queue[i]] = false;
+        // Topology is immutable; only fully searched origins may skip a revisit.
+        completedOrigins[start] = true;
         if (before == RevealedCount) return false;
         Revision++;
         if (TerrainTexture) Upload();

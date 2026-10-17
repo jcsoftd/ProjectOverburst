@@ -13,6 +13,7 @@ public sealed class BuffTooltipUI : MonoBehaviour
     private BuffIconSlotUI owner;
     private Canvas canvas;
     private string shownName, shownEffect, shownDuration;
+    private float shownRemaining = float.NaN;
     public bool IsShown => owner != null && panel != null && panel.gameObject.activeSelf;
     public BuffIconSlotUI Owner => owner;
 
@@ -58,7 +59,21 @@ public sealed class BuffTooltipUI : MonoBehaviour
             panel.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 62.2f + bodyHeight);
             effectText.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, bodyHeight);
         }
-        string duration = owner.TooltipPermanent ? owner.TooltipLifetime : BuffTooltipText.Number(Mathf.Ceil(Mathf.Max(0f, owner.TooltipRemaining) * 10f) * .1f) + "초";
+        string duration = shownDuration;
+        if (owner.TooltipPermanent)
+        {
+            shownRemaining = float.NaN;
+            duration = owner.TooltipLifetime;
+        }
+        else
+        {
+            float remaining = Mathf.Ceil(Mathf.Max(0f, owner.TooltipRemaining) * 10f) * .1f;
+            if (shownRemaining != remaining || remaining == 0f)
+            {
+                shownRemaining = remaining;
+                duration = BuffTooltipText.Number(remaining) + "초";
+            }
+        }
         if (shownDuration != duration) { shownDuration = duration; remainingText.text = duration; }
         Position();
     }

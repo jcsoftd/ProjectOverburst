@@ -356,7 +356,7 @@ public sealed class ElementalReactionVfxRuntimeService : MonoBehaviour
         for (int i = 0; i < slots.Length; i++)
         {
             SlotRuntime slot = slots[i];
-            if (slot == null)
+            if (slot == null || activeCategoryCounts[(int)slot.SlotType] == 0)
                 continue;
 
             PooledInstance[] instances = slot.Instances;

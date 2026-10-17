@@ -22,7 +22,7 @@ public readonly struct ElementGemAttackSnapshot
         WeaponContextRevision = equipment != null ? equipment.WeaponContextRevision : 0;
         Element = equipment != null ? equipment.ActiveElement : WeaponElement.None;
         Modifiers = equipment != null ? equipment.GemModifiers : default;
-        Stats = GearStatTotals.From(equipment);
+        Stats = GearStatTotals.From(equipment, Modifiers.Common);
         RunAttack = MapRunBuffs.Bonus(MapBuffKind.Attack);
         RunElemental = MapRunBuffs.Bonus(MapBuffKind.ElementalDamage);
         RadianceStacks = equipment != null ? equipment.GetComponent<OverburstElementEnergy>()?.RadianceStacks ?? 0 : 0;
