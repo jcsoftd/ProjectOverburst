@@ -10,16 +10,20 @@ public sealed class MinimapEnemySource : IDisposable
     private static readonly ProfilerMarker CandidateMarker = new ProfilerMarker("Minimap.Candidates");
     private readonly List<EnemyRank> ranks = new List<EnemyRank>(256);
     private readonly List<Entry> entries = new List<Entry>(256);
+    private readonly Dictionary<EnemyRank, Entry> cached = new Dictionary<EnemyRank, Entry>(256);
+    private readonly List<EnemyRank> removed = new List<EnemyRank>(256);
     private readonly Candidate[] selected = new Candidate[Capacity];
     private readonly Action<CombatHealth, DamageInfo> deadHandler;
     private readonly Action<CombatHealth> resetHandler;
     private uint revision;
+    private uint membershipRevision;
     private int sceneHandle = int.MinValue;
     private bool dirty = true;
+    private bool snapshotDirty = true;
 
     public int Count { get; private set; }
     public int RegisteredCount => entries.Count;
-    public bool IsDirty => dirty || revision != EnemyRank.ActiveRevision;
+    public bool IsDirty => dirty || revision != EnemyRank.ActiveRevision || membershipRevision != EnemyRank.MembershipRevision;
 
     public MinimapEnemySource()
     {
@@ -46,7 +50,7 @@ public sealed class MinimapEnemySource : IDisposable
     {
         using (CandidateMarker.Auto())
         {
-            if (sceneHandle != targetScene || revision != EnemyRank.ActiveRevision || dirty && entries.Count == 0)
+            if (sceneHandle != targetScene || membershipRevision != EnemyRank.MembershipRevision || snapshotDirty)
                 RebuildSnapshot(targetScene);
             Count = 0;
             float radiusSquared = radius * radius;
@@ -83,6 +87,7 @@ public sealed class MinimapEnemySource : IDisposable
                 SiftDown(0, end);
             }
             Array.Clear(selected, Count, selected.Length - Count);
+            revision = EnemyRank.ActiveRevision;
             dirty = false;
         }
     }
@@ -101,7 +106,7 @@ public sealed class MinimapEnemySource : IDisposable
         return false;
     }
 
-    public void Invalidate() => dirty = true;
+    public void Invalidate() { dirty = true; snapshotDirty = true; }
 
     private bool IsValid(Entry entry) => entry.Rank != null && entry.Rank.isActiveAndEnabled
         && entry.Transform != null && entry.Transform.gameObject.scene.handle == sceneHandle
@@ -109,7 +114,11 @@ public sealed class MinimapEnemySource : IDisposable
 
     private void RebuildSnapshot(int targetScene)
     {
-        Unsubscribe();
+        if (sceneHandle != targetScene)
+        {
+            Unsubscribe();
+            cached.Clear();
+        }
         entries.Clear();
         sceneHandle = targetScene;
         EnemyRank.CollectActive(ranks);
@@ -117,15 +126,30 @@ public sealed class MinimapEnemySource : IDisposable
         {
             EnemyRank rank = ranks[i];
             if (rank.gameObject.scene.handle != sceneHandle) continue;
-            CombatHealth health = rank.GetComponent<CombatHealth>();
-            if (health == null) health = rank.GetComponentInParent<CombatHealth>();
-            if (health == null) continue;
-            entries.Add(new Entry { Rank = rank, Transform = rank.transform, Health = health, Id = rank.GetInstanceID() });
-            health.OnDead += deadHandler;
-            health.OnReset += resetHandler;
+            if (!cached.TryGetValue(rank, out Entry entry) || entry.Health == null)
+            {
+                CombatHealth health = rank.GetComponent<CombatHealth>();
+                if (health == null) health = rank.GetComponentInParent<CombatHealth>();
+                if (health == null) continue;
+                entry = new Entry { Rank = rank, Transform = rank.transform, Health = health, Id = rank.GetInstanceID() };
+                cached[rank] = entry;
+                health.OnDead += deadHandler;
+                health.OnReset += resetHandler;
+            }
+            entries.Add(entry);
         }
+        removed.Clear();
+        foreach (var pair in cached)
+            if (pair.Key == null || !pair.Key.isActiveAndEnabled || pair.Key.gameObject.scene.handle != sceneHandle)
+            {
+                Unsubscribe(pair.Value.Health);
+                removed.Add(pair.Key);
+            }
+        foreach (var rank in removed) cached.Remove(rank);
+        removed.Clear();
         ranks.Clear();
-        revision = EnemyRank.ActiveRevision;
+        membershipRevision = EnemyRank.MembershipRevision;
+        snapshotDirty = false;
     }
 
     private static bool Worse(Candidate a, Candidate b)
@@ -153,23 +177,27 @@ public sealed class MinimapEnemySource : IDisposable
 
     private void Unsubscribe()
     {
-        for (int i = 0; i < entries.Count; i++)
-        {
-            CombatHealth health = entries[i].Health;
-            if (health == null) continue;
-            health.OnDead -= deadHandler;
-            health.OnReset -= resetHandler;
-        }
+        foreach (var entry in cached.Values) Unsubscribe(entry.Health);
+    }
+
+    private void Unsubscribe(CombatHealth health)
+    {
+        if (health == null) return;
+        health.OnDead -= deadHandler;
+        health.OnReset -= resetHandler;
     }
 
     public void Dispose()
     {
         Unsubscribe();
         entries.Clear();
+        cached.Clear();
+        removed.Clear();
         ranks.Clear();
         Array.Clear(selected, 0, selected.Length);
         Count = 0;
         sceneHandle = int.MinValue;
         dirty = true;
+        snapshotDirty = true;
     }
 }

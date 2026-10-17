@@ -78,6 +78,7 @@ public sealed class EnemyActor : MonoBehaviour
     }
     public EnemyIdentity Identity => identity;
     public Transform VisualRoot => visualRoot;
+    public uint VisualRevision { get; private set; }
     public Transform CollisionRoot => collisionRoot;
     public Transform Anchors => anchors;
     public CombatHealth Health => health;
@@ -365,9 +366,7 @@ public sealed class EnemyActor : MonoBehaviour
 
         ResolveOptionalComponents();
 
-        visualRenderers = visualRoot != null
-            ? visualRoot.GetComponentsInChildren<Renderer>(true)
-            : new Renderer[0];
+        RefreshVisualRenderers();
         authoredColliders = collisionRoot != null
             ? collisionRoot.GetComponentsInChildren<Collider>(true)
             : new Collider[0];
@@ -376,6 +375,14 @@ public sealed class EnemyActor : MonoBehaviour
             authoredColliderEnabled[i] = authoredColliders[i] != null && authoredColliders[i].enabled;
 
         authoredStateCaptured = true;
+    }
+
+    public void RefreshVisualRenderers()
+    {
+        visualRenderers = visualRoot != null
+            ? visualRoot.GetComponentsInChildren<Renderer>(true)
+            : System.Array.Empty<Renderer>();
+        unchecked { VisualRevision++; }
     }
 
     private void ResolveOptionalComponents()

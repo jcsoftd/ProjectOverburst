@@ -15,6 +15,8 @@ public sealed class OverburstWorldHighlightController : MonoBehaviour
     private readonly Dictionary<Component, Renderer[]> interactionRenderers = new Dictionary<Component, Renderer[]>();
     private readonly List<EnemyRank> enemyRanks = new List<EnemyRank>(128);
     private readonly List<EnemyHoverEntry> enemyCandidates = new List<EnemyHoverEntry>(128);
+    private readonly Dictionary<EnemyRank, EnemyHoverEntry> enemyEntries = new Dictionary<EnemyRank, EnemyHoverEntry>(128);
+    private readonly List<EnemyRank> removedEnemies = new List<EnemyRank>(128);
     private uint enemyRevision;
     private bool enemyCacheDirty = true;
     private CombatHealth hoveredEnemy;
@@ -38,6 +40,8 @@ public sealed class OverburstWorldHighlightController : MonoBehaviour
         public EnemyOverheadHpBar Overhead;
         public Renderer[] Renderers;
         public uint Lease;
+        public Transform VisualRoot;
+        public uint VisualRevision;
     }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -195,24 +199,40 @@ public sealed class OverburstWorldHighlightController : MonoBehaviour
     private EnemyHoverEntry ResolveEnemyHover(Ray ray, float nearest)
     {
         if (WorldSessionState.Phase == WorldPhase.Tutorial) return null;
-        if (enemyCacheDirty || enemyRevision != EnemyRank.ActiveRevision)
+        if (enemyCacheDirty || enemyRevision != EnemyRank.MembershipRevision)
         {
             enemyCandidates.Clear();
             EnemyRank.CollectActive(enemyRanks);
             foreach (EnemyRank rank in enemyRanks)
             {
-                var health = rank.GetComponent<CombatHealth>();
-                var enemyActor = rank.GetComponent<EnemyActor>();
-                if (health == null) continue;
-                enemyCandidates.Add(new EnemyHoverEntry
+                if (!enemyEntries.TryGetValue(rank, out var entry) || entry.Health == null)
                 {
-                    Rank = rank, Health = health, Actor = enemyActor,
-                    Overhead = rank.GetComponent<EnemyOverheadHpBar>(),
-                    Lease = enemyActor != null ? enemyActor.LeaseVersion : 0,
-                    Renderers = OverburstWorldHighlight.CollectModelRenderers(enemyActor != null && enemyActor.VisualRoot != null ? enemyActor.VisualRoot : rank.transform)
-                });
+                    var health = rank.GetComponent<CombatHealth>();
+                    if (health == null) continue;
+                    entry = new EnemyHoverEntry { Rank = rank, Health = health, Actor = rank.GetComponent<EnemyActor>(),
+                        Overhead = rank.GetComponent<EnemyOverheadHpBar>() };
+                    enemyEntries[rank] = entry;
+                }
+                // The final registry may be unchanged after a disable/re-enable between queries.
+                var currentActor = entry.Actor;
+                if (currentActor == null) currentActor = rank.GetComponent<EnemyActor>();
+                if (currentActor != entry.Actor || (currentActor != null && currentActor.LeaseVersion != entry.Lease))
+                {
+                    entry.Actor = currentActor;
+                    entry.Health = rank.GetComponent<CombatHealth>();
+                    entry.Overhead = rank.GetComponent<EnemyOverheadHpBar>();
+                }
+                entry.Lease = currentActor != null ? currentActor.LeaseVersion : 0;
+                RefreshEnemyRenderers(entry);
+                enemyCandidates.Add(entry);
             }
-            enemyRevision = EnemyRank.ActiveRevision;
+            removedEnemies.Clear();
+            foreach (var pair in enemyEntries)
+                if (pair.Key == null || !pair.Key.isActiveAndEnabled) removedEnemies.Add(pair.Key);
+            foreach (var rank in removedEnemies) enemyEntries.Remove(rank);
+            removedEnemies.Clear();
+            enemyRanks.Clear();
+            enemyRevision = EnemyRank.MembershipRevision;
             enemyCacheDirty = false;
         }
         var content = WorldSessionState.ContentScene;
@@ -223,6 +243,8 @@ public sealed class OverburstWorldHighlightController : MonoBehaviour
             if (entry.Rank == null || !entry.Rank.isActiveAndEnabled || entry.Rank.gameObject.scene != content
                 || entry.Health == null || !entry.Health.isActiveAndEnabled || entry.Health.IsDead
                 || (entry.Actor != null && entry.Actor.LeaseVersion != entry.Lease)) continue;
+            if (entry.Actor != null && entry.VisualRevision != entry.Actor.VisualRevision)
+                RefreshEnemyRenderers(entry);
             foreach (Renderer renderer in entry.Renderers)
             {
                 if (renderer == null || !renderer.enabled || !renderer.gameObject.activeInHierarchy
@@ -236,6 +258,16 @@ public sealed class OverburstWorldHighlightController : MonoBehaviour
             }
         }
         return chosen;
+    }
+
+    private static void RefreshEnemyRenderers(EnemyHoverEntry entry)
+    {
+        Transform root = entry.Actor != null && entry.Actor.VisualRoot != null ? entry.Actor.VisualRoot : entry.Rank.transform;
+        uint revision = entry.Actor != null ? entry.Actor.VisualRevision : 0;
+        if (entry.Renderers != null && entry.VisualRoot == root && entry.VisualRevision == revision) return;
+        entry.Renderers = OverburstWorldHighlight.CollectModelRenderers(root, true);
+        entry.VisualRoot = root;
+        entry.VisualRevision = revision;
     }
 
     private static Vector3 ResolveModelHead(EnemyHoverEntry enemy)
@@ -273,6 +305,8 @@ public sealed class OverburstWorldHighlightController : MonoBehaviour
     {
         interactionRenderers.Clear();
         enemyCandidates.Clear();
+        enemyEntries.Clear();
+        removedEnemies.Clear();
         enemyRanks.Clear();
         enemyCacheDirty = true;
         ClearEnemyHover();
@@ -290,6 +324,8 @@ public sealed class OverburstWorldHighlightController : MonoBehaviour
         interactionRenderers.Clear();
         ClearEnemyHover();
         enemyCandidates.Clear();
+        enemyEntries.Clear();
+        removedEnemies.Clear();
         enemyRanks.Clear();
         enemyCacheDirty = true;
     }

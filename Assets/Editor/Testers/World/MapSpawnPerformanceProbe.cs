@@ -11,11 +11,12 @@ using UnityEngine;
 // Controlled real-actor deaths and replenishment; not a Player FPS or direct-input benchmark.
 public static class MapSpawnPerformanceProbe
 {
-    [Serializable] sealed class RepeatOptions { public bool warmLoot; public double seconds = 75; public string traceGroup; public bool platformTour; public int startArea = -1; public bool memoryProfiler; public bool allocationCallstacks; public double stopHitchMs; public double stopPrepareMs; public double minimumHitchSeconds = 10; public int stopHitchArea = -1; }
+    [Serializable] sealed class RepeatOptions { public bool warmLoot; public bool verifyPreparedLoot; public int targetFrameRate; public double seconds = 75; public string traceGroup; public bool platformTour; public int startArea = -1; public bool memoryProfiler; public bool allocationCallstacks; public double stopHitchMs; public double stopPrepareMs; public double minimumHitchSeconds = 10; public int stopHitchArea = -1; }
     static CombatPerformanceRecorder recorder;
     static MapSpawnBudget budget;
     static long tick;
     static readonly string[] Metrics = {
+        "Overburst.ElementHit.Maintenance",
         "OVERBURST.MapSpawn.Detail.Tint.CreateBlock", "OVERBURST.MapSpawn.Detail.Tint.Materials", "OVERBURST.MapSpawn.Detail.Tint.GetBlock", "OVERBURST.MapSpawn.Detail.Tint.Color", "OVERBURST.MapSpawn.Detail.Tint.SetBlock",
         "OVERBURST.MapSpawn.Detail.Placement", "OVERBURST.MapSpawn.Detail.Stats", "OVERBURST.MapSpawn.Detail.Actor.References", "OVERBURST.MapSpawn.Detail.Actor.Identity", "OVERBURST.MapSpawn.Detail.Actor.Body", "OVERBURST.MapSpawn.Detail.Actor.Tint", "OVERBURST.MapSpawn.Detail.Actor.Animator", "OVERBURST.MapSpawn.Detail.Actor.Health", "OVERBURST.MapSpawn.Detail.Actor.Movement", "OVERBURST.MapSpawn.Detail.Actor.Abilities", "OVERBURST.MapSpawn.Detail.Actor.AI",
         "Overburst.CaveBoundary.Sample", "Overburst.CaveBoundary.HeightQuery", "Overburst.CaveBoundary.CacheBuild", "Overburst.CaveBoundary.RimHeightFallback", "Overburst.CaveBoundary.AnchorSweep", "Overburst.CaveBoundary.TargetSweep", "Overburst.CaveBoundary.SlideX", "Overburst.CaveBoundary.SlideZ",
@@ -24,7 +25,7 @@ public static class MapSpawnPerformanceProbe
         "Overburst.Melee.Advance.Movement", "Overburst.Melee.Advance.VisualHeight", "Overburst.Melee.Advance.Trail", "Overburst.Melee.Advance.HitPhases", "Overburst.Melee.Advance.HeavyArea", "Overburst.Melee.Advance.DischargeTick", "Overburst.Melee.Advance.ComboContinue", "Overburst.Melee.Advance.Finish", "Overburst.Melee.Advance.SwingAudio", "Overburst.Account.ES3.ReadOpen", "Overburst.Account.ES3.WriteOpen", "Overburst.Account.ES3.PreparePath", "Overburst.Account.ES3.PrepareDirectory", "Overburst.Diagnostics.Stutter.ReadMetrics", "Overburst.Diagnostics.Stutter.Context", "Overburst.Diagnostics.Stutter.Audio", "Overburst.Diagnostics.Stutter.Timing", "Overburst.Diagnostics.Stutter.Pool", "Overburst.Diagnostics.Stutter.Hit", "Overburst.Diagnostics.Stutter.Sample", "Overburst.Diagnostics.Stutter.Observe", "Overburst.Diagnostics.Performance.Tick", "Overburst.Diagnostics.Performance.ReadMetrics", "Overburst.Diagnostics.Performance.Timing",
         "Overburst.Account.DiskSave", "Overburst.Account.DiskSave.Lock", "Overburst.Account.DiskSave.ScanSlots", "Overburst.Account.DiskSave.SerializeSnapshot", "Overburst.Account.DiskSave.Checksum", "Overburst.Account.DiskSave.CreateWriter", "Overburst.Account.DiskSave.WriteEnvelope", "Overburst.Account.DiskSave.CommitFile", "Overburst.Account.DiskSave.Readback", "Overburst.Account.DiskSave.ReadBytes", "Overburst.Account.DiskSave.CompareBytes", "Overburst.Account.DiskSave.ParseEnvelope", "Gfx Used Memory", "Gfx Reserved Memory", "GfxDeviceD3D12.ReserveScratchMemory", "CreateCommittedResourceWithTag", "ParticleSystem.ScheduleGeometryJobs", "GfxDeviceD3D12.WaitForLastPresentation.WaitForGPU",
         "Overburst.Melee.Update", "Overburst.Melee.Resolve", "Overburst.Melee.BufferedEvade", "Overburst.Melee.InputDispatch", "Overburst.Melee.Advance",
-        "Overburst.LootReserve.Prepare", "Overburst.LootReserve.Roll", "Overburst.LootReserve.Create", "Overburst.LootReserve.Vfx", "Overburst.LootReserve.Warm", "Overburst.LootReserve.Collect", "Overburst.LootReserve.TextureHandle", "Overburst.LootReserve.MeshHandle", "Overburst.LootReserve.CollectMeshes", "Overburst.LootReserve.CollectMaterials",
+        "Overburst.LootReserve.Prepare", "Overburst.LootReserve.Roll", "Overburst.LootReserve.Create", "Overburst.LootReserve.Vfx", "Overburst.LootReserve.Warm",
         "Resources.Load", "Shader.CreateGPUProgram", "Overburst.Loot.Resolve", "Overburst.Loot.Origin", "Overburst.Loot.Items",
         "Main Thread", "PlayerLoop", "GC Allocated In Frame", "GC.Collect", "Animators.Update", "Physics.Simulate",
         "OVERBURST.MapSpawnFinite.PlayerArea", "OVERBURST.MapSpawnFinite.Prewarm", "OVERBURST.MapSpawnFinite.Total", "OVERBURST.MapSpawnFinite.Reconcile", "OVERBURST.MapSpawnFinite.Refresh",
@@ -62,7 +63,12 @@ public static class MapSpawnPerformanceProbe
         }
         for (int i = 0; i < 30; i++) yield return null;
         var preparedEnergy = player.GetComponent<OverburstElementEnergy>();
+        File.WriteAllText(Path.Combine(output, "tint-loading-preparation.json"), JsonConvert.SerializeObject(new {
+            budget.LoadingMaterialReads, budget.LoadingMaterialOverruns, budget.LoadingMaterialMaximumMilliseconds,
+            scope = "Readonly map-prefab material queries during loading; no actor leases, RNG or spawn quotas consumed"
+        }, Formatting.Indented));
         if (playerCombat) CombatHitchFixVerifier.CheckFirstHitPreparation(player.Equipment, output, check);
+        if (playerCombat && repeat?.verifyPreparedLoot == true) yield return PreparedLootPlayVerifier.Verify(gate, output, check);
         if (playerCombat && repeat == null) yield return PreparedLootPlayVerifier.Verify(gate, output, check);
         else if (playerCombat && repeat.warmLoot)
         {
@@ -74,7 +80,7 @@ public static class MapSpawnPerformanceProbe
         if (playerCombat && gate.LootReserve) File.WriteAllText(Path.Combine(output,"prepared-loot-before-combat.json"),JsonConvert.SerializeObject(new {
             gate.LootReserve.Hits,gate.LootReserve.Misses,gate.LootReserve.Prepared,gate.LootReserve.BudgetOverruns,
             gate.LootReserve.MaximumStepMilliseconds,gate.LootReserve.Error,
-            ready=Enumerable.Range(0,3).Select(t=>gate.LootReserve.ReadyCount((EnemyThemeTier)t)).ToArray(),
+            ready=Enumerable.Range(0,3).Select(t=>gate.LootReserve.ReadyCount((EnemyThemeTier)t)).ToArray(), channels=gate.LootReserve.DiagnosticSnapshot(), vfx=MeleeElementPoolMaintenance.Snapshot(), vfxBudget=new{MeleeElementPoolMaintenance.LastOperations,MeleeElementPoolMaintenance.PeakOperations,MeleeElementPoolMaintenance.PeakMilliseconds},
             explicitWarmup=repeat?.warmLoot,seconds=repeat?.seconds ?? 75
         },Formatting.Indented));
         System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(MeleeDamageResolver).TypeHandle);
@@ -120,7 +126,8 @@ public static class MapSpawnPerformanceProbe
             }
             {
                 var prefixes = repeat?.traceGroup == "Melee" ? new[] { "Main Thread", "PlayerLoop", "Mono.JIT", "GC", "Animators.Update", "Physics.Simulate", "ParticleSystem.ScheduleGeometryJobs", "GfxDeviceD3D12", "CreateCommittedResourceWithTag", "Overburst.Diagnostics.", "Overburst.Melee.", "Overburst.Cost.", "Overburst.ElementHit.", "Overburst.Feel.", "Overburst.BloodDecal.", "OVERBURST.CSP.", "Overburst.Loot." } : repeat?.traceGroup == "Spawn" ? new[] { "Main Thread", "PlayerLoop", "Mono.JIT", "GC", "Physics.Simulate", "Animators.Update", "ParticleSystem.ScheduleGeometryJobs", "GfxDeviceD3D12", "CreateCommittedResourceWithTag", "Overburst.Diagnostics.", "Overburst.Account.", "Overburst.LootReserve.", "Overburst.Loot.", "Overburst.Melee.Update", "Overburst.AI.", "Overburst.EnemyMotor.", "Overburst.CaveBoundary.", "OVERBURST.MapSpawn", "OVERBURST.CSP." } : null;
-                var result = Overburst.DebugTools.CombatStutterCapture.Start(playerCombat ? (float)((repeat?.seconds ?? 75) + 30) : 60, 50, detailed, null, false, prefixes);
+                if (repeat?.traceGroup == "Spawn") prefixes = prefixes.Concat(new[] { "Overburst.ElementHit." }).ToArray();
+                var result = Overburst.DebugTools.CombatStutterCapture.Start(playerCombat ? (float)((repeat?.seconds ?? 75) + 30) : 60, 50, detailed, null, false, prefixes, deferExport: true);
                 if (!result.Success) throw new InvalidOperationException(Overburst.DebugTools.CombatStutterCapture.LastStatus);
                 captureOwned = true;
                 File.WriteAllText(Path.Combine(output, "detailed-path.txt"), Overburst.DebugTools.CombatStutterCapture.LastFolder);
@@ -145,7 +152,20 @@ public static class MapSpawnPerformanceProbe
                     if (!detected || (repeat.stopHitchArea >= 0 && budget.CurrentPlayerArea != repeat.stopHitchArea)) return false;
                     detectedPrepareMs = prepareMs; detectedWallMs = recorder.LastWallMilliseconds; detectedFrame = Time.frameCount; return true;
                 } : (Func<bool>)null;
-                yield return CombatHitchInputProbe.Fight(field, output, check, repeat?.seconds ?? 75, tourFields, stopRequested, Math.Max(0, repeat?.minimumHitchSeconds ?? 10));
+                int previousRate = Application.targetFrameRate, previousVsync = QualitySettings.vSyncCount;
+                try
+                {
+                    if (repeat?.targetFrameRate > 0) { QualitySettings.vSyncCount = 0; Application.targetFrameRate = repeat.targetFrameRate; }
+                    yield return CombatHitchInputProbe.Fight(field, output, check, repeat?.seconds ?? 75, tourFields, stopRequested, Math.Max(0, repeat?.minimumHitchSeconds ?? 10));
+                }
+                finally
+                {
+                    if (repeat?.targetFrameRate > 0)
+                    {
+                        Application.targetFrameRate = previousRate; QualitySettings.vSyncCount = previousVsync;
+                        File.WriteAllText(Path.Combine(output, "combat-framerate-fixture.json"), JsonConvert.SerializeObject(new { requested = repeat.targetFrameRate, previousRate, previousVsync, restoredRate = Application.targetFrameRate, restoredVsync = QualitySettings.vSyncCount }));
+                    }
+                }
                 check(preparedEnergy && player.GetComponent<OverburstElementEnergy>() == preparedEnergy,
                     "Combat reuses the zero-energy component prepared while loading");
                 kills = gate.Roster.Kills - killedBefore; segment.kills = kills;
@@ -175,11 +195,22 @@ public static class MapSpawnPerformanceProbe
         }
         check(!missing.Any(n => n.StartsWith("Overburst.Melee.", StringComparison.Ordinal) || n.StartsWith("Overburst.LootReserve.", StringComparison.Ordinal) || n.StartsWith("Overburst.Account.", StringComparison.Ordinal) || n.StartsWith("OVERBURST.MapSpawnFinite.PlayerArea.", StringComparison.Ordinal)), "Required split diagnostic markers were bound before measured combat");
         CombatHitchFixVerifier.CheckRuntime(gate, output, check);
-        if (playerCombat) CombatHitchFixVerifier.CalibrateAudioPools(output, check);
+        if (playerCombat)
+        {
+            // The ten-minute combat capture may already be frozen at its duration limit.
+            // Keep synthetic saturation and its export checks in a separate capture.
+            if (captureOwned) { Overburst.DebugTools.CombatStutterCapture.Stop(); captureOwned = false; }
+            var calibration = Overburst.DebugTools.CombatStutterCapture.Start(10, 50, false,
+                null, false, new[] { "Overburst.Diagnostics.Stutter.Pool" });
+            if (!calibration.Success) throw new InvalidOperationException(Overburst.DebugTools.CombatStutterCapture.LastStatus);
+            captureOwned = true;
+            File.WriteAllText(Path.Combine(output, "pool-calibration-path.txt"), Overburst.DebugTools.CombatStutterCapture.LastFolder);
+            CombatHitchFixVerifier.CalibrateAudioPools(output, check);
+        }
         if (gate.LootReserve) File.WriteAllText(Path.Combine(output,"prepared-loot-after-combat.json"),JsonConvert.SerializeObject(new {
             gate.LootReserve.Hits,gate.LootReserve.Misses,gate.LootReserve.Prepared,gate.LootReserve.BudgetOverruns,
             gate.LootReserve.MaximumStepMilliseconds,gate.LootReserve.Error,
-            ready=Enumerable.Range(0,3).Select(t=>gate.LootReserve.ReadyCount((EnemyThemeTier)t)).ToArray()
+            ready=Enumerable.Range(0,3).Select(t=>gate.LootReserve.ReadyCount((EnemyThemeTier)t)).ToArray(), channels=gate.LootReserve.DiagnosticSnapshot(), vfx=MeleeElementPoolMaintenance.Snapshot(), vfxBudget=new{MeleeElementPoolMaintenance.LastOperations,MeleeElementPoolMaintenance.PeakOperations,MeleeElementPoolMaintenance.PeakMilliseconds}
         },Formatting.Indented));
         check((playerCombat ? kills > 0 : kills == 20) && field.ReinforcementReleased > initialReleased && gate.Roster.Total == total,
             "Spawn capture: real deaths replenish finite reserves without changing total");

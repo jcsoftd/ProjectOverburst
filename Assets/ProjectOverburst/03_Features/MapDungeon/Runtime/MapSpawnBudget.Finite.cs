@@ -16,6 +16,7 @@ public sealed partial class MapSpawnBudget
     static readonly ProfilerMarker PlayerAreaMarker = new ProfilerMarker("OVERBURST.MapSpawnFinite.PlayerArea");
     static readonly ProfilerMarker PlayerNavMarker = new ProfilerMarker("OVERBURST.MapSpawnFinite.PlayerArea.NavMesh");
     static readonly ProfilerMarker PlayerContainsMarker = new ProfilerMarker("OVERBURST.MapSpawnFinite.PlayerArea.Containment");
+    static readonly ProfilerMarker LoadingMaterialsMarker = new ProfilerMarker("OVERBURST.MapSpawnFinite.LoadingMaterials");
     RunWorldGate runGate;
     int playerAreaFrame = -1, playerAreaIndex = -1;
     Vector3 playerAreaPosition, playerAreaSafe;
@@ -39,6 +40,9 @@ public sealed partial class MapSpawnBudget
     public int SpawnRetries { get; internal set; }
     public int StreamReturns { get; internal set; }
     public int InitialPreparedCount { get; private set; }
+    public int LoadingMaterialReads { get; private set; }
+    public int LoadingMaterialOverruns { get; private set; }
+    public double LoadingMaterialMaximumMilliseconds { get; private set; }
 
     public static IEnumerator PrepareRun(RunWorldGate gate, Transform player)
     {
@@ -75,6 +79,28 @@ public sealed partial class MapSpawnBudget
         float until = Time.realtimeSinceStartup + 60;
         try
         {
+            // Warm first material-list bindings on this map's prefab assets, without leasing actors or changing materials.
+            var visualPrefabs = new HashSet<EnemyActor>();
+            var sharedMaterials = new List<Material>();
+            foreach (var member in gate.Roster.Members)
+            {
+                var prefab = member.Definition ? member.Definition.ActorPrefab : null;
+                if (!prefab || !visualPrefabs.Add(prefab)) continue;
+                var visual = prefab.VisualRoot ? prefab.VisualRoot : prefab.transform;
+                foreach (var renderer in visual.GetComponentsInChildren<Renderer>(true))
+                {
+                    if (Time.realtimeSinceStartup >= until)
+                        throw new InvalidOperationException("몬스터 재질 준비 시간이 초과됐습니다. 지도는 소모하지 않습니다.");
+                    long began = System.Diagnostics.Stopwatch.GetTimestamp();
+                    using (LoadingMaterialsMarker.Auto()) renderer.GetSharedMaterials(sharedMaterials);
+                    double ms = (System.Diagnostics.Stopwatch.GetTimestamp() - began) * 1000d / System.Diagnostics.Stopwatch.Frequency;
+                    budget.LoadingMaterialReads++;
+                    budget.LoadingMaterialMaximumMilliseconds = Math.Max(budget.LoadingMaterialMaximumMilliseconds, ms);
+                    if (ms > FrameBudgetMilliseconds) budget.LoadingMaterialOverruns++;
+                    sharedMaterials.Clear();
+                    yield return null;
+                }
+            }
             while (true)
             {
                 budget.TickFinite(gate.EntryPoint.position, true);
@@ -161,7 +187,7 @@ public sealed partial class MapSpawnBudget
                 }
             }
             if (!preparing && SpawnedThisFrame == 0 && ReservePreparationFrame != Time.frameCount
-                && Time.unscaledDeltaTime < .025f && HasFiniteTime(started)) runGate.LootReserve?.PrepareOne();
+                && HasFiniteTime(started)) runGate.LootReserve?.PrepareOne();
         }
     }
     // Completion and reinforcement share the current floor, separate from the last safe completion area.

@@ -169,7 +169,7 @@ public static class MapRunEntryPlayVerifier
         catch (Exception error) { Finish(error); return; }
         EditorApplication.update -= Begin; SessionState.EraseString(Key + "pending");
         checks.Clear(); observations.Clear(); work.Clear(); Application.runInBackground = true;
-        deadline = EditorApplication.timeSinceStartup + (SessionState.GetString(Key + "desertPerformanceProfile", "") != "" ? 7200 : SessionState.GetBool(Key + "minimapCycles", false) || SessionState.GetInt(Key + "completionCases", 0) + SessionState.GetInt(Key + "bossCases", 0) + SessionState.GetInt(Key + "escapeCases", 0) > 0 ? 1200 : 600); lastFrame = -1; work.Push(Verify()); EditorApplication.update += Tick;
+        deadline = EditorApplication.timeSinceStartup + (SessionState.GetString(Key + "desertPerformanceProfile", "") != "" ? 7200 : SessionState.GetBool(Key + "playerCombat", false) ? 1800 : SessionState.GetBool(Key + "minimapCycles", false) || SessionState.GetInt(Key + "completionCases", 0) + SessionState.GetInt(Key + "bossCases", 0) + SessionState.GetInt(Key + "escapeCases", 0) > 0 ? 1200 : 600); lastFrame = -1; work.Push(Verify()); EditorApplication.update += Tick;
     }
     static IEnumerator Frames(int n) { while (n-- > 0) yield return null; }
     static IEnumerator Wait(Func<bool> ready, string label, float seconds = 100)

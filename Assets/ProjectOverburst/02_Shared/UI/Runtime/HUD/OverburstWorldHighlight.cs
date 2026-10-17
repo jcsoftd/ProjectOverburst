@@ -93,17 +93,17 @@ public sealed class OverburstWorldHighlight : IDisposable
         effect.UpdateMaterialProperties();
     }
 
-    public static Renderer[] CollectModelRenderers(Transform root)
+    public static Renderer[] CollectModelRenderers(Transform root, bool includeInactive = false)
     {
         if (root == null) return Array.Empty<Renderer>();
         var result = new List<Renderer>();
         foreach (Renderer renderer in root.GetComponentsInChildren<Renderer>(true))
         {
-            if (!renderer.enabled || !renderer.gameObject.activeInHierarchy) continue;
+            if (!includeInactive && (!renderer.enabled || !renderer.gameObject.activeInHierarchy)) continue;
             // Temporary glow surfaces overlap the body and must not become occlusion silhouettes.
             if (renderer.gameObject.name == PlayerLevelUpBodyGlow.RendererName) continue;
             if (renderer is not MeshRenderer && renderer is not SkinnedMeshRenderer) continue;
-            if (renderer.GetComponentInParent<ParticleSystem>() != null
+            if (renderer.GetComponentInParent<ParticleSystem>(includeInactive) != null
                 || renderer.gameObject.name == WorldItemPickupHoverResolver.OutlineObjectName
                 || renderer.gameObject.name.StartsWith("__OverburstHighlight_", StringComparison.Ordinal)) continue;
             result.Add(renderer);

@@ -148,7 +148,8 @@ public static class MeleeElementPoolMaintenance
                     total += stats.Active + stats.Idle;
                 }
                 int noWork = 0;
-                while (LastOperations < MaxOperationsPerFrame && noWork < States.Count)
+                while (LastOperations < MaxOperationsPerFrame && noWork < States.Count
+                    && (System.Diagnostics.Stopwatch.GetTimestamp() - start) * 1000d / System.Diagnostics.Stopwatch.Frequency < MillisecondsPerFrame)
                 {
                     var state = States[cursor++ % States.Count];
                     if (cursor == int.MaxValue) cursor = 0;
@@ -160,7 +161,6 @@ public static class MeleeElementPoolMaintenance
                             && TransientVfxPool.PrepareOne(state.Prefab, state.Target)) { total++; worked = true; }
                     }
                     if (worked) { LastOperations++; noWork = 0; } else noWork++;
-                    if ((System.Diagnostics.Stopwatch.GetTimestamp() - start) * 1000d / System.Diagnostics.Stopwatch.Frequency >= MillisecondsPerFrame) break;
                 }
                 PeakOperations = Mathf.Max(PeakOperations, LastOperations);
                 PeakMilliseconds = System.Math.Max(PeakMilliseconds,

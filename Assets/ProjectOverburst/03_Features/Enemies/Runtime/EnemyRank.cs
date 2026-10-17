@@ -11,12 +11,25 @@ public sealed class EnemyRank : MonoBehaviour
 {
     private static readonly HashSet<EnemyRank> activeEnemies = new HashSet<EnemyRank>();
     public static uint ActiveRevision { get; private set; }
+    public static uint MembershipRevision { get; private set; }
+
+    private static void MembershipChanged()
+    {
+        unchecked { MembershipRevision++; ActiveRevision++; }
+    }
+
+    private void ActiveDataChanged()
+    {
+        // Inactive reserve configuration must not invalidate live UI snapshots.
+        if (isActiveAndEnabled && activeEnemies.Contains(this))
+            unchecked { ActiveRevision++; }
+    }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetRegistry()
     {
         activeEnemies.Clear();
-        unchecked { ActiveRevision++; }
+        MembershipChanged();
     }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -25,7 +38,7 @@ public sealed class EnemyRank : MonoBehaviour
         // Covers Enter Play Mode with both domain and scene reload disabled.
         foreach (EnemyRank enemy in FindObjectsByType<EnemyRank>(FindObjectsSortMode.None))
             if (enemy.isActiveAndEnabled) activeEnemies.Add(enemy);
-        unchecked { ActiveRevision++; }
+        MembershipChanged();
     }
 
     [SerializeField] private EnemyRankType rank = EnemyRankType.Normal;
@@ -57,7 +70,7 @@ public sealed class EnemyRank : MonoBehaviour
         GradeType = EnemyGradeType.Boss;
         rank = EnemyRankType.Elite;
         displayName = "던전 보스";
-        unchecked { ActiveRevision++; }
+        ActiveDataChanged();
     }
 
     private void Awake()
@@ -69,7 +82,7 @@ public sealed class EnemyRank : MonoBehaviour
 
     private void OnEnable()
     {
-        if (activeEnemies.Add(this)) { unchecked { ActiveRevision++; } }
+        if (activeEnemies.Add(this)) MembershipChanged();
         if (health == null) health = GetComponent<CombatHealth>();
         if (health != null) health.OnDead += AwardExperience;
         experienceGranted = false;
@@ -80,7 +93,7 @@ public sealed class EnemyRank : MonoBehaviour
 
     private void OnDisable()
     {
-        if (activeEnemies.Remove(this)) { unchecked { ActiveRevision++; } }
+        if (activeEnemies.Remove(this)) MembershipChanged();
         if (health != null) health.OnDead -= AwardExperience;
     }
 
@@ -108,12 +121,11 @@ public sealed class EnemyRank : MonoBehaviour
             : EnemyRankType.Elite;
         displayName = definition != null ? definition.DisplayName : authoredDisplayName;
         AssignLevel();
-        unchecked { ActiveRevision++; }
+        ActiveDataChanged();
     }
 
     public void ResetForPool()
     {
-        unchecked { ActiveRevision++; }
         CaptureAuthoredState();
         rank = authoredRank;
         displayName = authoredDisplayName;
@@ -124,6 +136,7 @@ public sealed class EnemyRank : MonoBehaviour
         encounter = null;
         balanceDefinition = null;
         experienceGranted = false;
+        ActiveDataChanged();
     }
 
     public void ApplyLevelToHealth(float authoredBase)
@@ -143,7 +156,7 @@ public sealed class EnemyRank : MonoBehaviour
     private void AssignLevel()
     {
         Level = Encounter.MapLevel;
-        unchecked { ActiveRevision++; }
+        ActiveDataChanged();
     }
 
     private void AwardExperience(CombatHealth source, DamageInfo info)

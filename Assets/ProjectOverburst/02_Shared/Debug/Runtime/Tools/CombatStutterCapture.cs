@@ -59,6 +59,7 @@ namespace Overburst.DebugTools
         float threshold;
         string folder, stopReason, previousProfilerPath, ownedProfilerPath;
         bool active, binaryOwned, binaryRequested, previousProfilerEnabled, previousBinaryEnabled, profilerOwnershipLost;
+        bool deferExport, samplingComplete;
         BloodHitVfxService blood;
         BloodHitCatalog bloodCatalog;
         AccountAutosave autosave;
@@ -108,7 +109,8 @@ namespace Overburst.DebugTools
         }
 
         public static DebugResult Start(float seconds = 120f, float hitchMs = 50f,
-            bool binaryProfiler = false, string outputRoot = null, bool rebindObjects = true, string[] metricPrefixes = null)
+            bool binaryProfiler = false, string outputRoot = null, bool rebindObjects = true, string[] metricPrefixes = null,
+            bool deferExport = false)
         {
             if (!Application.isPlaying) return DebugResult.Fail("Play 중에 시작하세요");
             if (Running) return DebugResult.Fail("이미 전투를 기록 중이에요");
@@ -126,6 +128,7 @@ namespace Overburst.DebugTools
                 capture.duration = Mathf.Clamp(seconds, 10f, MaximumSeconds);
                 capture.threshold = Mathf.Clamp(hitchMs, 16f, 2000f);
                 capture.binaryRequested = binaryProfiler;
+                capture.deferExport = deferExport;
                 capture.rebindObjects = rebindObjects;
                 capture.includedMetricPrefixes = metricPrefixes == null ? null : (string[])metricPrefixes.Clone();
                 capture.frames = new Frame[FrameCapacity(capture.duration)];
@@ -160,7 +163,7 @@ namespace Overburst.DebugTools
         public static DebugResult Stop()
         {
             if (!Running) return DebugResult.Fail("기록 중이 아니에요");
-            instance.Finish("manual_stop");
+            instance.Finish(instance.samplingComplete ? instance.stopReason : "manual_stop");
             return LastStatus.StartsWith("저장 실패", StringComparison.Ordinal)
                 ? DebugResult.Fail(LastStatus) : DebugResult.Ok(LastStatus);
         }
@@ -173,12 +176,12 @@ namespace Overburst.DebugTools
         void FixedUpdate()
         {
             BeginFrame();
-            if (active) current.fixedTicks++;
+            if (active && !samplingComplete) current.fixedTicks++;
         }
 
         void BeginFrame()
         {
-            if (!active || trackedFrame == Time.frameCount) return;
+            if (!active || samplingComplete || trackedFrame == Time.frameCount) return;
             long begin = Stopwatch.GetTimestamp();
             try
             {
@@ -187,7 +190,10 @@ namespace Overburst.DebugTools
                     if (trackedFrame >= 0) CompleteFrame(begin);
                     if (frameCount >= frames.Length || Milliseconds(captureStarted, begin) >= duration * 1000d)
                     {
-                        Finish(frameCount >= frames.Length ? "frame_capacity" : "duration");
+                        string reason = frameCount >= frames.Length ? "frame_capacity" : "duration";
+                        // Owned measurement exports after its combat recorder stops, outside the sampled window.
+                        if (deferExport) { samplingComplete = true; trackedFrame = -1; stopReason = reason; }
+                        else Finish(reason);
                         return;
                     }
                     trackedFrame = Time.frameCount;
@@ -331,14 +337,14 @@ namespace Overburst.DebugTools
 
         public static void ObserveHit(CombatHealth health, DamageInfo info, float damage, bool fatal)
         {
-            if (!Running) return;
+            if (!Running || instance.samplingComplete) return;
             try { instance.OnHit(health, info, damage, fatal); }
             catch (Exception error) { instance.Finish("hit_observation_error"); UDebug.LogException(error); }
         }
 
         public static void TrackAudioSource(AudioSource source)
         {
-            if (!Running || source == null) return;
+            if (!Running || instance.samplingComplete || source == null) return;
             var capture = instance;
             if (capture.audioBindingSet.Contains(source)) return;
             if (capture.audioBindings.Count >= MaximumBindings)
@@ -352,7 +358,7 @@ namespace Overburst.DebugTools
 
         public static void ObservePool(string pool, string reason, int used, int capacity, int cue = -1, UObject asset = null)
         {
-            if (!Running) return;
+            if (!Running || instance.samplingComplete) return;
             var capture = instance;
             using var diagnostic = PoolMarker.Auto();
             long began = Stopwatch.GetTimestamp();
