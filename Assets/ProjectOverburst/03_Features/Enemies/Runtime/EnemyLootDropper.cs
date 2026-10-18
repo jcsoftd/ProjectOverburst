@@ -212,6 +212,7 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
         for (int i = 0; i < drops.Count; i++)
         {
             Vector3 offset = dropOffset + GetScatterOffset(i, drops.Count); // 흩뿌림
+            drops[i].level = encounter.IsOutdoor && drops[i].mapState != null ? drops[i].mapState.level : encounter.MapLevel;
             DropFarmingItem(drops[i], dropOrigin + offset);
         }
     }
@@ -239,7 +240,6 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
     private ItemData StampLoot(ItemData item)
     {
         if (item == null) return null;
-        item.level = encounter.IsOutdoor && item.mapState != null ? item.mapState.level : encounter.MapLevel;
         item.originRunId = encounter.RunId;
         return item;
     }

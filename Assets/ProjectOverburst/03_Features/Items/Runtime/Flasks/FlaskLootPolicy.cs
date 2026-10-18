@@ -25,7 +25,7 @@ public static class FlaskLootPolicy
         if (effectiveChance <= 0f || (effectiveChance < 1f && chanceRoll >= effectiveChance)) return null;
         float roll = Random.value;
         ItemGrade grade = SelectGrade(roll, mapLevel, boss, elite, rareGradePercent, MapOptionPolicy.HighGradeRollBias(mapGrade), maximumGrade);
-        int itemLevel = OverburstGrowthRules.ClampLevel(mapLevel);
+        int itemLevel = OverburstGrowthRules.RollDropItemLevel(mapLevel);
         return new ItemData(Catalog[Random.Range(0, Catalog.Length)],
             itemLevel, grade);
     }

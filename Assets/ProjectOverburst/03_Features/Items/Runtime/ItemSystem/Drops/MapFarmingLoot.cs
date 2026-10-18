@@ -100,16 +100,16 @@ public static class MapFarmingLoot
     public static ItemData CreateDrop(MapFarmingKind kind, EnemyGradeType rank, MapInstanceState map, float rarePercent)
     {
         ItemGrade grade = SelectGrade(Random.value, map.grade, rank, rarePercent);
-        return Create(kind, map.level, grade);
+        return Create(kind, OverburstGrowthRules.RollDropItemLevel(map.level), grade);
     }
 
     public static ItemData Extra(ItemData source, EnemyGradeType rank, MapInstanceState map, float rarePercent)
     {
         if (!BagFarmingLoot.Eligible(source?.baseData)) return null;
         ItemGrade grade = SelectGrade(Random.value, map.grade, rank, rarePercent);
-        if (source.baseData is ElementGemItemData) return Create(MapFarmingKind.Gem, map.level, grade);
-        if (source.baseData is BagItemData) return Create(MapFarmingKind.Bag, map.level, grade);
-        return new ItemData(source.baseData, map.level, grade, 1);
+        if (source.baseData is ElementGemItemData) return Create(MapFarmingKind.Gem, source.level, grade);
+        if (source.baseData is BagItemData) return Create(MapFarmingKind.Bag, source.level, grade);
+        return new ItemData(source.baseData, source.level, grade, 1);
     }
 
     private static ItemData Create(MapFarmingKind kind, int level, ItemGrade grade)

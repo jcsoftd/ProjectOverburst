@@ -32,9 +32,6 @@ public static class GearLootPolicy
     // 등급 값만 받는 굴림. 디버그 창의 드롭 모의가 EnemyRank 없이 같은 규칙을 쓴다(90C 7.5). 난수 순서는 위와 같다.
     public static ItemData Roll(EnemyGradeType gradeType, int mapLevel, ItemGrade mapGrade = ItemGrade.Common, float rareGradePercent = 0, ItemGrade maximumGrade = ItemGrade.Mythic)
     {
-        int itemLevel = OverburstGrowthRules.ClampLevel(mapLevel);
-        GearItemData[] items = DefinitionsForLevel(itemLevel);
-        if (items.Length == 0) return null;
         bool boss = gradeType == EnemyGradeType.Boss;
         bool elite = gradeType == EnemyGradeType.Elite;
         float chance = CombatDebugSettings.ApplyRunLootChance(boss ? 1f : elite ? .30f : .06f);
@@ -43,6 +40,9 @@ public static class GearLootPolicy
         if (effectiveChance <= 0f || (effectiveChance < 1f && chanceRoll >= effectiveChance)) return null;
         float roll = Random.value;
         ItemGrade grade = FlaskLootPolicy.SelectGrade(roll, mapLevel, boss, elite, rareGradePercent, MapOptionPolicy.HighGradeRollBias(mapGrade), maximumGrade);
+        int itemLevel = OverburstGrowthRules.RollDropItemLevel(mapLevel);
+        GearItemData[] items = DefinitionsForLevel(itemLevel);
+        if (items.Length == 0) return null;
         return new ItemData(items[Random.Range(0, items.Length)],
             itemLevel, grade);
     }

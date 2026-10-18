@@ -64,12 +64,12 @@ public static class NaturalLootVerifier
                 foreach (EnemyGradeType rank in new[] { EnemyGradeType.Normal, EnemyGradeType.Elite, EnemyGradeType.Boss })
                 {
                     var item = WeaponLootPolicy.Roll(rank, level);
-                    Require(item != null && item.level == level && candidates.Contains((WeaponItemData)item.baseData), "forced roll has source level and legal definition " + rank + "/" + level);
+                    Require(item != null && InRange(item.level, level) && WeaponLootPolicy.DefinitionsForLevel(item.level).Contains((WeaponItemData)item.baseData), "forced roll has allowed level and matching definition " + rank + "/" + level);
                     int max = level >= 25 ? 6 : level >= 18 ? 5 : level >= 10 ? 4 : level >= 5 ? 3 : 2;
                     Require((int)item.grade <= max, "natural weapon obeys level grade cap " + rank + "/" + level);
                     var saved = ItemSnapshotCodec.Capture(item, registry);
                     var restored = ItemSnapshotCodec.Restore(saved, registry);
-                    Require(restored.runtimeInstanceId == item.runtimeInstanceId && restored.level == level
+                    Require(restored.runtimeInstanceId == item.runtimeInstanceId && restored.level == item.level
                         && JsonConvert.SerializeObject(restored.weaponGradeStatRolls) == JsonConvert.SerializeObject(item.weaponGradeStatRolls), "weapon snapshot preserves identity and rolls " + rank + "/" + level);
                 }
             }
@@ -77,6 +77,35 @@ public static class NaturalLootVerifier
             Require(WeaponLootPolicy.DefinitionsForLevel(0).SequenceEqual(WeaponLootPolicy.DefinitionsForLevel(1))
                 && WeaponLootPolicy.DefinitionsForLevel(101).SequenceEqual(WeaponLootPolicy.DefinitionsForLevel(100)), "weapon level clamps at 1 and 100");
             var rankFixture = fixture.AddComponent<EnemyRank>();
+            foreach (int sourceLevel in new[] { 1, 4, 9, 17, 20, 21, 24, 97, 98, 99, 100 })
+            foreach (var sourceRank in new[] { EnemyGradeType.Normal, EnemyGradeType.Elite, EnemyGradeType.Boss })
+            {
+                typeof(EnemyRank).GetProperty(nameof(EnemyRank.GradeType)).SetValue(rankFixture, sourceRank);
+                int cap = sourceLevel >= 25 ? 6 : sourceLevel >= 18 ? 5 : sourceLevel >= 10 ? 4 : sourceLevel >= 5 ? 3 : 2;
+                for (int sample = 0; sample < 20; sample++)
+                {
+                    var items = new[] { WeaponLootPolicy.Roll(rankFixture, sourceLevel), GearLootPolicy.Roll(rankFixture, sourceLevel),
+                        ElementGemLootPolicy.Roll(rankFixture, sourceLevel), FlaskLootPolicy.Roll(rankFixture, sourceLevel),
+                        BagFarmingLoot.RollBag(rankFixture, sourceLevel, ItemGrade.Common, 0) };
+                    for (int kind = 0; kind < items.Length; kind++)
+                    {
+                        var item = items[kind];
+                        Require(item != null && InRange(item.level, sourceLevel), "legacy source range " + sourceLevel + "/" + sourceRank + "/" + kind);
+                        bool cursedGem = item.baseData is ElementGemItemData && sourceRank == EnemyGradeType.Boss && sourceLevel >= 25;
+                        Require((int)item.grade <= cap || (cursedGem && item.grade == ItemGrade.Cursed), "grade unlock uses source level " + sourceLevel + "/" + kind);
+                        Require(!(item.baseData is GearItemData gear) || gear.AppearsAtLevel(item.level), "legacy gear matches actual item level");
+                        var extra = BagFarmingLoot.Extra(item, rankFixture, sourceLevel, ItemGrade.Common, 0);
+                        Require(extra != null && extra.level == item.level && extra.runtimeInstanceId != item.runtimeInstanceId, "legacy extra inherits original rolled level");
+                    }
+                }
+            }
+            Require(ElementGemLootPolicy.CreateRoll(21, EnemyGradeType.Normal).level == 21, "explicit gem creation retains the requested level");
+            var outdoor = new[] { WeaponLootPolicy.Roll(EnemyGradeType.Boss, 100, maximumGrade: ItemGrade.Legendary),
+                GearLootPolicy.Roll(EnemyGradeType.Boss, 100, maximumGrade: ItemGrade.Legendary),
+                FlaskLootPolicy.Roll(EnemyGradeType.Boss, 100, maximumGrade: ItemGrade.Legendary),
+                ElementGemLootPolicy.Roll(rankFixture, 100, maximumGrade: ItemGrade.Legendary),
+                BagFarmingLoot.RollBag(rankFixture, 100, ItemGrade.Common, 0, ItemGrade.Legendary) };
+            Require(outdoor.All(item => item != null && InRange(item.level, 100) && item.grade <= ItemGrade.Legendary), "outdoor sources retain Legendary cap and new level range");
             const int trials = 10000;
             double[][] expectedRates = { new[] { .03, .06, .02, .02, .01 }, new[] { .16, .30, .10, .10, .04 }, new[] { .70, 1.0, .50, .20, .10 } };
             var names = new[] { "weapon", "gear", "gem", "flask", "bag" };
@@ -109,10 +138,11 @@ public static class NaturalLootVerifier
                 && BagFarmingLoot.RollBag(rankFixture, 25, ItemGrade.Common, 0) == null, "Never suppresses all five farming sources");
             for (int level = 1; level <= 24; level++)
             {
-                var source = new ItemData(WeaponLootPolicy.DefinitionsForLevel(level)[0], level, ItemGrade.Common);
+                int rolledLevel = Math.Min(100, level + 3);
+                var source = new ItemData(WeaponLootPolicy.DefinitionsForLevel(rolledLevel)[0], rolledLevel, ItemGrade.Common);
                 var extra = BagFarmingLoot.Extra(source, rankFixture, level, ItemGrade.Common, 0);
                 int max = level >= 18 ? 5 : level >= 10 ? 4 : level >= 5 ? 3 : 2;
-                Require(extra != null && extra.baseData == source.baseData && extra.level == level && (int)extra.grade <= max,
+                Require(extra != null && extra.baseData == source.baseData && extra.level == rolledLevel && (int)extra.grade <= max,
                     "extra weapon respects source level and grade cap Lv." + level);
             }
         }
@@ -258,6 +288,9 @@ public static class NaturalLootVerifier
         }
     }
 
+    static bool InRange(int itemLevel, int sourceLevel) => itemLevel >= Math.Max(1, sourceLevel - 1)
+        && itemLevel <= Math.Min(100, sourceLevel + 3);
+
     static void SetPhase(WorldPhase phase) => typeof(WorldSessionState).GetMethod("SetPhase", BindingFlags.NonPublic | BindingFlags.Static).Invoke(null, new object[] { phase });
 
     static void VerifyPlay()
@@ -300,7 +333,7 @@ public static class NaturalLootVerifier
                     var after = new List<WorldItemPickup>(); WorldItemPickup.CopyActivePickups(after);
                     var created = after.Where(x => !old.Contains(x.GetInstanceID())).ToArray();
                     Require(created.Any(x => x.RuntimeItem?.baseData is GearItemData), "default boss death guarantees gear " + pass + "/" + kill);
-                    Require(created.All(x => x.RuntimeItem.level == 25 && x.RuntimeItem.originRunId == run), "all natural loot stamped to map level and run " + pass + "/" + kill);
+                    Require(created.All(x => InRange(x.RuntimeItem.level, 25) && x.RuntimeItem.originRunId == run), "all natural loot preserves rolled level and run " + pass + "/" + kill);
                     int count = after.Count;
                     health.TakeDamage(new DamageInfo(1000000, enemy.transform.position, actor.gameObject, triggersOnHitEffects: false));
                     after.Clear(); WorldItemPickup.CopyActivePickups(after);
@@ -310,7 +343,7 @@ public static class NaturalLootVerifier
                 }
                 Require(weapon != null, "default probability produces natural weapon " + pass);
                 var item = weapon.RuntimeItem;
-                Require(WeaponLootPolicy.DefinitionsForLevel(25).Contains((WeaponItemData)item.baseData)
+                Require(WeaponLootPolicy.DefinitionsForLevel(item.level).Contains((WeaponItemData)item.baseData)
                     && !string.IsNullOrEmpty(weapon.DisplayName), "natural weapon uses legal definition and nameplate name " + pass);
                 var snapshot = ItemSnapshotCodec.Capture(item, registry);
                 Require(weapon.TryPickup(inventory), "actual natural weapon pickup " + pass);
@@ -320,7 +353,7 @@ public static class NaturalLootVerifier
                 var disk = new EasySaveAccountStore(AccountBootstrap.SaveDirectory).Load();
                 AccountInvariants.Validate(disk, registry);
                 var persisted = disk.items.Single(x => x.instanceId == item.runtimeInstanceId);
-                Require(persisted.level == 25 && persisted.originRunId == run && persisted.grade == snapshot.grade
+                Require(persisted.level == item.level && persisted.originRunId == run && persisted.grade == snapshot.grade
                     && JsonConvert.SerializeObject(persisted.weaponRolls) == JsonConvert.SerializeObject(snapshot.weaponRolls), "disk restore preserves natural weapon identity and quality " + pass);
                 if (pass == 1)
                     Require(session.ExecuteState(run + "-transfer", s => AccountRunCommands.Transfer(s, run, "natural-loot-transfer", item.runtimeInstanceId, registry)), "equipped natural weapon transferred to stash");

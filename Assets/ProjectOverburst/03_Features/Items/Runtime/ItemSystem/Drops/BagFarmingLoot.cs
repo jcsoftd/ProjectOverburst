@@ -90,16 +90,21 @@ public static class BagFarmingLoot
         ItemGrade grade = FlaskLootPolicy.SelectGrade(UnityEngine.Random.value, level, boss, elite, rarePercent,
             MapOptionPolicy.HighGradeRollBias(mapGrade), maximumGrade);
         var data = definitions.FirstOrDefault(x => x.defaultGrade == grade) ?? definitions[0];
-        return new ItemData(data, level, grade);
+        return new ItemData(data, OverburstGrowthRules.RollDropItemLevel(level), grade);
     }
 
     public static ItemData Extra(ItemData source, EnemyRank rank, int level, ItemGrade mapGrade, float rarePercent)
     {
         if (!Eligible(source?.baseData)) return null;
-        if (source.baseData is ElementGemItemData) return ElementGemLootPolicy.CreateRoll(level,rank!=null?rank.GradeType:EnemyGradeType.Normal,mapGrade,rarePercent);
+        if (source.baseData is ElementGemItemData)
+        {
+            var data = ElementGemLootPolicy.Select(UnityEngine.Random.value, level,
+                rank != null ? rank.GradeType : EnemyGradeType.Normal, mapGrade, rarePercent);
+            return data != null ? new ItemData(data, source.level, data.fixedGrade, 1) : null;
+        }
         ItemGrade grade = FlaskLootPolicy.SelectGrade(UnityEngine.Random.value, level,
             rank != null && rank.GradeType == EnemyGradeType.Boss,
             rank != null && rank.GradeType != EnemyGradeType.Normal, rarePercent, MapOptionPolicy.HighGradeRollBias(mapGrade));
-        return new ItemData(source.baseData, level, grade, 1);
+        return new ItemData(source.baseData, source.level, grade, 1);
     }
 }

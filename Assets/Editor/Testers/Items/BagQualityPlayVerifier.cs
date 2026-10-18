@@ -163,7 +163,7 @@ public static class BagQualityPlayVerifier
         for (int i = 0; i < 12; i++) goldTotal += BagFarmingLoot.CombatGoldAmount(1, BagQuality.EquippedBonus(BagStat.CombatGold));
         Check(goldTotal == 12 && session.Read().bagGoldCarry == 9600, "12 one-gold drops at 8 percent retain .96 carry");
         var extra = BagFarmingLoot.Extra(equipped, null, 73, ItemGrade.Common, 8);
-        Check(extra.runtimeInstanceId != equipped.runtimeInstanceId && extra.level == 73 && BagQuality.IsValid(extra.bagState, extra.grade), "Extra farming drop rolls independent identity/grade/stars");
+        Check(extra.runtimeInstanceId != equipped.runtimeInstanceId && extra.level == equipped.level && BagQuality.IsValid(extra.bagState, extra.grade), "Extra farming drop inherits original level and rolls independent identity/grade/stars");
         var tooltip = Object.FindFirstObjectByType<TooltipManager>(FindObjectsInactive.Include);
         tooltip.ShowTooltip(equipped);
         Check(BagTooltip.Details(equipped).Contains("인벤토리 수납") && BagTooltip.Details(equipped).Contains("각인 +12칸"), "Four-row tooltip shows capacity and star increase");

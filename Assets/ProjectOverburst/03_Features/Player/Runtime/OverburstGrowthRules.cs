@@ -38,8 +38,9 @@ public static class OverburstGrowthRules
         return Mathf.Max(1, Mathf.RoundToInt(baseExperience * gradeFactor * differenceFactor));
     }
 
-    public static int RollDropItemLevel(int monsterLevel, bool boss)
+    public static int RollDropItemLevel(int sourceLevel)
     {
-        return ClampLevel(monsterLevel + Random.Range(-2, 3) + (boss ? 2 : 0));
+        int level = ClampLevel(sourceLevel);
+        return Random.Range(Mathf.Max(1, level - 1), Mathf.Min(MaximumLevel, level + 3) + 1);
     }
 }

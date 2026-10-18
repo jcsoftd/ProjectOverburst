@@ -29,6 +29,21 @@ public static class MapFarmingLootVerifier
             Check(registry && mapDefinition, "real registry and map definition load");
             var map = MapGenerationPolicy.CreateItem(mapDefinition, registry, 1, ItemGrade.Common).mapState;
             map.options.Clear();
+            Random.InitState(161021);
+            for (int source = 1; source <= 100; source++)
+            {
+                int minimum = Math.Max(1, source - 1), maximum = Math.Min(100, source + 3);
+                var counts = new int[maximum - minimum + 1];
+                for (int sample = 0; sample < 2000; sample++)
+                {
+                    int level = OverburstGrowthRules.RollDropItemLevel(source);
+                    if (level < minimum || level > maximum) throw new Exception("item level outside source range " + source);
+                    counts[level - minimum]++;
+                }
+                double expected = 2000d / counts.Length;
+                double tolerance = 6 * Math.Sqrt(expected * (1 - 1d / counts.Length)) + 3;
+                Check(counts.All(n => n > 0 && Math.Abs(n - expected) <= tolerance), "all legal levels uniformly reachable at source " + source);
+            }
             Check(MapFarmingLoot.Applies(map) && !MapFarmingLoot.Applies(null)
                 && !MapFarmingLoot.Applies(new MapInstanceState()), "new map branch does not replace legacy or outdoor policies");
             double[][] baseline = { new[] { .009, .018, .0045, .003, .0015 },
@@ -107,21 +122,25 @@ public static class MapFarmingLootVerifier
                     mapLower += mapGrades[g][itemGrade];
                 }
                 Check(MapFarmingLoot.SelectGrade(1, map.grade) == MapFarmingLoot.MaximumGrade(map.grade), "inclusive roll 1 never selects zero-probability grade " + g);
-                foreach (int level in new[] { 1, 10, 50, 100 }) foreach (var rank in ranks)
+                foreach (int level in new[] { 1, 2, 20, 21, 97, 98, 99, 100 }) foreach (var rank in ranks)
                 {
                     map.level = level;
                     CombatDebugSettings.SetRunLootOverride(RunLootDebugOverride.Always);
                     for (int kind = 0; kind < 5; kind++)
                     {
                         var item = MapFarmingLoot.Roll((MapFarmingKind)kind, rank, map, 8);
-                        Check(item != null && item.level == level && item.grade <= MapFarmingLoot.MaximumGrade(map.grade)
+                        Check(item != null && InRange(item.level, level) && item.grade <= MapFarmingLoot.MaximumGrade(map.grade)
                             && !string.IsNullOrEmpty(registry.IdFor(item.baseData)), "catalog and cap " + g + "/" + level + "/" + rank + "/" + kind);
+                        Check(!(item.baseData is WeaponItemData weapon) || WeaponLootPolicy.DefinitionsForLevel(item.level).Contains(weapon), "weapon definition matches rolled level " + item.level);
+                        Check(!(item.baseData is GearItemData gear) || gear.AppearsAtLevel(item.level), "gear definition matches rolled level " + item.level);
                         var saved = ItemSnapshotCodec.Capture(item, registry);
                         var restored = ItemSnapshotCodec.Capture(ItemSnapshotCodec.Restore(saved, registry), registry);
                         Check(JsonConvert.SerializeObject(saved) == JsonConvert.SerializeObject(restored), "quality persists without reroll " + g + "/" + level + "/" + rank + "/" + kind);
                         var extra = MapFarmingLoot.Extra(item, rank, map, 8);
-                        Check(extra.runtimeInstanceId != item.runtimeInstanceId && extra.level == level && extra.grade <= MapFarmingLoot.MaximumGrade(map.grade),
+                        Check(extra.runtimeInstanceId != item.runtimeInstanceId && extra.level == item.level && extra.grade <= MapFarmingLoot.MaximumGrade(map.grade),
                             "bag extra has fresh identity within source grade cap " + g + "/" + level + "/" + rank + "/" + kind);
+                        Check(item.baseData is ElementGemItemData || item.baseData is BagItemData || extra.baseData == item.baseData,
+                            "extra retains the original weapon, gear or flask definition");
                     }
                 }
             }
@@ -166,28 +185,31 @@ public static class MapFarmingLootVerifier
             var health = fixture.AddComponent<CombatHealth>(); var rank = fixture.AddComponent<EnemyRank>();
             var dropper = fixture.AddComponent<EnemyLootDropper>();
             account.ExecuteState("map-loot-slots", s => s.unlockedSlots = s.baseUnlockedSlots = s.inventoryCapacity);
-            for (int pass = 0; pass < 2; pass++)
+            VerifyBagLevelOptions(check, registry);
+            for (int pass = 0; pass < 3; pass++)
             {
-                var itemMap = MapGenerationPolicy.CreateItem(Resources.Load<MapItemData>("Items/Maps/Map_Diamond01"), registry, 1, ItemGrade.Common);
+                var itemMap = MapGenerationPolicy.CreateItem(Resources.Load<MapItemData>("Items/Maps/Map_Diamond01"), registry, pass == 1 ? 100 : 21, ItemGrade.Common);
                 var map = itemMap.mapState; map.options.Clear();
                 string run = "map-loot-" + Guid.NewGuid().ToString("N");
                 check(account.ExecuteState(run, s => { AccountRunCommands.PrepareEntry(s, run, map, null, true); AccountRunCommands.Activate(s, run); }), "map run activated " + pass);
                 SetPhase(WorldPhase.Run);
-                var context = new EncounterContext(run, map.level, map.grade, map: map);
+                var context = new EncounterContext(run, map.level, map.grade, map: pass == 2 ? null : map);
                 var before = new List<WorldItemPickup>(); WorldItemPickup.CopyActivePickups(before);
                 var existing = new HashSet<int>(before.Select(x => x.GetInstanceID()));
                 dropper.ResetForPool(); dropper.Configure(null, player.Inventory, player.transform, null); dropper.ConfigureEncounter(context);
                 rank.ConfigureTemporaryBoss(context); health.ResetHealth();
-                CombatDebugSettings.SetRunLootOverride(pass == 0 ? RunLootDebugOverride.Always : RunLootDebugOverride.Default);
+                CombatDebugSettings.SetRunLootOverride(pass == 1 ? RunLootDebugOverride.Default : RunLootDebugOverride.Always);
                 Random.InitState(10512 + pass);
                 health.TakeDamage(new DamageInfo(1000000, fixture.transform.position, player.gameObject, triggersOnHitEffects: false));
                 var after = new List<WorldItemPickup>(); WorldItemPickup.CopyActivePickups(after);
                 var created = after.Where(x => !existing.Contains(x.GetInstanceID())).ToArray();
                 check(created.Count(x => x.RuntimeItem.baseData is GearItemData) == 1, "exactly one boss gear guarantee " + pass);
-                if (pass == 0) check(created.Length == 5 && created.Count(x => x.RuntimeItem.baseData is WeaponItemData) == 1
+                if (pass != 1) check(created.Length == 5 && created.Count(x => x.RuntimeItem.baseData is WeaponItemData) == 1
                     && created.Count(x => x.RuntimeItem.baseData is ElementGemItemData) == 1 && created.Count(x => x.RuntimeItem.baseData is FlaskItemData) == 1
                     && created.Count(x => x.RuntimeItem.baseData is BagItemData) == 1, "real death connects all five production source kinds");
-                check(created.All(x => x.RuntimeItem.level == 1 && x.RuntimeItem.originRunId == run && x.RuntimeItem.grade <= ItemGrade.Legendary), "world items carry source level, grade cap and run " + pass);
+                check(created.All(x => InRange(x.RuntimeItem.level, map.level) && x.RuntimeItem.originRunId == run && x.RuntimeItem.grade <= (pass == 2 ? ItemGrade.Artifact : ItemGrade.Legendary)), "world items preserve rolled level, grade cap and run " + pass + ": " + string.Join(",", created.Select(x => x.RuntimeItem.level)));
+                check(created.All(x => !(x.RuntimeItem.baseData is GearItemData gear) || gear.AppearsAtLevel(x.RuntimeItem.level)), "world gear uses the rolled level catalog " + pass);
+                if (pass != 1) check(created.Any(x => x.RuntimeItem.level != map.level), "death pipeline does not overwrite rolled levels " + pass);
                 check(Object.FindObjectsByType<CurrencyWorldPickup>(FindObjectsSortMode.None).Length == goldBefore, "boss death creates no gold pickup " + pass);
                 int count = after.Count;
                 health.TakeDamage(new DamageInfo(1000000, fixture.transform.position, player.gameObject));
@@ -202,6 +224,7 @@ public static class MapFarmingLootVerifier
                 check(saved.acquisitionOrder == 0 && persisted.acquisitionOrder > 0, "pickup assigns inventory acquisition order " + pass);
                 saved.acquisitionOrder = persisted.acquisitionOrder;
                 check(JsonConvert.SerializeObject(persisted) == JsonConvert.SerializeObject(saved), "disk preserves generated item and quality " + pass);
+                if (pass == 0) VerifyExtraPickup(check, dropper, fixture, context, registry);
                 if (pass == 1) check(account.ExecuteState(run + "-transfer", s => AccountRunCommands.Transfer(s, run, "map-loot-transfer", item.runtimeInstanceId, registry)), "picked item can transfer before failure");
                 check(account.ExecuteState(run + "-fail", s => AccountRunCommands.Fail(s, run)), "run settlement " + pass);
                 check(account.Read().items.Any(i => i.instanceId == item.runtimeInstanceId) == (pass == 1), "unprotected loss and transferred retention " + pass);
@@ -217,6 +240,101 @@ public static class MapFarmingLootVerifier
             CombatDebugSettings.SetRunLootOverride(debug); Random.state = random;
         }
     }
+
+    private static void VerifyBagLevelOptions(Action<bool, string> check, AccountContentRegistry registry)
+    {
+        var progression = PlayerProgression.Current;
+        int level = progression.Level, experience = progression.Experience;
+        var apply = typeof(PlayerProgression).GetMethod("ApplyAccountProgression", BindingFlags.NonPublic | BindingFlags.Instance);
+        var data = BagFarmingLoot.Definitions.First(x => x.defaultGrade == ItemGrade.Mythic);
+        try
+        {
+            apply.Invoke(progression, new object[] { 99, 0, false });
+            bool experienceOption = false;
+            for (int n = 0; n < 32; n++)
+            {
+                var bag = new ItemData(data, 100, ItemGrade.Mythic);
+                check(BagQuality.IsValid(bag.bagState, bag.grade), "level100 bag quality remains valid for player99");
+                experienceOption |= bag.bagState.rows.Any(row => row.stat == BagStat.KillExperience);
+            }
+            check(experienceOption, "item level100 does not remove player99 experience options");
+            apply.Invoke(progression, new object[] { 100, 0, false });
+            for (int n = 0; n < 8; n++)
+                check(!new ItemData(data, 99, ItemGrade.Mythic).bagState.rows.Any(row => row.stat == BagStat.KillExperience), "player100 excludes experience even on item99");
+        }
+        finally { apply.Invoke(progression, new object[] { level, experience, false }); }
+        check(progression.Level == level && progression.Experience == experience, "bag option fixture restores player progression");
+    }
+
+    private static void VerifyExtraPickup(Action<bool, string> check, EnemyLootDropper dropper, GameObject fixture,
+        EncounterContext context, AccountContentRegistry registry)
+    {
+        var inventory = PlayerContext.Instance.CurrentActor.Inventory;
+        var account = AccountGameplaySession.Current;
+        var previous = PlayerAccountInventoryService.EquippedBag;
+        var data = BagFarmingLoot.Definitions.First(x => x.defaultGrade == ItemGrade.Mythic);
+        var bag = new ItemData(data, 21, ItemGrade.Mythic);
+        bag.bagState.rows.Clear();
+        var kinds = new[] { BagStat.InventorySlots, BagStat.ExtraItemDrop, BagStat.ItemPickupDistance, BagStat.RareGradeWeight };
+        for (int i = 0; i < kinds.Length; i++)
+        {
+            var row = new BagStatRoll { stat = kinds[i] };
+            for (int n = 0; n < (i < 2 ? 6 : 4); n++) row.stars.Add(WeaponGradeStarType.Yellow);
+            bag.bagState.rows.Add(row);
+        }
+        check(BagQuality.IsValid(bag.bagState, bag.grade) && inventory.AddItem(bag), "valid isolated extra-drop bag acquired");
+        var owned = inventory.Items.First(x => x != null && x.runtimeInstanceId == bag.runtimeInstanceId);
+        check(PlayerAccountInventoryService.TryEquipBagFromInventorySlot(inventory, inventory.Items.ToList().IndexOf(owned), owned, 0), "isolated extra-drop bag equipped");
+        bool found = false;
+        try
+        {
+            check(BagQuality.EquippedBonus(BagStat.ExtraItemDrop) > 0, "real equipped bag enables extra probability");
+            var drop = typeof(EnemyLootDropper).GetMethod("DropFarmingItem", BindingFlags.NonPublic | BindingFlags.Instance);
+            Random.InitState(161024);
+            for (int attempt = 0; attempt < 512 && !found; attempt++)
+            {
+                var before = new List<WorldItemPickup>(); WorldItemPickup.CopyActivePickups(before);
+                var known = new HashSet<int>(before.Select(x => x.GetInstanceID()));
+                var source = new ItemData(WeaponLootPolicy.DefinitionsForLevel(24)[0], 24, ItemGrade.Common);
+                drop.Invoke(dropper, new object[] { source, fixture.transform.position });
+                var after = new List<WorldItemPickup>(); WorldItemPickup.CopyActivePickups(after);
+                var created = after.Where(x => !known.Contains(x.GetInstanceID())).ToArray();
+                try
+                {
+                    check(created.Length >= 1 && created.Length <= 2, "one parent and at most one nonrecursive extra " + attempt);
+                    check(created.All(x => x.RuntimeItem.level == 24 && x.RuntimeItem.originRunId == context.RunId), "actual parent and extra retain level24 from source21 " + attempt);
+                    var extra = created.FirstOrDefault(x => x.RuntimeItem.runtimeInstanceId != source.runtimeInstanceId);
+                    if (extra == null) continue;
+                    check(extra.RuntimeItem.baseData == source.baseData, "actual extra retains the original weapon definition");
+                    string identity = extra.RuntimeItem.runtimeInstanceId;
+                    check(extra.TryPickup(inventory), "actual extra pickup commits");
+                    account.FlushPendingSave();
+                    var disk = new EasySaveAccountStore(AccountBootstrap.SaveDirectory).Load();
+                    var saved = disk.items.Single(x => x.instanceId == identity);
+                    check(saved.level == 24 && saved.originRunId == context.RunId, "actual extra level and run survive ES3 reload");
+                    found = true;
+                }
+                finally { foreach (var pickup in created) if (pickup) Object.DestroyImmediate(pickup.gameObject); }
+            }
+            check(found, "actual production extra-drop branch observed");
+        }
+        finally
+        {
+            if (previous != null)
+            {
+                var original = inventory.Items.First(x => x != null && x.runtimeInstanceId == previous.runtimeInstanceId);
+                check(PlayerAccountInventoryService.TryEquipBagFromInventorySlot(inventory, inventory.Items.ToList().IndexOf(original), original, 0), "previous isolated bag restored");
+            }
+            else
+            {
+                int empty = Enumerable.Range(0, inventory.UnlockedSlotCount).First(i => inventory.GetItemAt(i) == null);
+                check(PlayerAccountInventoryService.TryUnequipBagToInventorySlot(inventory, empty, PlayerAccountInventoryService.EquippedBag, 0), "isolated extra-drop bag unequipped");
+            }
+        }
+    }
+
+    private static bool InRange(int itemLevel, int sourceLevel) => itemLevel >= Math.Max(1, sourceLevel - 1)
+        && itemLevel <= Math.Min(100, sourceLevel + 3);
 
     private static void SetPhase(WorldPhase phase) => typeof(WorldSessionState)
         .GetMethod("SetPhase", BindingFlags.NonPublic | BindingFlags.Static).Invoke(null, new object[] { phase });

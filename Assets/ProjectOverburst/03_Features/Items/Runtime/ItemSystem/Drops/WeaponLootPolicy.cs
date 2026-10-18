@@ -35,17 +35,17 @@ public static class WeaponLootPolicy
 
     public static ItemData Roll(EnemyGradeType gradeType, int mapLevel, ItemGrade mapGrade = ItemGrade.Common, float rareGradePercent = 0, ItemGrade maximumGrade = ItemGrade.Mythic)
     {
-        int itemLevel = OverburstGrowthRules.ClampLevel(mapLevel);
-        WeaponItemData[] items = DefinitionsForLevel(itemLevel);
-        if (items.Length == 0) return null;
         bool boss = gradeType == EnemyGradeType.Boss;
         bool elite = gradeType == EnemyGradeType.Elite || gradeType == EnemyGradeType.GreaterElite;
         float chance = CombatDebugSettings.ApplyRunLootChance(boss ? .70f : elite ? .16f : .03f);
         float effectiveChance = TesterSupportItemData.ApplyDropChance(chance * (1f + MapRunBuffs.Bonus(MapBuffKind.ItemDrop)));
         float chanceRoll = Random.value;
         if (effectiveChance <= 0f || (effectiveChance < 1f && chanceRoll >= effectiveChance)) return null;
-        ItemGrade grade = FlaskLootPolicy.SelectGrade(Random.value, itemLevel, boss, elite,
+        ItemGrade grade = FlaskLootPolicy.SelectGrade(Random.value, mapLevel, boss, elite,
             rareGradePercent, MapOptionPolicy.HighGradeRollBias(mapGrade), maximumGrade);
+        int itemLevel = OverburstGrowthRules.RollDropItemLevel(mapLevel);
+        WeaponItemData[] items = DefinitionsForLevel(itemLevel);
+        if (items.Length == 0) return null;
         return new ItemData(items[Random.Range(0, items.Length)], itemLevel, grade);
     }
 }

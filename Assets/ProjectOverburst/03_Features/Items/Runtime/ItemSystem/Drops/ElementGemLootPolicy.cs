@@ -45,7 +45,8 @@ public static class ElementGemLootPolicy
         float effectiveChance=TesterSupportItemData.ApplyDropChance(chance*(1+MapRunBuffs.Bonus(MapBuffKind.ItemDrop)));
         float chanceRoll=UnityEngine.Random.value;
         if(effectiveChance<=0 || (effectiveChance<1 && chanceRoll>=effectiveChance))return null;
-        return CreateRoll(level,kind,mapGrade,rarePercent,maximumGrade);
+        var data=Select(UnityEngine.Random.value,OverburstGrowthRules.ClampLevel(level),kind,mapGrade,rarePercent,maximumGrade);
+        return data!=null ? new ItemData(data,OverburstGrowthRules.RollDropItemLevel(level),data.fixedGrade,1) : null;
     }
     public static int Value(ItemData item)
     {
