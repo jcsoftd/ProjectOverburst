@@ -123,7 +123,7 @@ public sealed class OverburstHudMenu : MonoBehaviour
     bool CanOpen()
     {
         var flow = PersistentSceneFlow.Instance;
-        return !flow || !flow.IsSwitching;
+        return (!flow || !flow.IsSwitching) && !OverburstGameMenu.IsOpen;
     }
     public void Toggle() { if (IsOpen) Close(); else Open(); }
     public void Open()
@@ -161,8 +161,20 @@ public sealed class OverburstHudMenu : MonoBehaviour
     {
         if (!IsOpen || index < 0 || index >= entries.Length) return;
         var destination = entries[index].destination;
+        CloseImmediate();
         Play(true);
         if (!owner) owner = GetComponentInParent<OverburstGameUI>();
+        if (destination != Destination.SkillTree) OverburstSkillTreeUI.Instance?.Close();
+        var quests = QuestMerchantUI.Current;
+        if (destination != Destination.QuestList && quests && quests.Mode == QuestMerchantUI.WindowMode.Journal)
+            quests.Close();
+        if (owner && (destination == Destination.SkillTree || destination == Destination.QuestList))
+        {
+            var shop = FindFirstObjectByType<ShopUI>();
+            if (owner.inventory.InputToggleLocked || shop && shop.IsOpen) return;
+            owner.inventory.SetVisible(false);
+            owner.CloseEquipment();
+        }
         switch (destination)
         {
             case Destination.Inventory: if (owner) owner.ToggleInventory(); break;

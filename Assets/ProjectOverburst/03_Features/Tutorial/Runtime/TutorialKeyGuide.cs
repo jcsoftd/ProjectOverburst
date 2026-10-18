@@ -24,7 +24,8 @@ public sealed class TutorialKeyGuide : MonoBehaviour
     public void MouseRight(string label) => Add(mouseRight, "", label, 30);
     public void Key(InputActionAsset asset, string actionName, string label = "", string part = null)
     {
-        var action = asset ? asset.FindAction(PlayerInputFacade.GameplayMapName + "/" + actionName) : null;
+        var action = asset ? asset.FindAction(PlayerInputFacade.GameplayMapName + "/" + actionName)
+            ?? asset.FindAction("UI/" + actionName) : null;
         int index = OverburstKeyBindingRow.ResolveBindingIndex(action, part);
         string path = index >= 0 ? action.bindings[index].effectivePath : null;
         if (path == "<Mouse>/leftButton") Add(mouseLeft, "", label, 30);

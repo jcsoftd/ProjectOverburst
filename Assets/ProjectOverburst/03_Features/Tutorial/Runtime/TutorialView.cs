@@ -7,43 +7,34 @@ using UnityEngine.UI;
 
 public sealed class TutorialView : MonoBehaviour
 {
-    public GameObject goal, tools, comparison, shade, modal, chapters, practice, footer;
+    public GameObject goal, tools, comparison, shade, modal, footer;
     public TMP_Text progress, heading, instruction, keys, feedback, modalTitle, modalBody, modalNote;
-    public Button retry, skip, exit, primary, secondary, tertiary, worldConfirm;
-    public Button[] chapterButtons, energyButtons;
+    public Button retry, skip, exit, primary, secondary, worldConfirm;
     public Image[] gradeBackgrounds;
     public TutorialKeyGuide keyGuide;
     private OptionalTutorialController owner;
     private float baseGoalHeight = 176;
     private TutorialLesson shownLesson;
-    private bool showingPractice;
     private long potionGuideRevision = -1;
-    private static readonly int[] ChapterStarts = { 1, 3, 5, 7, 8, 9, 11 };
-    private static readonly string[] ChapterNames = { "약공·강공", "대시·구르기", "대시 공격", "불완전 패링", "일반 패링", "완벽 패링", "장비·물약" };
 
     public void Bind(OptionalTutorialController controller)
     {
         owner = controller;
         retry.onClick.AddListener(owner.Retry); skip.onClick.AddListener(owner.Skip); exit.onClick.AddListener(owner.Exit);
         worldConfirm.onClick.AddListener(owner.ConfirmWorld);
-        for (int i = 0; i < chapterButtons.Length; i++)
-        { int chapter = ChapterStarts[i]; chapterButtons[i].onClick.AddListener(() => owner.StartLesson(chapter)); }
-        float[] amounts = { .2f, .5f, .85f };
-        for (int i = 0; i < energyButtons.Length; i++)
-        { float amount = amounts[i]; energyButtons[i].onClick.AddListener(() => owner.SetPracticeEnergy(amount)); }
     }
     public void Hide()
     {
         goal.SetActive(false); tools.SetActive(false); comparison.SetActive(false); shade.SetActive(false);
-        modal.SetActive(false); practice.SetActive(false); footer.SetActive(false);
+        modal.SetActive(false); footer.SetActive(false);
     }
     private void Modal(string title, string body, string note)
     {
-        Hide(); shade.SetActive(true); modal.SetActive(true); chapters.SetActive(false);
+        Hide(); shade.SetActive(true); modal.SetActive(true);
         var rect = (RectTransform)modal.transform; rect.sizeDelta = new Vector2(980,420); rect.anchoredPosition = new Vector2(470,-280);
         modalTitle.text = title; modalBody.text = body;
         modalNote.text = owner.HasUnsavedProgress ? "학습 기록 미저장 · 다시 시도해 주세요." : note;
-        primary.gameObject.SetActive(false); secondary.gameObject.SetActive(false); tertiary.gameObject.SetActive(false);
+        primary.gameObject.SetActive(false); secondary.gameObject.SetActive(false);
     }
     private static void ActionButton(Button button, string label, Action action)
     {
@@ -52,7 +43,7 @@ public sealed class TutorialView : MonoBehaviour
     }
     private void CenterActions()
     {
-        Button[] buttons = { primary, secondary, tertiary };
+        Button[] buttons = { primary, secondary };
         int count = 0; foreach (var button in buttons) if (button.gameObject.activeSelf) count++;
         float x = (884 - (count * 260 + (count - 1) * 28)) / 2;
         foreach (var button in buttons)
@@ -69,25 +60,11 @@ public sealed class TutorialView : MonoBehaviour
         CenterActions();
         OverburstGameMenu.Select(primary);
     }
-    public void ShowChapters(TutorialProgress state)
-    {
-        Modal("필요한 조작부터 익혀보세요", "항목을 선택하면 해당 실습부터 시작합니다.", "완료와 건너뛴 항목은 별도로 기록됩니다.");
-        chapters.SetActive(true);
-        var rect = (RectTransform)modal.transform; rect.sizeDelta = new Vector2(980,660); rect.anchoredPosition = new Vector2(470,-185);
-        for (int i = 0; i < chapterButtons.Length; i++)
-            chapterButtons[i].GetComponentInChildren<TMP_Text>().text = ChapterNames[i]
-                + ((state.completed & (1 << ChapterStarts[i])) != 0 ? " · 완료" : (state.skipped & (1 << ChapterStarts[i])) != 0 ? " · 건너뜀" : "");
-        ActionButton(primary, "처음부터", () => owner.StartLesson(0));
-        ActionButton(secondary, "자유 연습", owner.StartFreePractice);
-        ActionButton(tertiary, owner.IsTraining ? "훈련 종료" : "닫기", owner.Exit);
-        CenterActions();
-        OverburstGameMenu.Select(chapterButtons[0]);
-    }
     public void ShowLesson(TutorialLesson lesson)
     {
         Hide(); goal.SetActive(true); tools.SetActive(true);
         baseGoalHeight = lesson == TutorialLesson.World ? 236 : 176;
-        shownLesson = lesson; showingPractice = false;
+        shownLesson = lesson;
         progress.text = "조작 튜토리얼 · " + ((int)lesson + 1) + " / " + TutorialLessons.Count;
         heading.text = TutorialLessons.Names[(int)lesson]; instruction.text = TutorialLessons.Description(lesson);
         RefreshKeys();
@@ -98,22 +75,11 @@ public sealed class TutorialView : MonoBehaviour
         worldConfirm.gameObject.SetActive(lesson == TutorialLesson.World);
         skip.gameObject.SetActive(true);
     }
-    public void ShowPractice()
-    {
-        ShowLesson(TutorialLesson.PerfectParry); progress.text = "자유 연습";
-        heading.text = "원하는 조작을 자유롭게 연습하세요";
-        instruction.text = "약공으로 모으고 강공으로 방출하세요.\n아래 버튼으로 패링 비교용 게이지를 준비할 수 있습니다.";
-        showingPractice = true; RefreshKeys();
-        comparison.SetActive(false); practice.SetActive(true); skip.gameObject.SetActive(false);
-        if (owner.HasUnsavedProgress) Feedback("학습 기록 미저장 · 다시 시도하세요.");
-    }
     public void ShowComplete(TutorialProgress state)
     {
         int completed = 0; for (int i = 0; i < TutorialLessons.Count; i++) if ((state.completed & (1 << i)) != 0) completed++;
-        Modal("이제 직접 싸워볼 차례입니다", "실습 완료 " + completed + " / " + TutorialLessons.Count + "\n약공으로 모으고, 강공으로 방출하세요.", "마을 메뉴의 조작 튜토리얼에서 언제든 다시 연습할 수 있습니다.");
+        Modal("이제 직접 싸워볼 차례입니다", "실습 완료 " + completed + " / " + TutorialLessons.Count + "\n약공으로 모으고, 강공으로 방출하세요.", "");
         ActionButton(primary, "게임으로 돌아가기", owner.Exit);
-        ActionButton(secondary, "항목 선택", owner.ShowChapters);
-        ActionButton(tertiary, "자유 연습", owner.StartFreePractice);
         CenterActions();
         OverburstGameMenu.Select(primary);
     }
@@ -134,7 +100,6 @@ public sealed class TutorialView : MonoBehaviour
         ((RectTransform)goal.transform).sizeDelta = new Vector2(720, height);
         var belowGoal = new Vector2(24, -(24 + height + 16));
         ((RectTransform)comparison.transform).anchoredPosition = belowGoal;
-        ((RectTransform)practice.transform).anchoredPosition = belowGoal;
     }
     private void OnEnable() => InputSystem.onActionChange += BindingChanged;
     private void OnDisable() => InputSystem.onActionChange -= BindingChanged;
@@ -154,11 +119,7 @@ public sealed class TutorialView : MonoBehaviour
         if (world) { keys.text = "원소보석을 장착해야 약공 충전과 강공 원소 방출을 사용할 수 있습니다."; return; }
         var asset = PlayerInputFacade.Current?.RuntimeAsset;
         var guide = keyGuide; guide.Clear();
-        if (showingPractice)
-        {
-            guide.Key(asset,"Attack","약공 ·"); guide.Key(asset,"Aim","강공 ·"); guide.Key(asset,"Evade","회피");
-        }
-        else switch (shownLesson)
+        switch (shownLesson)
         {
             case TutorialLesson.Move:
                 guide.Key(asset,"Move",part:"Up"); guide.Key(asset,"Move",part:"Left");

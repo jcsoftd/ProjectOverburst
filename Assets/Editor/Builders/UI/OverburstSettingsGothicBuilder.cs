@@ -41,6 +41,7 @@ public static class OverburstSettingsGothicBuilder
             var panel = root.GetComponentInChildren<OverburstSettingsPanel>(true);
             if (panel.GetComponent<OverburstSettingsGothicView>()) throw new InvalidOperationException("Concept B is already applied; restore the owned backup before rebuilding");
             Build(panel);
+            AddHudKeyGuideSetting(panel);
             string characters = string.Concat(panel.GetComponentsInChildren<TMP_Text>(true).Select(t=>t.text)) + "소리화면전투표시조작음량과재생방식을조절합니다플레이할프레임설정항목눌러사용키변경0123456789%ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-+—·×◇켬끔";
             foreach (var font in new[]{titleFont,bodyFont})
             {
@@ -54,6 +55,46 @@ public static class OverburstSettingsGothicBuilder
             return "PASS Concept B: " + rows.Count + " setting rows, " + folds.Count + " foldouts, four categories";
         }
         finally { PrefabUtility.UnloadPrefabContents(root); view=null; rows.Clear(); folds.Clear(); }
+    }
+
+    public static string UpgradeHudKeyGuideSetting()
+    {
+        RequireIdle();
+        var asset = AssetDatabase.LoadAssetAtPath<GameObject>(OverburstGameMenuBuilder.PrefabPath);
+        if (!asset || EditorUtility.IsDirty(asset)) throw new InvalidOperationException("Menu prefab missing or dirty");
+        var root = PrefabUtility.LoadPrefabContents(OverburstGameMenuBuilder.PrefabPath);
+        try
+        {
+            AddHudKeyGuideSetting(root.GetComponentInChildren<OverburstSettingsPanel>(true));
+            PrefabUtility.SaveAsPrefabAsset(root, OverburstGameMenuBuilder.PrefabPath, out bool saved);
+            if (!saved) throw new InvalidOperationException("Settings prefab save failed");
+            return "Saved controls HUD guide toggle";
+        }
+        finally { PrefabUtility.UnloadPrefabContents(root); }
+    }
+
+    static void AddHudKeyGuideSetting(OverburstSettingsPanel panel)
+    {
+        if (panel.hudKeyGuide) return;
+        var presentation = panel.GetComponent<OverburstSettingsGothicView>();
+        var source = panel.muteInBackground.GetComponentInParent<OverburstSettingsGothicRow>();
+        if (!presentation || !source) throw new InvalidOperationException("Existing settings presentation required");
+        var row = Object.Instantiate(source, presentation.scrolls[3].content, false);
+        row.name = "Row • 조작 안내 표시";
+        row.transform.SetAsFirstSibling();
+        row.tabIndex = 3;
+        row.title = "조작 안내 표시";
+        row.description = "화면 왼쪽 아래에 조작법을 표시합니다";
+        row.tip = "필요할 때 다시 켤 수 있습니다. 변경한 설정은 자동으로 저장됩니다.";
+        row.descriptionSource.text = row.description;
+        row.transform.Find("Label").GetComponent<Text>().text = row.title;
+        row.icon = presentation.rows.First(r => r.tabIndex == 3 && r.icon).icon;
+        row.SetHighlighted(false);
+        row.toggle.group = null;
+        row.toggle.SetIsOnWithoutNotify(true);
+        panel.hudKeyGuide = row.toggle;
+        presentation.rows = new[] { row }.Concat(presentation.rows).ToArray();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(presentation.scrolls[3].content);
     }
 
     public static void RequireIdle()

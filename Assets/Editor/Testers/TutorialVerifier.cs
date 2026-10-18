@@ -82,7 +82,7 @@ public static class TutorialVerifier
         var platform=arena.transform.Find("Platform body");
         Check(platform&&platform.localScale.y>=1f&&platform.localPosition.y+platform.localScale.y*.5f<0,"Diamond platform has visible thickness below walkable surface");
         Check(arena.skyMaterial&&arena.skyMaterial.shader.isSupported&&arena.skyMaterial.GetTexturePropertyNames().All(n=>!arena.skyMaterial.GetTexture(n)),"Existing sky material is supported and requires no textures");
-        Check(prefab.view.chapterButtons.Length==7 && prefab.view.energyButtons.Length==3,"Approved chapters and practice controls authored");
+        Check(prefab.view.primary && prefab.view.secondary && prefab.view.primary.transform.parent.childCount==2 && !prefab.transform.Find("Stage/Practice Energy") && !prefab.view.modal.transform.Find("Chapters"),"Initial invitation has two choices without chapter or free-practice controls");
         Check(((RectTransform)prefab.view.goal.transform).sizeDelta.x==720 && ((RectTransform)prefab.view.comparison.transform).sizeDelta.x==720,"Objective and comparison share compact left column");
         var panelSkin=Resources.Load<Sprite>("UI/HudMenu/Skins/panel");
         Check(new[]{prefab.view.goal,prefab.view.comparison,prefab.view.modal}.All(g=>g.transform.Find("Existing HUD Panel").GetComponent<UnityEngine.UI.Image>().sprite==panelSkin),"Tutorial panels reuse current HUD menu skin");
@@ -97,8 +97,11 @@ public static class TutorialVerifier
         var starter=NewAccountFactory.Create(registry);
         var starterGem=starter.items.Single(i=>i.instanceId==starter.elementalGemInstanceId);
         Check(starterGem.contentId==NewAccountFactory.StarterElementGemId&&starterGem.level==1&&starterGem.grade==ItemGrade.Common&&starterGem.count==1,"New character starts with one equipped level 1 common fire gem");
-        var state=OptionalTutorialController.CreateLoadout(registry,NewAccountFactory.Create(registry));
+        string starterBefore=JsonConvert.SerializeObject(starter);
+        var state=OptionalTutorialController.CreateLoadout(registry,starter);
         Check(state.elementalGemInstanceId!=null && state.items.Any(i=>i.contentId==OptionalTutorialController.PotionId),"Training loadout validates with fire gem and healing consumables");
+        Check(state.inventory.Where(id=>!string.IsNullOrEmpty(id)).Any(id=>state.items.Single(i=>i.instanceId==id).contentId==TesterSupportItemData.ContentId),"Training consumables preserve starter support ownership");
+        Check(JsonConvert.SerializeObject(starter)==starterBefore,"Training loadout does not mutate the original account");
         var files=Directory.GetFiles(output,"*",SearchOption.AllDirectories).OrderBy(x=>x).ToArray();
         var store=EasySaveAccountStore.CreateMemoryOnly();store.Save(state,"memory-copy");var first=store.Load();first.level=33;
         Check(store.IsMemoryOnly && store.Load().level==1 && Directory.GetFiles(output,"*",SearchOption.AllDirectories).OrderBy(x=>x).SequenceEqual(files),"Memory store copies snapshots without creating disk saves");
@@ -124,7 +127,7 @@ public static class TutorialVerifier
         string legacyDirectory=Path.Combine(directory,"LegacyCompleted");
         new TutorialProgress{offered=true,completed=1}.Save(legacyDirectory);
         var legacyCompleted=TutorialProgress.Load(legacyDirectory);
-        Check(!legacyCompleted.WasOfferedTo(additionalId)&&legacyCompleted.completed==1,"Old completion without a character id does not suppress new-character invitations");
+        Check(legacyCompleted.offered&&legacyCompleted.completed==1,"Legacy account offer remains consumed without a character id");
         var result=new {status="PASS",scope="Native",count=checks.Count,checks=checks.ToArray()};Write("native-results.json",result);return result;
     }
     public static void Start(string directory, bool firstEntryOnly = false)
@@ -218,9 +221,8 @@ public static class TutorialVerifier
         yield return ReturnToTitle();
         yield return CreateCharacter("추가캐릭터검증");yield return EnterTown();
         string additionalId=AccountGameplaySession.Current.Read().activeCharacterId;
-        Check(AccountGameplaySession.Current.Read().level==1&&tutorial.view.modal.activeSelf,"Additional level 1 character receives its own first invitation");
-        Check(TutorialProgress.Load(directory).WasOfferedTo(additionalId),"Additional character invitation is persisted independently");
-        tutorial.view.secondary.onClick.Invoke();
+        Check(AccountGameplaySession.Current.Read().level==1&&!tutorial.view.modal.activeSelf,"Additional level 1 character does not repeat the account invitation");
+        Check(TutorialProgress.Load(directory).offered,"Account invitation remains consumed after additional creation");
         yield return ReturnToTitle();
         TitleCharacterPanel.Instance.rosterContent.Find("Character "+firstId).GetComponent<UnityEngine.UI.Button>().onClick.Invoke();yield return Frames(3);
         yield return EnterTown();Check(!tutorial.view.modal.activeSelf,"Returning to an already offered character does not prompt again");
@@ -230,12 +232,11 @@ public static class TutorialVerifier
         TitleCharacterPanel.Instance.Open(directory);TitleCharacterPanel.Instance.start.onClick.Invoke();yield return Frames(3);yield return EnterTown();
         Check(AccountGameplaySession.Current.Read().level==2&&!tutorial.view.modal.activeSelf,"First-entry eligibility at level 2 suppresses invitation");
         Check(TutorialProgress.Load(directory).offered,"Ineligible first entry is consumed instead of deferred");
-        OverburstGameMenu.Instance.Open();OverburstGameMenu.Instance.returnButton.onClick.Invoke();yield return Frames(4);
-        Check(tutorial.view.chapters.activeSelf,"Manual town tutorial entry remains available at level 2");
-        tutorial.view.primary.onClick.Invoke();yield return Frames(15);
-        Check(tutorial.IsTraining,"Manual tutorial still enters training through production menu");
-        Check(tutorial.TryExit(out var exitError),"Manual training returns to normal account: "+exitError);yield return Frames(4);
-        Check(AccountGameplaySession.Current.Read().level==2&&!tutorial.view.modal.activeSelf,"Training returns without automatic invitation");
+        OverburstGameMenu.Instance.Open();
+        Check(OverburstGameMenu.Instance.returnButton.gameObject.activeSelf,"Town menu retains direct tutorial entry");
+        OverburstGameMenu.Instance.returnButton.onClick.Invoke();yield return Frames(15);
+        Check(tutorial.IsTraining&&tutorial.Lesson==TutorialLesson.Move&&!tutorial.view.modal.activeSelf,"Manual entry starts the first lesson without a selection screen");
+        Check(tutorial.TryExit(out var exitError),"Manual entry restores account: "+exitError);yield return Frames(4);
         yield return ReturnToTitle();yield return EnterTown();
         Check(!tutorial.view.modal.activeSelf,"Consumed level 2 entry remains quiet on relogin");
     }
@@ -246,12 +247,8 @@ public static class TutorialVerifier
         yield return Wait(()=>AccountBootstrap.Ready&&WorldSessionState.IsHideout&&!PersistentSceneFlow.Instance.IsSwitching,"Title enters town through production flow",100);yield return Frames(12);
         tutorial=OptionalTutorialController.Instance;actor=PlayerContext.Instance.CurrentActor;
         Check(tutorial&&tutorial.view.modal.activeSelf,"First account entry offers optional tutorial");yield return Capture("01-invitation");
-        tutorial.view.secondary.onClick.Invoke();Check(!tutorial.IsTraining&&!GameplayInputBlocker.IsGameplayInputBlocked,"Decline immediately continues normal game");
-        Check(!tutorial.view.footer.activeSelf,"Declining removes all tutorial guidance from normal gameplay");
-        tutorial.OfferIfNeeded();Check(!tutorial.view.modal.activeSelf,"Already offered account is not prompted again");
         var original=AccountGameplaySession.Current;string before=JsonConvert.SerializeObject(original.Read());var position=actor.transform.position;float hp=actor.Health.CurrentHp;
         var originalClearFlags=Camera.main.clearFlags;var originalSky=RenderSettings.skybox;
-        OverburstGameMenu.Instance.Open();OverburstGameMenu.Instance.returnButton.onClick.Invoke();yield return Frames(4);Check(tutorial.view.chapters.activeSelf,"Town menu reopens chapter selection");yield return Capture("02-chapters");
         previousKeyboard=Keyboard.current;previousMouse=Mouse.current;keyboard=InputSystem.AddDevice<Keyboard>("TutorialVerifierKeyboard");mouse=InputSystem.AddDevice<Mouse>("TutorialVerifierMouse");
         inputSettings=InputSystem.settings;temporarySettings=Object.Instantiate(inputSettings);SessionState.SetInt(Key+"inputClone",temporarySettings.GetInstanceID());temporarySettings.backgroundBehavior=InputSettings.BackgroundBehavior.IgnoreFocus;temporarySettings.editorInputBehaviorInPlayMode=InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;InputSystem.settings=temporarySettings;
         tutorial.view.primary.onClick.Invoke();yield return Frames(15);
@@ -316,13 +313,13 @@ public static class TutorialVerifier
         Check(tutorial.view.keyGuide.glyphs.Any(t=>t.gameObject.activeInHierarchy&&t.text==QuickSlotKeyLabels.Short(1)),"Potion guide shows the actual registered quickslot key");yield return Capture("potion-registered-key");
         Check(Object.FindFirstObjectByType<InventoryItemActionService>().UseQuickSlot(1),"Registered quickslot consumes and heals");
         yield return Wait(()=>Done(TutorialLesson.Potion),"Actual bind/use/heal completes lesson");
+        yield return VerifyLayout();
         tutorial.StartLesson((int)TutorialLesson.World);tutorial.view.worldConfirm.onClick.Invoke();yield return Seconds(2);
         Check(tutorial.view.modal.activeSelf,"Final information opens completion summary");yield return Capture("04-complete");
-        tutorial.view.tertiary.onClick.Invoke();yield return Frames(4);Check(tutorial.FreePractice,"Completion opens free practice");tutorial.view.energyButtons[0].onClick.Invoke();Check(Mathf.Abs(energy.Normalized-.2f)<.001f,"Free practice can explicitly prepare incomplete gauge");
         OverburstGameMenu.Instance.Open();float pausedTime=Time.time;yield return Seconds(.25f);
         Check(Time.time==pausedTime&&GameplayInputBlocker.IsGameplayInputBlocked,"Menu pauses training time and gameplay input");OverburstGameMenu.Instance.Close();
-        yield return VerifyLayout();
-        tutorial.Exit();yield return Frames(12);
+        Check(!tutorial.view.secondary.gameObject.activeSelf,"Completion presents only return to game");
+        tutorial.view.primary.onClick.Invoke();yield return Frames(12);
         Check(!tutorial.IsTraining&&WorldSessionState.IsHideout&&AccountGameplaySession.Current==original,"Exit restores original session and town");
         Check(before==JsonConvert.SerializeObject(original.Read()),"Original account snapshot is unchanged by training");
         Check(Vector3.Distance(position,actor.transform.position)<.3f&&Mathf.Approximately(hp,actor.Health.CurrentHp),"Original position and HP restored");
@@ -330,8 +327,8 @@ public static class TutorialVerifier
         Check(QuarterViewCamera.ActiveInstance.CurrentTarget==actor.transform&&Mathf.Approximately(QuarterViewCamera.ActiveInstance.FramingDistanceScale,1f),"Exit restores normal camera tracking and framing");
         Check(Camera.main.clearFlags==originalClearFlags&&RenderSettings.skybox==originalSky,"Exit restores original sky and camera background");
         Check(!tutorial.view.footer.activeSelf&&!SceneManager.GetSceneByName("Overburst_Tutorial_"+tutorial.GetInstanceID()).IsValid(),"Exit removes tutorial guidance and unloads temporary scene");
-        tutorial.ShowChapters();tutorial.StartLesson((int)TutorialLesson.Charge);yield return Frames(4);tutorial.Skip();Check(tutorial.Lesson==TutorialLesson.Discharge,"Skip advances without replay requirement");tutorial.Retry();yield return Frames(3);tutorial.Exit();yield return Frames(8);
-        Check(AccountGameplaySession.Current==original&&!tutorial.IsTraining,"Repeated entry retry skip exit returns cleanly");yield return Capture("05-town-return");
+        tutorial.OfferIfNeeded();Check(!tutorial.view.modal.activeSelf,"Completed tutorial is not offered again");
+        yield return Capture("05-town-return");
         Write("runtime-scope.json",new{screen=new[]{Screen.width,Screen.height},completed=tutorial.CompletedMask,scope="Real title/menu/account, keyboard/mouse combat, production pickup/equip/use; combat death tally uses damage injection; no Player build"});
     }
     private static Rect ScreenBounds(RectTransform rect)
@@ -348,12 +345,12 @@ public static class TutorialVerifier
         var visibleHud=Object.FindFirstObjectByType<OverburstGameUI>().hud.GetComponentsInChildren<UnityEngine.UI.Graphic>()
             .Where(g=>g.isActiveAndEnabled&&g.color.a>.01f&&!g.canvasRenderer.cull&&g.canvasRenderer.GetInheritedAlpha()>.01f).Select(g=>ScreenBounds(g.rectTransform)).ToArray();
         if(visibleHud.Length==0)throw new InvalidOperationException("Production HUD missing during layout verification");
-        var guidance=new[]{tutorial.view.goal,tutorial.view.comparison,tutorial.view.practice}.Where(g=>g.activeSelf).Select(g=>ScreenBounds((RectTransform)g.transform)).ToArray();
+        var guidance=new[]{tutorial.view.goal,tutorial.view.comparison}.Where(g=>g.activeSelf).Select(g=>ScreenBounds((RectTransform)g.transform)).ToArray();
         bool overlap=guidance.Any(a=>visibleHud.Any(b=>Mathf.Min(a.xMax,b.xMax)-Mathf.Max(a.xMin,b.xMin)>.5f&&Mathf.Min(a.yMax,b.yMax)-Mathf.Max(a.yMin,b.yMin)>.5f));
         if(overlap)Write("hud-overlap.json",new{label,guidance=guidance.Select(r=>new[]{r.x,r.y,r.width,r.height}).ToArray(),hud=Object.FindFirstObjectByType<OverburstGameUI>().hud.GetComponentsInChildren<UnityEngine.UI.Graphic>().Where(g=>g.isActiveAndEnabled&&g.color.a>.01f&&!g.canvasRenderer.cull&&g.canvasRenderer.GetInheritedAlpha()>.01f).Select(g=>new{name=g.name,parent=g.transform.parent.name,type=g.GetType().Name,alpha=g.canvasRenderer.GetInheritedAlpha(),bounds=new[]{ScreenBounds(g.rectTransform).x,ScreenBounds(g.rectTransform).y,ScreenBounds(g.rectTransform).width,ScreenBounds(g.rectTransform).height}}).ToArray()});
         Check(!overlap,"Tutorial guidance does not overlap visible production HUD "+label);
         var goal=ScreenBounds((RectTransform)tutorial.view.goal.transform);
-        var next=tutorial.view.comparison.activeSelf?tutorial.view.comparison:tutorial.view.practice.activeSelf?tutorial.view.practice:null;
+        var next=tutorial.view.comparison.activeSelf?tutorial.view.comparison:null;
         if(next){var below=ScreenBounds((RectTransform)next.transform);Check(below.yMax<goal.yMin&&Mathf.Abs(below.xMin-goal.xMin)<1,"Supplement stays below and left aligned with objective "+label);}
     }
     private static void CheckKeyGuide(string label)
@@ -393,7 +390,7 @@ public static class TutorialVerifier
             Check(guide.glyphs.Any(t=>t.gameObject.activeInHierarchy&&t.text=="R"),"Registered potion key follows quickslot rebind");CheckKeyGuide("Rebound potion");
             yield return Capture("keyguide-rebound-potion");
         }
-        finally{asset.LoadBindingOverridesFromJson(before,true);tutorial.view.ShowPractice();}
+        finally{asset.LoadBindingOverridesFromJson(before,true);tutorial.view.ShowLesson(TutorialLesson.PerfectParry);}
         Check(asset.SaveBindingOverridesAsJson()==before,"All temporary key overrides restored before exit");
     }
     private static IEnumerator VerifyLayout()
@@ -439,8 +436,6 @@ public static class TutorialVerifier
                         tutorial.view.Feedback("");
                     }
                 }
-                tutorial.view.ShowPractice();yield return Frames(3);CheckGuidancePlacement("Free practice "+size);CheckKeyGuide("Free practice "+size);
-                yield return Capture("layout-FreePractice-"+size.x);
             }
         }
         finally{RestoreResolution();}

@@ -23,7 +23,7 @@ public sealed class TutorialProgress
             || value.lastLesson < 0 || value.lastLesson >= TutorialLessons.Count)
             throw new InvalidDataException("튜토리얼 기록을 읽지 못했습니다. 기존 파일은 유지됩니다.");
         if (value.offeredCharacterIds == null) value.offeredCharacterIds = new List<string>();
-        // Retain a known legacy invitation without applying it to later characters.
+        // Retain legacy character history; invitation eligibility now belongs to the account.
         if (value.offered && !string.IsNullOrEmpty(value.firstCharacterId)
             && !value.offeredCharacterIds.Contains(value.firstCharacterId))
             value.offeredCharacterIds.Add(value.firstCharacterId);

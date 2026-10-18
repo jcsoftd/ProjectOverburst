@@ -16,7 +16,6 @@ public sealed class OptionalTutorialController : MonoBehaviour
     public TutorialArena arenaPrefab;
     public bool IsTraining => account != null;
     public TutorialLesson Lesson { get; private set; }
-    public bool FreePractice { get; private set; }
     public TutorialArena Arena => arena;
     public string LastError { get; private set; }
     public bool HasUnsavedProgress { get; private set; }
@@ -69,7 +68,7 @@ public sealed class OptionalTutorialController : MonoBehaviour
         if (!LoadProgress()) { ShowModal(); view.ShowError(LastError); return; }
         var state = AccountGameplaySession.Current?.Read();
         if (state == null || string.IsNullOrEmpty(state.activeCharacterId)
-            || progress.WasOfferedTo(state.activeCharacterId)) return;
+            || progress.offered || progress.offeredCharacterIds.Count > 0) return;
         bool previouslyOffered = progress.offered;
         progress.offeredCharacterIds.Add(state.activeCharacterId);
         progress.offered = true;
@@ -100,22 +99,16 @@ public sealed class OptionalTutorialController : MonoBehaviour
         try { progress?.Save(progressDirectory); LastError = null; HasUnsavedProgress = false; return true; }
         catch (Exception error) { HasUnsavedProgress = true; LastError = "학습 기록 저장 실패: " + error.Message; Debug.LogException(error); return false; }
     }
-    public void ShowChapters()
-    {
-        if (!IsTraining && !WorldSessionState.IsHideout) return;
-        if ((progress == null || !string.Equals(progressDirectory, AccountBootstrap.SaveDirectory, StringComparison.OrdinalIgnoreCase))
-            && !LoadProgress()) { ShowModal(); view.ShowError(LastError); return; }
-        if (arena) { arena.AttacksEnabled = false; CancelActions(); }
-        if (HasUnsavedProgress) SaveProgress();
-        ShowModal(); view.ShowChapters(progress);
-    }
     public void StartLesson(int index)
     {
         if (index < 0 || index >= TutorialLessons.Count) return;
         try
         {
-            if (!IsTraining) EnterTraining();
-            FreePractice = false;
+            if (!IsTraining)
+            {
+                if (!LoadProgress()) { ShowModal(); view.ShowError(LastError); return; }
+                EnterTraining();
+            }
             PrepareLesson((TutorialLesson)index);
         }
         catch (Exception error)
@@ -124,18 +117,6 @@ public sealed class OptionalTutorialController : MonoBehaviour
             if (TryExit(out var restoreError)) { ShowModal(); view.ShowError(LastError); }
             else view.ShowError(restoreError);
         }
-    }
-    public void StartFreePractice()
-    {
-        StartLesson((int)TutorialLesson.PerfectParry);
-        if (!IsTraining) return;
-        FreePractice = true;
-        view.ShowPractice();
-    }
-    public void SetPracticeEnergy(float value)
-    {
-        if (!IsTraining || !FreePractice) return;
-        CancelActions(); energy.PrepareTutorialEnergy(value);
     }
     private void EnterTraining()
     {
@@ -208,7 +189,8 @@ public sealed class OptionalTutorialController : MonoBehaviour
         state.appearance = ItemSnapshotCodec.CopyValues(original.appearance);
         var potion = NewItem(registry, PotionId); potion.stackCount = 5;
         var potionSnapshot = ItemSnapshotCodec.Capture(potion, registry);
-        state.items.Add(potionSnapshot); state.inventory[0] = potionSnapshot.instanceId;
+        int slot = state.inventory.FindIndex(0, state.unlockedSlots, string.IsNullOrEmpty);
+        state.items.Add(potionSnapshot); state.inventory[slot] = potionSnapshot.instanceId;
         state.nextAcquisitionOrder = state.items.Max(item => item.acquisitionOrder) + 1;
         AccountInvariants.Validate(state, registry); return state;
     }
@@ -295,7 +277,6 @@ public sealed class OptionalTutorialController : MonoBehaviour
             recoverDelay += Time.deltaTime;
             if (recoverDelay > 1.8f) { health.RestoreLivingHealth(health.MaxHp); recoverDelay = 0; }
         }
-        if (FreePractice) return;
         if (Lesson == TutorialLesson.Move && Vector3.Distance(player.position, arena.moveTarget.position) < 1.4f
             && PlayerCombatModeController.IsSharedCombatModeActive()) Succeed();
         if (Lesson == TutorialLesson.Charge && weakHit && energy.Normalized >= .3f) Succeed();
@@ -323,7 +304,7 @@ public sealed class OptionalTutorialController : MonoBehaviour
     }
     private void Succeed()
     {
-        if (!IsTraining || FreePractice || success) return;
+        if (!IsTraining || success) return;
         success = true; arena.AttacksEnabled = false;
         progress.completed |= 1 << (int)Lesson; progress.skipped &= ~(1 << (int)Lesson);
         bool recorded = SaveProgress();
@@ -332,10 +313,10 @@ public sealed class OptionalTutorialController : MonoBehaviour
             : TutorialLessons.IsParry(Lesson) ? TutorialLessons.Names[(int)Lesson] + " 성공 · 피해와 반격을 확인하세요." : "성공했습니다.");
     }
     public void ConfirmWorld() { if (Lesson == TutorialLesson.World) Succeed(); }
-    public void Retry() { if (IsTraining) { bool free = FreePractice; PrepareLesson(Lesson); FreePractice = free; if (free) view.ShowPractice(); } }
+    public void Retry() { if (IsTraining) PrepareLesson(Lesson); }
     public void Skip()
     {
-        if (!IsTraining || FreePractice) return;
+        if (!IsTraining) return;
         if ((progress.completed & (1 << (int)Lesson)) == 0) progress.skipped |= 1 << (int)Lesson;
         SaveProgress();
         if ((int)Lesson + 1 < TutorialLessons.Count) PrepareLesson(Lesson + 1);
@@ -377,7 +358,7 @@ public sealed class OptionalTutorialController : MonoBehaviour
             if (previousCombat) PlayerCombatModeController.EnterSharedCombatMode(PlayerCombatModeReason.System);
             else PlayerCombatModeController.ExitSharedCombatMode(PlayerCombatModeReason.System);
             WorldSessionState.SetPhase(WorldPhase.Hideout);
-            account = null; FreePractice = false;
+            account = null;
             if (trainingScene.IsValid() && trainingScene.isLoaded) SceneManager.UnloadSceneAsync(trainingScene);
             arena = null; pickup = null;
             HideModal(); view.Hide(); return true;

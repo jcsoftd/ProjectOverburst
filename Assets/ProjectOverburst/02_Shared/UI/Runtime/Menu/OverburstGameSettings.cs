@@ -29,6 +29,7 @@ public static class OverburstGameSettings
         public float masterVolume = 1f;
         public float uiVolume = .8f;
         public bool muteInBackground;
+        public bool hudKeyGuide = true;
         public int playerVoice;
         public bool displayCustomized;
         public int screenMode = (int)FullScreenMode.FullScreenWindow;
@@ -65,6 +66,7 @@ public static class OverburstGameSettings
     public static float MasterVolume { get { Ensure(); return data.masterVolume; } set { Ensure(); data.masterVolume = Mathf.Clamp01(value); ApplyAudio(); Notify(); } }
     public static float UiVolume { get { Ensure(); return data.uiVolume; } set { Ensure(); data.uiVolume = Mathf.Clamp01(value); Notify(); } }
     public static bool MuteInBackground { get { Ensure(); return data.muteInBackground; } set { Ensure(); data.muteInBackground = value; ApplyAudio(); Notify(); } }
+    public static bool HudKeyGuideEnabled { get { Ensure(); return data.hudKeyGuide; } set { Ensure(); if (data.hudKeyGuide == value) return; data.hudKeyGuide = value; Notify(); } }
     public static float CameraShakeScale { get { Ensure(); return data.cameraShake; } set { Ensure(); data.cameraShake = Mathf.Clamp01(value); Notify(); } }
     public static float HitEffectScale { get { Ensure(); return data.hitEffect; } set { Ensure(); data.hitEffect = Mathf.Clamp01(value); Notify(); } }
     public static bool CombatFacingIndicator { get { Ensure(); return data.combatFacingIndicator; } set { Ensure(); if (data.combatFacingIndicator == value) return; data.combatFacingIndicator = value; Notify(); } }
@@ -273,6 +275,7 @@ public static class OverburstGameSettings
         if (section == "combat") { data.mapOverlayOpacity = defaults.mapOverlayOpacity; data.mapOverlayScale = defaults.mapOverlayScale; }
         switch (section)
         {
+            case "controls": data.hudKeyGuide = defaults.hudKeyGuide; break;
             case "sound": data.playerVoice = defaults.playerVoice; data.masterVolume = defaults.masterVolume; data.uiVolume = defaults.uiVolume; data.muteInBackground = defaults.muteInBackground; ApplyAudio(); break;
             case "combat": data.bloodStyle = defaults.bloodStyle; data.bloodPack = defaults.bloodPack; data.bloodC = defaults.bloodC; data.bloodUniformRed = defaults.bloodUniformRed; data.bloodA = defaults.bloodA; data.bloodB = defaults.bloodB; BloodHitVfxService.SetStyle((BloodEffectStyle)data.bloodStyle); BloodHitVfxService.SetUniformRed(data.bloodUniformRed); BloodComparisonTuning.Invalidate(); data.cameraShake = defaults.cameraShake; data.hitEffect = defaults.hitEffect; data.combatFacingIndicator = defaults.combatFacingIndicator; data.combatFacingStyle = defaults.combatFacingStyle; data.combatFacingBrightness = defaults.combatFacingBrightness; data.edgeBlur=defaults.edgeBlur; data.explorationEdgeBlurIntensity=defaults.explorationEdgeBlurIntensity; data.combatEdgeBlurIntensity=defaults.combatEdgeBlurIntensity; data.motionBlur=defaults.motionBlur; data.motionBlurIntensity=defaults.motionBlurIntensity; break;
         }

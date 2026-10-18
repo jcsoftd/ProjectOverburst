@@ -10,6 +10,12 @@ public class StashCurrencySummaryUI : MonoBehaviour
 
     private PlayerStash subscribedStash;
 
+    private void Awake()
+    {
+        foreach (var graphic in GetComponentsInChildren<UnityEngine.UI.Graphic>(true))
+            graphic.raycastTarget = false;
+    }
+
     private void OnEnable()
     {
         ResolveReferences();

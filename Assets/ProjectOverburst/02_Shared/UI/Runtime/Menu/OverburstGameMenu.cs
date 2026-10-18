@@ -274,18 +274,18 @@ public sealed class OverburstGameMenu : MonoBehaviour
         bool cleared = dungeon && run != null && AccountInvariants.IsCompleted(run.phase);
         title.text = "일시정지";
         bool tutorial = OptionalTutorialController.Instance != null && OptionalTutorialController.Instance.IsTraining;
-        bool canTrain = WorldSessionState.IsHideout || tutorial;
+        bool canReturn = dungeon || tutorial || WorldSessionState.IsHideout;
         subtitle.text = (tutorial ? "훈련장" : dungeon ? "던전" : "은신처") + "  ·  게임이 멈춰 있습니다";
-        returnButton.gameObject.SetActive(dungeon || canTrain);
-        returnLabel.text = canTrain ? (tutorial ? "튜토리얼 항목 선택" : "조작 튜토리얼") : cleared ? "포탈로 귀환" : "은신처로 귀환";
+        returnButton.gameObject.SetActive(canReturn);
+        returnLabel.text = tutorial ? "튜토리얼 종료" : WorldSessionState.IsHideout ? "튜토리얼 하기" : cleared ? "포탈로 귀환" : "은신처로 귀환";
         if (titleButton != null) titleButton.interactable = PersistentSceneFlow.Instance != null && !PersistentSceneFlow.Instance.IsSwitching;
         FitMainPanel();
 
         // 보이는 버튼만 위아래로 잇는다(방향키·패드).
-        var order = dungeon || canTrain
+        var order = canReturn
             ? new Selectable[] { resumeButton, settingsButton, returnButton, titleButton, quitButton }
             : new Selectable[] { resumeButton, settingsButton, titleButton, quitButton };
-        if (titleButton == null) order = dungeon || canTrain
+        if (titleButton == null) order = canReturn
             ? new Selectable[] { resumeButton, settingsButton, returnButton, quitButton }
             : new Selectable[] { resumeButton, settingsButton, quitButton };
         for (int i = 0; i < order.Length; i++)
@@ -328,10 +328,15 @@ public sealed class OverburstGameMenu : MonoBehaviour
     private void AskReturn()
     {
         Play(clickClip, .8f);
-        if (WorldSessionState.IsHideout || WorldSessionState.Phase == WorldPhase.Tutorial)
+        if (OptionalTutorialController.Instance != null && OptionalTutorialController.Instance.IsTraining)
         {
-            Close(); OptionalTutorialController.Install()?.ShowChapters(); return;
+            Close(); OptionalTutorialController.Instance.Exit(); return;
         }
+        if (WorldSessionState.IsHideout)
+        {
+            Close(); OptionalTutorialController.Install()?.StartLesson(0); return;
+        }
+        if (WorldSessionState.Phase != WorldPhase.Run) return;
         var run = AccountGameplaySession.Current?.ReadRun();
         bool cleared = run != null && AccountInvariants.IsCompleted(run.phase);
         if (cleared)

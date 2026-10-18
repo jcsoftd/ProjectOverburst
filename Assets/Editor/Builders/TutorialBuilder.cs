@@ -157,18 +157,13 @@ public static class TutorialBuilder
             Text(column,"Grade",grades[i],4,4,222,28,21,true,"#B48D55"); Text(column,"Range",ranges[i],4,35,222,22,15,false,"#EDE3D1"); Text(column,"Effect",effects[i],4,63,222,22,15,false,"#EDE3D1");
         }
         Text(comparison,"Note","강공 시작 때의 게이지로 등급 결정 · 기절은 일반 적 기준",14,111,692,24,14,false,"#EDE3D1");
-        var practice=At(stage,"Practice Energy",24,216,720,52); view.practice=practice.gameObject; view.energyButtons=new Button[3];
-        for(int i=0;i<3;i++) view.energyButtons[i]=Button(practice,grades[i]+" 준비 "+new[]{"20%","50%","85%"}[i],i*243,0,234,44,18);
         var shade=At(stage,"Modal Shade",0,0,1920,1080).gameObject.AddComponent<Image>(); shade.color=C("#000000B8"); view.shade=shade.gameObject;
         var modal=Panel(stage,"Modal",470,280,980,420); view.modal=modal.gameObject; modal.GetComponent<Image>().raycastTarget=true;
         view.modalTitle=Text(modal,"Title","",48,55,884,60,36,true,"#EDE3D1");
         var separator=At(modal,"Separator",110,132,760,3).gameObject.AddComponent<Image>(); separator.sprite=AssetDatabase.LoadAssetAtPath<Sprite>("Assets/ThirdParty/RPG and MMO UI 11/Textures/Controls/Separators/Separator_Horizontal.png"); separator.color=new Color(1,1,1,.5f); separator.raycastTarget=false;
         view.modalBody=Text(modal,"Body","",48,153,884,82,23,false,"#EDE3D1");
-        var chapters=At(modal,"Chapters",48,247,884,160); view.chapters=chapters.gameObject; view.chapterButtons=new Button[7];
-        string[] chapterNames={"약공·강공","대시·구르기","대시 공격","불완전 패링","일반 패링","완벽 패링","장비·물약"};
-        for(int i=0;i<7;i++)view.chapterButtons[i]=Button(chapters,chapterNames[i],i%3*296,i/3*50,280,42,18);
         var actions=At(modal,"Actions",48,0,884,52); actions.anchorMin=actions.anchorMax=new Vector2(0,0); actions.pivot=new Vector2(0,0); actions.anchoredPosition=new Vector2(48,75);
-        view.primary=Button(actions,"처음부터",24,0,260,52,20); view.secondary=Button(actions,"자유 연습",312,0,260,52,20); view.tertiary=Button(actions,"닫기",600,0,260,52,20);
+        view.primary=Button(actions,"튜토리얼 시작",168,0,260,52,20); view.secondary=Button(actions,"바로 게임 시작",456,0,260,52,20);
         view.modalNote=Text(modal,"Note","",48,0,884,28,18,false,"#A8A09B"); var note=(RectTransform)view.modalNote.transform; note.anchorMin=note.anchorMax=new Vector2(0,0); note.pivot=new Vector2(0,0); note.anchoredPosition=new Vector2(48,24);
         view.footer=Text(stage,"Footer","훈련 장비·소모품은 임시 제공됩니다. 실제 소유품과 진행은 유지됩니다.",300,1010,1320,28,18,false,"#A8A09B").gameObject;
         view.footer.SetActive(false); root.SetActive(true); return root;

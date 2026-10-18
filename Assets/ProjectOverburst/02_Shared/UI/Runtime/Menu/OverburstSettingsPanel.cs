@@ -51,6 +51,7 @@ public sealed class OverburstSettingsPanel : MonoBehaviour
     public Button bloodResetButton;
 
     [Header("Controls")]
+    public Toggle hudKeyGuide;
     public OverburstKeyBindingRow[] keyRows;
     public ScrollRect keyScroll;
     public GameObject keyPrompt;
@@ -91,6 +92,7 @@ public sealed class OverburstSettingsPanel : MonoBehaviour
         uiVolume.onValueChanged.AddListener(v => { if (!refreshing) OverburstGameSettings.UiVolume = v; });
         muteInBackground.onValueChanged.AddListener(v => { if (!refreshing) { OverburstGameSettings.MuteInBackground = v; menu.PlayClick(); } });
         if (playerVoice) playerVoice.onChange.AddListener((i, _) => { if (!refreshing) { OverburstGameSettings.PlayerVoice = (PlayerVoiceChoice)i; PlayerVoiceService.Current?.Preview(PlayerVoiceService.VoiceKind.Attack); } });
+        if (hudKeyGuide) hudKeyGuide.onValueChanged.AddListener(v => { if (!refreshing) { OverburstGameSettings.HudKeyGuideEnabled = v; menu.PlayClick(); } });
         cameraShake.onValueChanged.AddListener(v => { if (!refreshing) OverburstGameSettings.CameraShakeScale = v; });
         if (mapOverlayOpacity) mapOverlayOpacity.onValueChanged.AddListener(v => { if (!refreshing) OverburstGameSettings.MapOverlayOpacity = v; });
         if (mapOverlayScale) mapOverlayScale.onValueChanged.AddListener(v => { if (!refreshing) OverburstGameSettings.MapOverlayScale = v; });
@@ -196,6 +198,7 @@ public sealed class OverburstSettingsPanel : MonoBehaviour
             uiVolume.SetValueWithoutNotify(OverburstGameSettings.UiVolume);
             muteInBackground.SetIsOnWithoutNotify(OverburstGameSettings.MuteInBackground);
             if (playerVoice) FillOptions(playerVoice, new[] { "Karen1", "Karen2", "Kimlinh", "Rina", "끄기" }, (int)OverburstGameSettings.PlayerVoice);
+            if (hudKeyGuide) hudKeyGuide.SetIsOnWithoutNotify(OverburstGameSettings.HudKeyGuideEnabled);
             cameraShake.SetValueWithoutNotify(OverburstGameSettings.CameraShakeScale);
             if (mapOverlayOpacity) mapOverlayOpacity.SetValueWithoutNotify(OverburstGameSettings.MapOverlayOpacity);
             if (mapOverlayScale) mapOverlayScale.SetValueWithoutNotify(OverburstGameSettings.MapOverlayScale);
@@ -318,6 +321,7 @@ public sealed class OverburstSettingsPanel : MonoBehaviour
             case 1: OverburstGameSettings.SetFrameOptions(true, -1); break;
             case 2: OverburstGameSettings.ResetSection("combat"); break;
             case 3:
+                OverburstGameSettings.ResetSection("controls");
                 var asset = PlayerInputFacade.Current != null ? PlayerInputFacade.Current.RuntimeAsset : null;
                 if (asset != null) { asset.RemoveAllBindingOverrides(); OverburstGameSettings.StoreBindingOverrides(asset); }
                 break;
