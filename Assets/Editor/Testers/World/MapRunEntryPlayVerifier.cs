@@ -301,6 +301,8 @@ public static class MapRunEntryPlayVerifier
             string caseOutput = SessionState.GetBool(Key + "minimapCycles", false) ? Path.Combine(output, "Cycle-" + cycle.ToString("D2")) : output;
             Directory.CreateDirectory(caseOutput);
             PlayerContext.Instance.CurrentActor.Health.SetDamageDeathPrevention(flow, true);
+            if (SessionState.GetBool(Key + "playerCombat", false))
+                CombatHitchFixVerifier.CaptureFirstHitBaseline(PlayerContext.Instance.CurrentActor.Equipment, caseOutput);
             string label = MapGenerationPolicy.Describe(item.map); double began = EditorApplication.timeSinceStartup;
             if (SessionState.GetBool(Key + "verifyMapRequired", false))
             {

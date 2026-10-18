@@ -35,6 +35,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         "UI/Fonts/DamageFloating/NotoSerifKR_Damage SDF",
         "UI/Fonts/DamageFloating/NotoSerifKR_Stun SDF",
         "UI/Fonts/DamageFloating/NotoSerifKR_Parry SDF",
+        "UI/World/PF_EnemyHoverName",
         "Enemies/Balance/EnemyTelegraphVisualLibrary",
         "Combat/SFX/CombatAction/GreatswordGround01",
         "Combat/VFX/PF_ParryZoomBlur_Normal",
@@ -43,6 +44,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
     private readonly Object[] commonPresentation = new Object[CommonPresentationPaths.Length];
     private readonly ResourceRequest[] commonRequests = new ResourceRequest[CommonPresentationPaths.Length];
     private static readonly Unity.Profiling.ProfilerMarker FirstHitMethodMarker = new Unity.Profiling.ProfilerMarker("Overburst.FirstHit.PrepareMethod");
+    private static readonly Unity.Profiling.ProfilerMarker EnemyHudFontMarker = new Unity.Profiling.ProfilerMarker("Overburst.TargetHud.PrepareFont");
     [field: System.NonSerialized]
     public bool FirstHitMethodsReady { get; private set; }
     [field: System.NonSerialized]
@@ -120,6 +122,33 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
     }
 
 
+    // Populate the actual map names and HP digits before TMP can request OpenType tables in combat.
+    private IEnumerator PrepareEnemyHudFonts(MapRunRoster roster, double deadline, System.Func<bool> cancelled)
+    {
+        if (roster == null || cancelled?.Invoke() == true || Time.realtimeSinceStartupAsDouble >= deadline) yield break;
+        var fonts = new System.Collections.Generic.HashSet<TMPro.TMP_FontAsset>();
+        var hud = FindFirstObjectByType<EnemyTargetHpHud>(FindObjectsInactive.Include);
+        if (hud)
+            foreach (var label in hud.GetComponentsInChildren<TMPro.TMP_Text>(true))
+                if (label.font) fonts.Add(label.font);
+        var hover = Resources.Load<TMPro.TextMeshProUGUI>("UI/World/PF_EnemyHoverName");
+        if (hover && hover.font) fonts.Add(hover.font);
+        var definitions = new System.Collections.Generic.HashSet<EnemyDefinition>();
+        var characters = new System.Text.StringBuilder("0123456789 /%,엘리트");
+        foreach (var member in roster.Members)
+            if (member.Definition && definitions.Add(member.Definition))
+                characters.Append(member.Definition.DisplayName);
+        string required = characters.ToString();
+        foreach (var font in fonts)
+        {
+            if (cancelled?.Invoke() == true || Time.realtimeSinceStartupAsDouble >= deadline) yield break;
+            if (font.atlasPopulationMode == TMPro.AtlasPopulationMode.Static || font.HasCharacters(required)) continue;
+            using (EnemyHudFontMarker.Auto()) font.TryAddCharacters(required, includeFontFeatures: true);
+            // FontEngine calls are atomic. Keep one font per loading frame inside the existing deadline.
+            yield return null;
+        }
+    }
+
     // Count only time spent in presentation preparation, not account/world/scene loading.
     private IEnumerator PrepareCommonPresentation(System.Func<bool> cancelled = null, MapRunRoster roster = null, RunWorldGate gate = null)
     {
@@ -150,6 +179,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
                 }
                 commonPresentation[i] = commonRequests[i].asset;
             }
+            yield return PrepareEnemyHudFonts(roster, deadline, cancelled);
             // Keep existing caps; prepare one silent voice or one first-use parry effect per frame.
             while (Time.realtimeSinceStartupAsDouble < deadline && cancelled?.Invoke() != true)
             {

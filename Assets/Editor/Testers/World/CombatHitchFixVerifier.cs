@@ -66,6 +66,20 @@ public static class CombatHitchFixVerifier
             File.WriteAllText(Path.Combine(output, "time-step-regression.json"), JsonConvert.SerializeObject(samples, Formatting.Indented));
         }
     }
+    static int beforeEntryDischargeCount = -1;
+    static int beforeEntryTingCount, beforeEntryPerfectLayerCount;
+    public static void CaptureFirstHitBaseline(PlayerEquipment equipment, string output)
+    {
+        var energy = equipment.GetComponent<OverburstElementEnergy>();
+        beforeEntryDischargeCount = energy ? energy.DischargeCount : 0;
+        beforeEntryTingCount = ParryFeedbackService.LastAdditionalTingCount;
+        beforeEntryPerfectLayerCount = ParryFeedbackService.LastPerfectLayerCount;
+        File.WriteAllText(Path.Combine(output, "first-hit-before-entry.json"), JsonConvert.SerializeObject(new {
+            amount = energy ? energy.Amount : 0f, discharges = beforeEntryDischargeCount,
+            additionalTingCount = beforeEntryTingCount, perfectLayerCount = beforeEntryPerfectLayerCount,
+            scope = "Before this map entry; discharge and last-parry diagnostics survive ordinary map transitions"
+        }, Formatting.Indented));
+    }
     public static void CheckFirstHitPreparation(PlayerEquipment equipment, string output, Action<bool, string> check)
     {
         var account = Overburst.Persistence.AccountGameplaySession.Current;
@@ -91,6 +105,9 @@ public static class CombatHitchFixVerifier
         var focus = equipment.CurrentWeaponRoot.GetComponentInChildren<DashHeavyFocusPresentation>(true);
         File.WriteAllText(Path.Combine(output, "first-hit-lifecycle.json"), JsonConvert.SerializeObject(new {
             energyPresent = energy != null, amount = energy != null ? energy.Amount : -1f,
+            discharges = energy != null ? energy.DischargeCount : -1, expectedDischarges = beforeEntryDischargeCount,
+            additionalTingCount = ParryFeedbackService.LastAdditionalTingCount, expectedAdditionalTingCount = beforeEntryTingCount,
+            perfectLayerCount = ParryFeedbackService.LastPerfectLayerCount, expectedPerfectLayerCount = beforeEntryPerfectLayerCount,
             focusPresent = focus != null, focusEnabled = focus != null && focus.enabled,
             weapon = equipment.CurrentWeaponData.name, root = equipment.CurrentWeaponRoot.name,
             allFocus = UnityEngine.Object.FindObjectsByType<DashHeavyFocusPresentation>(FindObjectsInactive.Include, FindObjectsSortMode.None)
@@ -99,8 +116,8 @@ public static class CombatHitchFixVerifier
         }, Formatting.Indented));
         check(energy != null && energy.Element == equipment.ActiveElement && energy.WeaponInstanceId == equipment.CurrentWeaponItem.runtimeInstanceId,
             "Loading binds current weapon energy before the first confirmed hit");
-        check(energy != null && energy.Amount == 0f && energy.DischargeCount == 0,
-            "Preparation never credits damage, energy or a discharge");
+        check(energy != null && energy.Amount == 0f && beforeEntryDischargeCount >= 0 && energy.DischargeCount == beforeEntryDischargeCount,
+            "Preparation credits no energy and preserves the pre-entry discharge count");
         check(focus != null && !focus.enabled, "Charged-heavy focus is prepared and remains inactive before combat");
         var hud = UnityEngine.Object.FindObjectsByType<HudResourceBarFx>(FindObjectsSortMode.None)
             .Select(h => Field(h, "weaponFx")).FirstOrDefault(f => f != null);
@@ -124,11 +141,15 @@ public static class CombatHitchFixVerifier
         var random = JsonUtility.ToJson(UnityEngine.Random.state);
         check(!ParryFeedbackService.PrepareOne() && random == JsonUtility.ToJson(UnityEngine.Random.state),
             "Repeated parry preparation does not create more objects or consume gameplay RNG");
-        check(ParryFeedbackService.LastAdditionalTingCount == 0 && ParryFeedbackService.LastPerfectLayerCount == 0,
-            "Preparation does not execute successful-parry feedback");
+        check(ParryFeedbackService.LastAdditionalTingCount == beforeEntryTingCount
+            && ParryFeedbackService.LastPerfectLayerCount == beforeEntryPerfectLayerCount,
+            "Preparation preserves the pre-entry successful-parry feedback diagnostics");
         File.WriteAllText(Path.Combine(output, "first-hit-preparation.json"), JsonConvert.SerializeObject(new {
             energyPresent = energy != null, amount = energy != null ? energy.Amount : -1f,
+            discharges = energy != null ? energy.DischargeCount : -1, expectedDischarges = beforeEntryDischargeCount,
             element = energy != null ? energy.Element.ToString() : "missing", focusPresent = focus != null,
+            additionalTingCount = ParryFeedbackService.LastAdditionalTingCount, expectedAdditionalTingCount = beforeEntryTingCount,
+            perfectLayerCount = ParryFeedbackService.LastPerfectLayerCount, expectedPerfectLayerCount = beforeEntryPerfectLayerCount,
             hudPrepared, hudHidden, fonts, scope = "Before production keyboard/mouse combat; preparation must not credit energy"
         }, Formatting.Indented));
     }

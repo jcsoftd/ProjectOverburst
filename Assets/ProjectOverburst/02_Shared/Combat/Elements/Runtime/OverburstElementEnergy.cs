@@ -7,6 +7,7 @@ public sealed class OverburstElementEnergy : MonoBehaviour
 {
     private PlayerEquipment equipment;
     private CombatHealth health;
+    private Transform preparedWeaponRoot;
     private readonly Dictionary<long, float> attacks = new Dictionary<long, float>();
     private readonly Queue<long> attackOrder = new Queue<long>();
     private int generation;
@@ -73,9 +74,13 @@ public sealed class OverburstElementEnergy : MonoBehaviour
         bool changed = WeaponInstanceId != (item != null ? item.runtimeInstanceId : string.Empty)
             || Element != (equipment != null ? equipment.ActiveElement : WeaponElement.None)
             || GemInstanceId != (equipment?.EquippedElementGem?.runtimeInstanceId ?? string.Empty) || GemRevision != (equipment != null ? equipment.GemRevision : 0);
+        // Account projection can replace the visual while retaining the same item/gem identity.
+        Transform weaponRoot = equipment != null ? equipment.CurrentWeaponRoot : null;
+        bool visualChanged = preparedWeaponRoot != weaponRoot;
+        preparedWeaponRoot = weaponRoot;
         BindWeapon(item != null ? item.runtimeInstanceId : string.Empty, equipment != null ? equipment.ActiveElement : WeaponElement.None,
             equipment?.EquippedElementGem?.runtimeInstanceId ?? string.Empty, equipment != null ? equipment.GemRevision : 0);
-        if (changed) MeleeHeavyVfxPreparation.RequestForEquippedWeapon(equipment, Element);
+        if (changed || visualChanged) MeleeHeavyVfxPreparation.RequestForEquippedWeapon(equipment, Element);
     }
     public void BindWeapon(string weaponId, WeaponElement element, string gemId = "", int gemRevision = 0)
     {
