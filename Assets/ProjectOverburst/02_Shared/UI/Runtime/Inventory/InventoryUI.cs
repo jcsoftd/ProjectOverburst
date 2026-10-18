@@ -134,9 +134,6 @@ public class InventoryUI : MonoBehaviour // 인벤토리 UI
         }
 
         if (visible)
-            ApplyCurrentSort(); // 열 때 현재 정렬 유지
-
-        if (visible)
             UpdateSortControls(); // 정렬 표시
 
         if (visible)
@@ -428,7 +425,6 @@ public class InventoryUI : MonoBehaviour // 인벤토리 UI
         }
 
         sortMode = ItemSortComparer.GetInventoryModeByIndex(optionIndex); // 기준 변경
-        ApplyCurrentSort(); // 선택 즉시 정렬
         UpdateSortControls();
     }
 

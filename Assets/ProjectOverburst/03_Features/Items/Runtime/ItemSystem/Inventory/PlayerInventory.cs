@@ -5,7 +5,7 @@ public class PlayerInventory : MonoBehaviour
 {
     [Header("Inventory")]
     [SerializeField] private int capacity = BagQuality.InventoryCapacity;
-    [SerializeField] private int unlockedSlotCount = 16;
+    [SerializeField] private int unlockedSlotCount = BagQuality.BaseInventorySlots;
     [SerializeField] private List<ItemData> items = new List<ItemData>();
 
     public event System.Action Changed;

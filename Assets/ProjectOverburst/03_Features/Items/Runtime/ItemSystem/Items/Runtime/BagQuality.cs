@@ -37,7 +37,8 @@ public sealed class BagInstanceState
 public static class BagQuality
 {
     public const int Version = 2;
-    public const int InventoryCapacity = 48;
+    public const int BaseInventorySlots = 24;
+    public const int InventoryCapacity = 60;
     public const int RowCount = 4;
     public const int MaxStarsPerRow = 6;
     public const int RewardScale = 10000;

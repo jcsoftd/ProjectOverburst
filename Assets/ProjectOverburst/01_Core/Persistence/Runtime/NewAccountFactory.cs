@@ -12,7 +12,7 @@ namespace Overburst.Persistence
         {
             if (registry == null) throw new ArgumentNullException(nameof(registry));
             var state = new AccountSnapshot { level = 1, experience = 0, inventoryCapacity = BagQuality.InventoryCapacity,
-                baseUnlockedSlots = 16, unlockedSlots = 16, stashCapacity = 63, currentStashTab = 0,
+                baseUnlockedSlots = BagQuality.BaseInventorySlots, unlockedSlots = BagQuality.BaseInventorySlots, stashCapacity = 63, currentStashTab = 0,
                 activeWeaponSlot = 0, lastTransactionId = "new-account-" + Guid.NewGuid().ToString("N") };
             for (int i = 0; i < state.inventoryCapacity; i++) state.inventory.Add(null);
             for (int tab = 0; tab < PlayerStash.TotalTabCount; tab++)

@@ -131,7 +131,7 @@ public sealed class PlayerAccountInventoryService : MonoBehaviour
             stashCurrencyService = GetComponent<StashCurrencyService>() ?? Object.FindFirstObjectByType<StashCurrencyService>(FindObjectsInactive.Include);
     }
     public static bool TryEquipBagFromInventorySlot(PlayerInventory inventory, int sourceIndex,
-        ItemData expected, int bagSlotIndex, int baseUnlockedSlots = 16)
+        ItemData expected, int bagSlotIndex, int baseUnlockedSlots = BagQuality.BaseInventorySlots)
     {
         if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
             return Overburst.Persistence.AccountGameplaySession.Run(() =>
@@ -155,7 +155,7 @@ public sealed class PlayerAccountInventoryService : MonoBehaviour
     }
 
     public static bool TryUnequipBagToInventorySlot(PlayerInventory inventory, int targetIndex,
-        ItemData expected, int bagSlotIndex, int baseUnlockedSlots = 16)
+        ItemData expected, int bagSlotIndex, int baseUnlockedSlots = BagQuality.BaseInventorySlots)
     {
         if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
             return Overburst.Persistence.AccountGameplaySession.Run(() =>

@@ -40,7 +40,8 @@ public static class BagInventoryCapacityBuilder
             grid.constraintCount = 6;
             var rect = (RectTransform)grid.transform;
             var size = rect.sizeDelta;
-            size.y = grid.padding.vertical + 8 * grid.cellSize.y + 7 * grid.spacing.y;
+            int rows = Mathf.CeilToInt(BagQuality.InventoryCapacity / 6f);
+            size.y = grid.padding.vertical + rows * grid.cellSize.y + (rows - 1) * grid.spacing.y;
             rect.sizeDelta = size;
             var scroll = grid.GetComponentInParent<ScrollRect>(true);
             if (scroll == null) throw new InvalidOperationException("Inventory scroll view missing.");
@@ -52,7 +53,7 @@ public static class BagInventoryCapacityBuilder
             if (root.GetComponentsInChildren<Transform>(true).Sum(x => GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(x.gameObject)) != 0)
                 throw new InvalidOperationException("Missing script in inventory prefab.");
             PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
-            return "PASS inventory prefab " + before + " -> 48 slots, six columns, eight rows, vertical scrolling; no scene saved";
+            return "PASS inventory prefab " + before + " -> " + BagQuality.InventoryCapacity + " slots, six columns, " + rows + " rows, vertical scrolling; no scene saved";
         }
         finally { PrefabUtility.UnloadPrefabContents(root); }
     }

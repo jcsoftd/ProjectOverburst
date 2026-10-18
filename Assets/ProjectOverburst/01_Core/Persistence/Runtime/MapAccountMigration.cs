@@ -10,12 +10,14 @@ namespace Overburst.Persistence
             if (state == null) return null;
             bool maps = NeedsUpgrade(state), bags = BagAccountMigration.NeedsGoldUpgrade(state);
             bool testerSupport = NeedsTesterSupport(state);
-            if (!maps && !bags && !testerSupport) return state;
+            bool inventory = BagAccountMigration.NeedsInventoryExpansion(state);
+            if (!maps && !bags && !testerSupport && !inventory) return state;
             // Existing transaction publishes only after a verified durable write.
             var transaction = new AccountTransactions(state, store, registry);
-            transaction.Execute((testerSupport ? "tester-support-v1-" : bags ? "bag-quality-v2-" : "map-generation-v1-") + state.revision, state.revision,
+            transaction.Execute((inventory ? "inventory-capacity-v2-" : testerSupport ? "tester-support-v1-" : bags ? "bag-quality-v2-" : "map-generation-v1-") + state.revision, state.revision,
                 candidate =>
                 {
+                    if (inventory) BagAccountMigration.ExpandInventory(candidate, registry);
                     if (maps) Upgrade(candidate);
                     if (bags) BagAccountMigration.UpgradeGoldOptions(candidate, registry);
                     if (testerSupport) GrantTesterSupport(candidate, registry);

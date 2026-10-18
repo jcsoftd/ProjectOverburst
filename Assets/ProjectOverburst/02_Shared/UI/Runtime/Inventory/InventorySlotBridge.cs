@@ -19,7 +19,7 @@ public partial class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge
     [SerializeField] private float worldDropGroundProbeDistance = 5f; // 바닥 탐색 거리
 
     [Header("Slots")]
-    [SerializeField] private int baseInventorySlotCount = 16; // 기본 칸
+    [SerializeField] private int baseInventorySlotCount = BagQuality.BaseInventorySlots; // 기본 칸
     [SerializeField] private SlotUI[] inventorySlots; // 일반 슬롯
     [SerializeField] private SlotUI[] weaponSlots; // 무기 슬롯
     [SerializeField] private SlotUI[] bagSlots; // 가방 슬롯
@@ -72,6 +72,7 @@ public partial class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge
 
     private void Awake()
     {
+        baseInventorySlotCount = BagQuality.BaseInventorySlots; // legacy serialized defaults follow the shared capacity policy
         ResolveReferences();
         InitAllSlots();
     }

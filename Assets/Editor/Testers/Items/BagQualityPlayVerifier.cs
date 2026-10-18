@@ -100,14 +100,14 @@ public static class BagQualityPlayVerifier
         game.inventory.SetVisible(true);
         for (int i = 0; i < 3; i++) yield return null;
         var slots = Field<SlotUI[]>(bridge, "inventorySlots");
-        Check(inventory.Capacity == 48 && slots.Length == 48, "Actual account and bridge have 48 slots");
+        Check(inventory.Capacity == BagQuality.InventoryCapacity && slots.Length == BagQuality.InventoryCapacity, "Actual account and bridge have 60 slots");
         var savedPath = Path.Combine(Path.GetDirectoryName(Output), "expected.json");
         if (SessionState.GetBool(Key + ".restore", false))
         {
             var expected = File.ReadAllText(savedPath);
             var saved = session.Read();
             Check(JsonConvert.SerializeObject(saved.items.Find(x => x.instanceId == saved.bags[0]).bag) == expected, "Saved bag exact stars on reentry");
-            Check(saved.unlockedSlots == 47 && inventory.UnlockedSlotCount == 47, "Saved 47 unlocked slots restored");
+            Check(saved.unlockedSlots == 55 && inventory.UnlockedSlotCount == 55, "Saved 55 unlocked slots restored");
             Check(saved.bagExperienceCarry == 9600 && saved.bagGoldCarry == 9600, "Fractional XP and gold carries restored");
             Check(BagTooltip.Details(PlayerAccountInventoryService.EquippedBag).Contains("◆"), "Saved bag tooltip retains stars");
             yield break;
@@ -123,7 +123,7 @@ public static class BagQualityPlayVerifier
         float speed = (float)Call(context.CurrentActorMovement, "GetTargetMoveSpeed");
         int bigIndex = inventory.Items.ToList().IndexOf(big);
         Check((bool)Call(bridge, "EquipBagFromInventorySlot", slots[bigIndex]), "Double-click route equips main bag");
-        Check(inventory.UnlockedSlotCount == 47 && session.Read().unlockedSlots == 47, "Six yellow main stars unlock 31 additional slots");
+        Check(inventory.UnlockedSlotCount == 55 && session.Read().unlockedSlots == 55, "Six yellow main stars unlock 31 additional slots");
         Check(Mathf.Approximately(hp, context.CurrentActorHealth.MaxHp) && Mathf.Approximately(speed, (float)Call(context.CurrentActorMovement, "GetTargetMoveSpeed")), "Bag never changes HP or movement speed");
         game.inventory.SetVisible(false); game.inventory.SetVisible(true);
         Check(PlayerAccountInventoryService.EquippedBag.runtimeInstanceId == big.runtimeInstanceId, "Close/reopen retains bag ownership");

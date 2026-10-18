@@ -17,8 +17,8 @@ namespace Overburst.Persistence
         public int inventoryCapacity = BagQuality.InventoryCapacity;
         public int bagExperienceCarry;
         public int bagGoldCarry;
-        public int unlockedSlots = 16;
-        public int baseUnlockedSlots = 16;
+        public int unlockedSlots = BagQuality.BaseInventorySlots;
+        public int baseUnlockedSlots = BagQuality.BaseInventorySlots;
         public int stashCapacity = 63;
         public int currentStashTab;
         public int activeWeaponSlot;

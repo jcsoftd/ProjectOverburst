@@ -33,8 +33,8 @@ public static class BagQualityVerifier
         Require(BagQuality.AdditionalSlots(100, green) == 22, "sum green weights before flooring");
         foreach (int level in new[] { 1, 10, 11, 50, 51, 90, 91, 100 })
             Require(BagQuality.BaseSlots(level) == new[] { 5, 5, 6, 9, 11, 17, 19, 19 }[Array.IndexOf(new[] { 1, 10, 11, 50, 51, 90, 91, 100 }, level)], "level bracket");
-        Require(BagQuality.BaseSlots(100) + 12 + 16 == 47, "max capacity fits 48 physical slots");
-        passed.Add("ten level brackets, green-star flooring and 47/48 maximum capacity");
+        Require(BagQuality.BaseSlots(100) + 12 + BagQuality.BaseInventorySlots == 55 && BagQuality.InventoryCapacity >= 55, "max capacity fits physical slots");
+        passed.Add("ten level brackets, green-star flooring and 55/60 maximum capacity");
 
         var upgraded = EmptyAccount(); upgraded.level = 73;
         var merchantData = registry.Entries.Select(x => x.asset).OfType<MerchantDefinition>().First();
@@ -93,9 +93,9 @@ public static class BagQualityVerifier
         passed.Add("108000-point grade distribution, normalized Rare+ multiplier and unchanged relative high-grade weights");
         passed.Add(AccountUiLifetimeVerifier.Run());
         var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(BagInventoryCapacityBuilder.PrefabPath);
-        Require(prefab.GetComponentInChildren<UnityEngine.UI.GridLayoutGroup>(true).GetComponentsInChildren<SlotUI>(true).Length == 48, "authored grid 48 slots");
+        Require(prefab.GetComponentInChildren<UnityEngine.UI.GridLayoutGroup>(true).GetComponentsInChildren<SlotUI>(true).Length == BagQuality.InventoryCapacity, "authored grid capacity");
         Require(prefab.GetComponentsInChildren<Transform>(true).Sum(x => GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(x.gameObject)) == 0, "prefab missing scripts");
-        passed.Add("authored prefab 48 slots and missing scripts 0");
+        passed.Add("authored prefab 60 slots and missing scripts 0");
         string result = string.Join("\n", passed.Select(x => "PASS " + x));
         File.WriteAllText(Path.Combine(directory, "result.txt"), result);
         return result + "\n" + directory;
@@ -103,8 +103,8 @@ public static class BagQualityVerifier
     public static AccountSnapshot EmptyAccount()
     {
         var state = new AccountSnapshot();
-        state.inventory = Enumerable.Repeat<string>(null, 48).ToList();
-        for (int i = 0; i < 3; i++) state.stashTabs.Add(new ItemContainerSnapshot { slots = Enumerable.Repeat<string>(null, 63).ToList() });
+        state.inventory = Enumerable.Repeat<string>(null, BagQuality.InventoryCapacity).ToList();
+        for (int i = 0; i < PlayerStash.TotalTabCount; i++) state.stashTabs.Add(new ItemContainerSnapshot { slots = Enumerable.Repeat<string>(null, 63).ToList() });
         state.weapons.Add(null); state.gear.AddRange(Enumerable.Repeat<string>(null, 6)); state.bags.Add(null);
         state.flasks.AddRange(Enumerable.Repeat<string>(null, 3));
         for (int i = 0; i < 10; i++) state.quickSlots.Add(new QuickSlotSnapshot());

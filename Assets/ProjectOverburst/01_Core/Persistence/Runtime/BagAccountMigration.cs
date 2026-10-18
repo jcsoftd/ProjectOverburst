@@ -6,6 +6,30 @@ namespace Overburst.Persistence
 {
     public static class BagAccountMigration
     {
+        public static bool NeedsInventoryExpansion(AccountSnapshot state)
+        {
+            if (state.baseUnlockedSlots == 16 || state.inventoryCapacity < BagQuality.InventoryCapacity) return true;
+            if (state.characters != null)
+                foreach (var character in state.characters)
+                    if (character?.personal != null && NeedsInventoryExpansion(character.personal)) return true;
+            return false;
+        }
+
+        public static void ExpandInventory(AccountSnapshot state, AccountContentRegistry registry)
+        {
+            // Only the former product default changes; custom capacities retain their base allowance.
+            if (state.baseUnlockedSlots == 16) state.baseUnlockedSlots = BagQuality.BaseInventorySlots;
+            if (state.inventoryCapacity < BagQuality.InventoryCapacity)
+            {
+                while (state.inventory.Count < BagQuality.InventoryCapacity) state.inventory.Add(null);
+                state.inventoryCapacity = BagQuality.InventoryCapacity;
+            }
+            AccountEquipmentPolicy.RecalculateCapacity(state, registry);
+            if (state.characters != null)
+                foreach (var character in state.characters)
+                    if (character?.personal != null) ExpandInventory(character.personal, registry);
+        }
+
         public static bool NeedsGoldUpgrade(AccountSnapshot state)
         {
             foreach (var item in state.items)
