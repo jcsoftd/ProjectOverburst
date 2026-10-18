@@ -160,6 +160,7 @@ public static class TitleCharacterPlayVerifier
         if(!SessionState.GetBool(K+"equipment",false))
         {
             Check(!title.enter.interactable&&title.rosterCount.text=="0명","empty account cannot enter gameplay before creation");
+            Check(!title.rosterTarget.enabled,"empty roster hides the unassigned fullscreen preview instead of painting white");
             yield return Click(title.create);yield return Click(title.classButtons[1]);yield return Wait(()=>!(bool)typeof(TitleCharacterPanel).GetField("rotating",Private).GetValue(title),"mage rotation settles",240);
             Check(title.classEnglish.text=="MAGE"&&!title.classNext.interactable,"white mage can be selected but cannot create");yield return Click(title.classNext);Check(!title.NameDialogOpen,"disabled class CTA does not open name input");
             yield return KeyPress(Key.RightArrow);yield return Wait(()=>title.classEnglish.text=="ARCHER"&&!(bool)typeof(TitleCharacterPanel).GetField("rotating",Private).GetValue(title),"keyboard selection rotates archer into front",240);
@@ -176,6 +177,7 @@ public static class TitleCharacterPlayVerifier
             yield return KeyPress(Key.Escape);Check(p.discardConfirmation.activeSelf,"Esc opens creation discard confirmation");yield return KeyPress(Key.Escape);Check(!p.discardConfirmation.activeSelf&&p.Session!=null&&title.Screen=="classes","Esc dismisses only the confirmation layer");
             yield return Click(p.back);yield return Click(p.discardAndClose);yield return Frames(3);
             Check(!AppearanceCustomizationPanel.IsOpen&&title.Screen=="characters"&&title.rosterCount.text=="0명"&&!File.Exists(Path.Combine(IsolatedSavePlayGuard.ActiveDirectory,"account-A.es3")),"cancel preserves empty account without checkpoint");
+            Check(!title.rosterTarget.enabled,"cancelled creation keeps the empty roster preview hidden");
             yield return OpenCreation(title,"검증기사");p=AppearanceCustomizationPanel.Instance;
             yield return Click(Choice(p,AppearanceChoiceKind.Face,p.catalog.faces[0].id).button);yield return Click(Choice(p,AppearanceChoiceKind.BodyStyle,p.catalog.bodyStyles[2].id).button);
             yield return Click(p.faceFrame);yield return Click(p.fullFrame);yield return Capture("creation-runtime");
@@ -186,6 +188,7 @@ public static class TitleCharacterPlayVerifier
             finally{store.FaultInjector=null;}
             yield return Click(p.apply);yield return Frames(5);
             Check(!AppearanceCustomizationPanel.IsOpen&&title.Screen=="characters"&&title.rosterCount.text=="1명","successful creation closes preview before opening saved roster");
+            Check(title.rosterTarget.enabled&&title.rosterTarget.texture&&title.rosterPreview.Model,"saved roster displays the selected character render texture");
             var saved=new EasySaveAccountStore(IsolatedSavePlayGuard.ActiveDirectory).Load();Check(saved.characters.Single().name=="새벽기사"&&saved.appearance.Equals(candidate),"name appearance and first character persist in real ES3 checkpoint");
             var transaction=new AccountTransactions(saved,TitleStore(title),Resources.Load<AccountContentRegistry>(AccountContentRegistry.ResourcePath));
             transaction.Execute("owned-progression-fixture",transaction.Revision,c=>{c.level=5;c.skillTree=AccountSkillTree.GrantEligible(null,5);var item=ItemSnapshotCodec.CopyValues(c.items[0]);item.instanceId=Guid.NewGuid().ToString("N");item.acquisitionOrder=c.nextAcquisitionOrder++;c.items.Add(item);c.stashTabs[0].slots[0]=item.instanceId;},true);

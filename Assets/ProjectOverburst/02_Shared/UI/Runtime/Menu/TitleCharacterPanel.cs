@@ -192,6 +192,7 @@ public sealed class TitleCharacterPanel : MonoBehaviour
         rosterContent.sizeDelta=new Vector2(rosterContent.sizeDelta.x,Mathf.Max(140f,index*154f-14f));
         rosterCount.text=index+"명";
         ((RectTransform)create.transform).anchoredPosition=new Vector2(92,-(251.34f+Mathf.Clamp(index*154f-14f,0,456)+14f));
+        rosterTarget.enabled=selectedId!=null;
         enter.interactable=selectedId!=null;characterName.text=list.FirstOrDefault(c=>c.id==selectedId)?.name??"새로운 모험";
         characterDetails.text=selectedId==null?"캐릭터를 생성해 모험을 시작하세요.":"기사 · 대검";
         characterLevel.text="";characterLocation.text="은신처";characterTime.text="—";characterLast.text="—";characterElement.text="없음";
