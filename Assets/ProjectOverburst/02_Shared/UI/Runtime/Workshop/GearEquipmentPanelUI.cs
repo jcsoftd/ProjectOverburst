@@ -51,26 +51,7 @@ public sealed class GearEquipmentPanelUI : MonoBehaviour
     }
 }
 
-public sealed class GearEquipmentSlotUI : MonoBehaviour, IPointerClickHandler, IPointerEnterHandler, IPointerExitHandler
+public sealed class GearEquipmentSlotUI : EquipmentSlotInteraction
 {
-    private int gearSlot;
-    public void Bind(int slot) => gearSlot = slot;
-
-    public void OnPointerClick(PointerEventData eventData)
-    {
-        if (eventData == null) return;
-        bool unequip = eventData.button == PointerEventData.InputButton.Right
-            || eventData.button == PointerEventData.InputButton.Left && eventData.clickCount >= 2;
-        if (!unequip) return;
-        if (GearEquipmentService.UnequipToInventory(gearSlot)) TooltipManager.Instance?.HideTooltip();
-    }
-
-    public void OnPointerEnter(PointerEventData eventData)
-    {
-        PlayerEquipment equipment = PlayerContext.Instance != null ? PlayerContext.Instance.CurrentActorEquipment : null;
-        ItemData item = equipment != null ? equipment.GetGearSlotItem(gearSlot) : null;
-        if (item != null) TooltipManager.Instance?.ShowTooltip(item);
-    }
-
-    public void OnPointerExit(PointerEventData eventData) => TooltipManager.Instance?.HideTooltip();
+    public void Bind(int slot) => Configure(EquipmentSlotKind.Gear, slot);
 }

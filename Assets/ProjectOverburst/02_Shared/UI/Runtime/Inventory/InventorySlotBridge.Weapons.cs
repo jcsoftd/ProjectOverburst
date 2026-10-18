@@ -49,7 +49,7 @@ public partial class InventorySlotBridge
             return true;
         }
 
-        return false;
+        return targetItem.itemType == "Weapon" && EquipWeaponFromInventorySlot(targetSlot, sourceSlot.SlotIndex);
     }
 
     private SlotMoveResult MoveWeaponSlotToInventorySlot(int weaponSlotIndex, int inventorySlotIndex)

@@ -3,6 +3,7 @@ using UnityEngine;
 public class InventorySelectionController : MonoBehaviour
 {
     private SlotUI selectedSlot;
+    private EquipmentSlotInteraction selectedEquipment;
 
     public SlotUI SelectedSlot => selectedSlot;
     public ItemData SelectedItem => selectedSlot != null ? selectedSlot.DisplayItem : null;
@@ -25,6 +26,16 @@ public class InventorySelectionController : MonoBehaviour
             selectedSlot.SetContextSelected(false);
 
         selectedSlot = null;
+        if (selectedEquipment != null) selectedEquipment.SetSelected(false);
+        selectedEquipment = null;
+    }
+
+    public void Select(EquipmentSlotInteraction slot)
+    {
+        if (selectedEquipment == slot) return;
+        Clear();
+        selectedEquipment = slot;
+        if (selectedEquipment != null) selectedEquipment.SetSelected(true);
     }
 
     private void OnDisable()

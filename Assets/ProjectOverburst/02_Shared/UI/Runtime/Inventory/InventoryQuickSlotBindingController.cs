@@ -50,21 +50,41 @@ public class InventoryQuickSlotBindingController : MonoBehaviour
             if (state == null || state.equippedSlot < 0)
                 return false;
             int previousKey = GetFlaskKey(item);
-            if (previousKey != 0 && previousKey != key && !string.IsNullOrEmpty(boundFlaskIds[index]))
-            {
-                boundFlaskIds[previousKey - FirstKey] = boundFlaskIds[index];
-                Set(index, null, item.runtimeInstanceId, null);
-                return true;
-            }
-            ClearDuplicateFlask(index, item.runtimeInstanceId);
+            if (previousKey != 0) return MoveOrSwap(previousKey, key);
             Set(index, null, item.runtimeInstanceId, null);
             return true;
         }
 
         if (!(item.baseData is ConsumableItemData consumableData))
             return false;
-        ClearDuplicateConsumable(index, consumableData);
+        string itemId = GetStableItemId(consumableData);
+        for (int i = 0; i < SlotCount; i++)
+            if (boundConsumables[i] != null && GetStableItemId(boundConsumables[i]) == itemId)
+                return MoveOrSwap(i + FirstKey, key);
         Set(index, consumableData, null, null);
+        return true;
+    }
+
+    public object GetBinding(int key)
+    {
+        int index = ToIndex(key);
+        if (index < 0) return null;
+        return (object)boundConsumables[index] ?? (object)boundFlaskIds[index] ?? boundSkills[index];
+    }
+
+    public bool MoveOrSwap(int fromKey, int toKey)
+    {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => MoveOrSwap(fromKey, toKey));
+        int from = ToIndex(fromKey), to = ToIndex(toKey);
+        if (from < 0 || to < 0 || IsEmpty(from)) return false;
+        if (from == to) return true;
+        if ((!string.IsNullOrEmpty(boundFlaskIds[from]) || !string.IsNullOrEmpty(boundFlaskIds[to]))
+            && !PlayerFlaskController.CanChangeLoadout) return false;
+        var consumable = boundConsumables[from]; var flask = boundFlaskIds[from]; var skill = boundSkills[from];
+        boundConsumables[from] = boundConsumables[to]; boundFlaskIds[from] = boundFlaskIds[to]; boundSkills[from] = boundSkills[to];
+        boundConsumables[to] = consumable; boundFlaskIds[to] = flask; boundSkills[to] = skill;
+        Overburst.Persistence.AccountGameplaySession.Notify(RaiseBindingsChanged);
         return true;
     }
 
@@ -90,8 +110,8 @@ public class InventoryQuickSlotBindingController : MonoBehaviour
         if (index < 0 || skill == null || (skill is Object owner && owner == null))
             return false;
         for (int i = 0; i < SlotCount; i++)
-            if (i != index && ReferenceEquals(boundSkills[i], skill))
-                ClearAt(i);
+            if (ReferenceEquals(boundSkills[i], skill))
+                return MoveOrSwap(i + FirstKey, key);
         Set(index, null, null, skill);
         return true;
     }
@@ -183,23 +203,6 @@ public class InventoryQuickSlotBindingController : MonoBehaviour
         return changed;
     }
 
-    public bool ClearMissingConsumables(PlayerInventory inventory)
-    {
-        if (inventory == null)
-            return false;
-        bool changed = false;
-        for (int i = 0; i < SlotCount; i++)
-        {
-            ConsumableItemData bound = boundConsumables[i];
-            if (bound == null || inventory.CountItemsByBaseData(bound) > 0)
-                continue;
-            ClearAt(i);
-            changed = true;
-        }
-        if (changed) Overburst.Persistence.AccountGameplaySession.Notify(RaiseBindingsChanged);
-        return changed;
-    }
-
     public bool ClearMissingFlasks()
     {
         if (PlayerFlaskController.Current == null)
@@ -249,22 +252,6 @@ public class InventoryQuickSlotBindingController : MonoBehaviour
         boundFlaskIds[index] = flaskId;
         boundSkills[index] = skill;
         Overburst.Persistence.AccountGameplaySession.Notify(RaiseBindingsChanged);
-    }
-
-    private void ClearDuplicateFlask(int targetIndex, string flaskId)
-    {
-        for (int i = 0; i < SlotCount; i++)
-            if (i != targetIndex && boundFlaskIds[i] == flaskId)
-                ClearAt(i);
-    }
-
-    private void ClearDuplicateConsumable(int targetIndex, ConsumableItemData consumableData)
-    {
-        string itemId = GetStableItemId(consumableData);
-        for (int i = 0; i < SlotCount; i++)
-            if (i != targetIndex && boundConsumables[i] != null
-                && (boundConsumables[i] == consumableData || GetStableItemId(boundConsumables[i]) == itemId))
-                ClearAt(i);
     }
 
     private static string GetStableItemId(ConsumableItemData consumableData)

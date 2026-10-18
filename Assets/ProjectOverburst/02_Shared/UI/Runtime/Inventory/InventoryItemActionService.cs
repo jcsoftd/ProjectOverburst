@@ -64,8 +64,6 @@ public class InventoryItemActionService : MonoBehaviour
     {
         ResolveReferences();
         bool dropped = slotBridge != null && slotBridge.HandleExternalDrop(sourceSlot);
-        if (dropped)
-            ClearMissingQuickSlotConsumables();
 
         return dropped;
     }
@@ -255,8 +253,6 @@ public class InventoryItemActionService : MonoBehaviour
             return false;
         }
 
-        if (consumeOnUse)
-            ClearQuickSlotIfEmpty(consumableData);
 
         Overburst.Persistence.AccountGameplaySession.Notify(() =>
         {
@@ -308,10 +304,21 @@ public class InventoryItemActionService : MonoBehaviour
         return false;
     }
 
-    public bool EquipFlaskToSlot(ItemData item, int slotIndex)
+    public int FindFlaskEquipTarget(ItemData item)
+    {
+        var flasks = PlayerFlaskController.Current;
+        if (flasks == null || !(item?.baseData is FlaskItemData data)) return -1;
+        for (int i = 0; i < PlayerFlaskController.SlotCount; i++)
+            if (flasks.GetItem(i)?.baseData is FlaskItemData other && other.kind == data.kind) return i;
+        for (int i = 0; i < PlayerFlaskController.SlotCount; i++)
+            if (flasks.GetItem(i) == null) return i;
+        return -1;
+    }
+
+    public bool EquipFlaskToSlot(ItemData item, int slotIndex, int quickSlotKey = 0)
     {
         if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
-            return Overburst.Persistence.AccountGameplaySession.Run(() => EquipFlaskToSlot(item, slotIndex));
+            return Overburst.Persistence.AccountGameplaySession.Run(() => EquipFlaskToSlot(item, slotIndex, quickSlotKey));
         ResolveReferences();
         PlayerFlaskController flasks = PlayerFlaskController.Current;
         if (item == null || !(item.baseData is FlaskItemData) || flasks == null || quickSlots == null
@@ -320,8 +327,8 @@ public class InventoryItemActionService : MonoBehaviour
         { SpawnPlayerStatusText("지금은 물약 장착을 변경할 수 없습니다."); return false; }
         quickSlots.ImportLegacyFlasks();
         ItemData previous = flasks.GetItem(slotIndex);
-        if (previous == item) return true;
-        int key = previous != null ? quickSlots.GetFlaskKey(previous) : 0;
+        if (previous == item) return quickSlotKey == 0 || BindQuickSlot(quickSlotKey, item);
+        int key = quickSlotKey > 0 ? quickSlotKey : previous != null ? quickSlots.GetFlaskKey(previous) : 0;
         if (key == 0) key = quickSlots.FindFreeFlaskKey();
         if (!flasks.TryEquip(slotIndex, item, out string reason))
         { SpawnPlayerStatusText(reason); return false; }
@@ -350,10 +357,10 @@ public class InventoryItemActionService : MonoBehaviour
         return quickSlots != null && quickSlots.BindSkill(key, skill);
     }
 
-    public bool UnequipFlask(ItemData item)
+    public bool UnequipFlask(ItemData item, int inventorySlot = -1)
     {
         if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
-            return Overburst.Persistence.AccountGameplaySession.Run(() => UnequipFlask(item));
+            return Overburst.Persistence.AccountGameplaySession.Run(() => UnequipFlask(item, inventorySlot));
         ResolveReferences();
         var flasks = PlayerFlaskController.Current;
         if (item == null || flasks == null)
@@ -361,7 +368,9 @@ public class InventoryItemActionService : MonoBehaviour
         for (int i = 0; i < PlayerFlaskController.SlotCount; i++)
             if (flasks.GetItem(i) == item)
             {
-                if (!flasks.TryUnequip(i, out string reason))
+                if (inventorySlot >= 0 && inventory?.GetItemAt(inventorySlot) != null)
+                    return EquipFlaskToSlot(inventory.GetItemAt(inventorySlot), i);
+                if (!flasks.TryUnequip(i, out string reason, inventorySlot))
                 {
                     if (!string.IsNullOrEmpty(reason)) SpawnPlayerStatusText(reason);
                     return false;
@@ -496,18 +505,4 @@ public class InventoryItemActionService : MonoBehaviour
         return consumableData.name;
     }
 
-    private void ClearQuickSlotIfEmpty(ConsumableItemData consumableData)
-    {
-        if (quickSlots == null || inventory == null || consumableData == null)
-            return;
-
-        if (inventory.CountItemsByBaseData(consumableData) <= 0)
-            quickSlots.ClearConsumable(consumableData);
-    }
-
-    private void ClearMissingQuickSlotConsumables()
-    {
-        if (quickSlots != null && inventory != null)
-            quickSlots.ClearMissingConsumables(inventory);
-    }
 }

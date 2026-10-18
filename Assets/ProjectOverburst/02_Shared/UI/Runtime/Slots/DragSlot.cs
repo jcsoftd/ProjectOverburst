@@ -7,10 +7,15 @@ public class DragSlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
 {
     private static GameObject dragIcon; // 드래그 아이콘
     private static ISlotInteractionBridge originBridge; // 출발 Bridge
+    private static ISlotInteractionBridge previewBridge;
     public static ItemData DraggedItem { get; private set; }
-    public static bool IsDragging => DraggedItem != null;
-    public static bool HasCurrentOrigin => OriginSlot != null && OriginSlot.DisplayItem != null
-        && OriginSlot.DisplayItem.IsSameRuntimeItem(DraggedItem);
+    public static EquipmentSlotInteraction EquipmentOrigin { get; private set; }
+    public static ActionSlotHudSlotUI QuickOrigin { get; private set; }
+    private static object quickBinding;
+    public static bool IsDragging => OriginSlot != null || EquipmentOrigin != null || QuickOrigin != null;
+    public static bool HasCurrentOrigin => EquipmentOrigin != null ? ReferenceEquals(EquipmentOrigin.DisplayItem, DraggedItem)
+        : QuickOrigin != null ? quickBinding != null && Equals(QuickOrigin.Binding, quickBinding)
+        : OriginSlot != null && OriginSlot.DisplayItem != null && OriginSlot.DisplayItem.IsSameRuntimeItem(DraggedItem);
 
     private SlotUI slotUI; // 출발 슬롯
     private Canvas canvas; // UI 캔버스
@@ -30,6 +35,8 @@ public class DragSlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
 
     public void OnBeginDrag(PointerEventData eventData)
     {
+        if (eventData.button != PointerEventData.InputButton.Left) return;
+        slotUI?.ResetClickSequence();
         if (!MapDungeonPortalPanel.AllowsSlotDrag(slotUI)) return;
         if (slotUI == null || slotUI.DisplayItem == null || slotUI.IsLocked)
             return;
@@ -78,6 +85,22 @@ public class DragSlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         return true;
     }
 
+    public static void BeginEquipmentDrag(EquipmentSlotInteraction source, Canvas canvas, Vector2 position)
+    {
+        if (source == null || source.DisplayItem == null || canvas == null) return;
+        ClearDragState(); EquipmentOrigin = source; DraggedItem = source.DisplayItem;
+        TooltipManager.Instance?.HideTooltip();
+        CreateDragIcon(canvas, DraggedItem, position);
+    }
+
+    public static void BeginQuickSlotDrag(ActionSlotHudSlotUI source, Canvas canvas, Vector2 position)
+    {
+        if (source == null || source.Binding == null || canvas == null) return;
+        ClearDragState(); QuickOrigin = source; quickBinding = source.Binding;
+        TooltipManager.Instance?.HideTooltip();
+        CreateDragIcon(canvas, source.DragSprite, Color.white, position);
+    }
+
     public static void MoveExternalDrag(Vector2 position)
     {
         if (dragIcon != null)
@@ -114,6 +137,12 @@ public class DragSlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         dropHandled = true; // 드롭 완료
     }
 
+    public static void TrackPreviewBridge(ISlotInteractionBridge bridge)
+    {
+        if (previewBridge != bridge) previewBridge?.ClearDragPreview();
+        previewBridge = bridge;
+    }
+
     public static void RegisterDropTarget(DropSlot dropSlot)
     {
         if (dropSlot == null || !HasCurrentOrigin)
@@ -136,9 +165,7 @@ public class DragSlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             return;
         }
 
-        bool handled = dropHandled || TryHandleUiDrop(eventData); // UI 우선
-        if (!handled && !IsPointerOverAnyUi(eventData))
-            TryHandleExternalDropFromOrigin(eventData); // UI 밖
+        if (!dropHandled) TryHandleUiDrop(eventData); // An outside drop cancels; discarding is an explicit menu action.
 
         ClearDragState();
     }
@@ -160,9 +187,13 @@ public class DragSlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             if (target == null || dragIcon != null && target.transform.IsChildOf(dragIcon.transform)) // 아이콘 제외
                 continue;
 
+            var equipment = target.GetComponentInParent<EquipmentSlotInteraction>();
+            if (equipment != null) { equipment.ReceiveDrop(); return true; }
+            var quick = target.GetComponentInParent<ActionSlotHudSlotUI>();
+            if (quick != null) { quick.ReceiveDrop(eventData.position); return true; }
             DropSlot dropSlot = target.GetComponentInParent<DropSlot>();
-            if (TryHandleFallbackDropSlot(dropSlot, eventData))
-                return true;
+            if (TryHandleFallbackDropSlot(dropSlot, eventData)) return true;
+            return false; // Do not drop through a foreground panel into a covered slot.
         }
 
         return false;
@@ -170,11 +201,14 @@ public class DragSlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
 
     public static void ClearDragState()
     {
+        EquipmentOrigin = null; QuickOrigin = null; quickBinding = null;
         OriginSlot = null; // 출발 해제
         DraggedItem = null; // 아이템 해제
         dropHandled = false; // 드롭 초기화
         pendingDropSlot = null; // 대상 해제
         originBridge?.ClearDragPreview(); // 미리보기 정리
+        if (previewBridge != originBridge) previewBridge?.ClearDragPreview();
+        previewBridge = null;
         originBridge = null; // Bridge 해제
 
         if (dragIcon == null)
@@ -197,6 +231,11 @@ public class DragSlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
 
     private static void CreateDragIcon(Canvas sourceCanvas, ItemData item, Vector2 position)
     {
+        CreateDragIcon(sourceCanvas, item.icon, item.icon != null ? item.iconColor : new Color(item.color.r, item.color.g, item.color.b, .65f), position);
+    }
+
+    private static void CreateDragIcon(Canvas sourceCanvas, Sprite sprite, Color color, Vector2 position)
+    {
         ClearDragIconOnly();
 
         dragIcon = new GameObject("DragIcon"); // 드래그 아이콘
@@ -206,8 +245,8 @@ public class DragSlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
 
         Image image = dragIcon.AddComponent<Image>(); // 아이콘 Image
         image.raycastTarget = false; // 입력 통과
-        image.sprite = item.icon;
-        image.color = item.icon != null ? item.iconColor : new Color(item.color.r, item.color.g, item.color.b, 0.65f);
+        image.sprite = sprite;
+        image.color = color;
         image.preserveAspect = true; // 비율 유지
 
         RectTransform rect = dragIcon.GetComponent<RectTransform>();
@@ -228,6 +267,14 @@ public class DragSlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         if (dropSlot == null || !dropSlot.isActiveAndEnabled || dropSlot.Slot == null)
             return false;
 
+        if (EquipmentOrigin != null || QuickOrigin != null)
+        {
+            SlotUI target = dropSlot.Slot;
+            if (EquipmentOrigin != null && target.OwnerBridge is InventorySlotBridge && !target.IsWeaponSlot && !target.IsBagSlot && !target.IsLocked)
+                EquipmentOrigin.Unequip(target.SlotIndex);
+            MarkDropHandled();
+            return true;
+        }
         SlotDropContext context = SlotDropContext.Create(dropSlot, eventData); // 슬롯 대체 경로
         if (context == null)
             return false;

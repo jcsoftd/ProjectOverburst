@@ -25,6 +25,7 @@ public class DropSlot : MonoBehaviour, IDropHandler, IPointerEnterHandler, IPoin
         if (!DragSlot.IsDragging || slotUI == null || slotUI.OwnerBridge == null)
             return;
 
+        DragSlot.TrackPreviewBridge(slotUI.OwnerBridge);
         slotUI.OwnerBridge.ShowDragPreviewForTarget(slotUI); // 대상 미리보기
     }
 

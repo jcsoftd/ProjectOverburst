@@ -228,7 +228,7 @@ public class StashSlotBridge : MonoBehaviour, ISlotInteractionBridge // 창고 �
             return;
 
         if (CanAcceptTarget(previewOriginSlot, targetSlot))
-            targetSlot.SetDragOverlay(SlotDragOverlayState.WillUnlock); // 허용 표시
+            targetSlot.SetDragOverlay(SlotDragOverlayState.DropTarget); // 이동 가능 표시
     }
 
     public void ClearDragPreview()

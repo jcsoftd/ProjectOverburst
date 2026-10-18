@@ -74,11 +74,8 @@ namespace Overburst.Persistence
 
         internal static void NormalizeBindings(AccountSnapshot state)
         {
-            var carried = new HashSet<string>(state.inventory.Where(id => !string.IsNullOrEmpty(id)));
-            var content = new HashSet<string>(state.items.Where(item => carried.Contains(item.instanceId)).Select(item => item.contentId));
             foreach (var quick in state.quickSlots)
             {
-                if (!string.IsNullOrEmpty(quick.consumableContentId) && !content.Contains(quick.consumableContentId)) quick.consumableContentId = null;
                 if (!string.IsNullOrEmpty(quick.flaskInstanceId) && !state.flasks.Contains(quick.flaskInstanceId)) quick.flaskInstanceId = null;
             }
             foreach (var item in state.items)

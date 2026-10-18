@@ -63,7 +63,12 @@ public sealed class FlaskEquipmentPanelUI : MonoBehaviour
         for (int i = 0; i < flaskButtons.Length; i++)
         {
             int slot = i;
-            if (flaskButtons[i] != null) flaskButtons[i].onClick.AddListener(() => OpenKeyPicker(slot));
+            if (flaskButtons[i] != null)
+            {
+                var pointer = flaskButtons[i].GetComponent<EquipmentSlotInteraction>() ?? flaskButtons[i].gameObject.AddComponent<EquipmentSlotInteraction>();
+                pointer.Configure(EquipmentSlotKind.Flask, slot);
+                if (flaskButtons[i].targetGraphic != null) flaskButtons[i].targetGraphic.raycastTarget = true;
+            }
         }
         for (int i = 0; i < keyButtons.Length; i++)
         {

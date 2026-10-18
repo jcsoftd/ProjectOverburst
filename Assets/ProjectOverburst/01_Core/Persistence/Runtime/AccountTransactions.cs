@@ -86,9 +86,9 @@ namespace Overburst.Persistence
                     throw new InvalidDataException("Quick slot refers to an unequipped flask.");
                 if (!string.IsNullOrEmpty(quick.consumableContentId))
                 {
-                    registry.Resolve<ConsumableItemData>(quick.consumableContentId);
-                    if (!state.inventory.Exists(id => !string.IsNullOrEmpty(id) && items[id].contentId == quick.consumableContentId))
-                        throw new InvalidDataException("Quick slot refers to a consumable not carried.");
+                    // A consumable binding survives zero stock; flasks still require an equipped instance.
+                    if (registry.Resolve<ConsumableItemData>(quick.consumableContentId) is FlaskItemData)
+                        throw new InvalidDataException("Flask binding requires an equipped instance.");
                 }
             }
             if (state.run != null)

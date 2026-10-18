@@ -27,7 +27,7 @@ public class ShopSlotBridge : MonoBehaviour, ISlotInteractionBridge, ISlotSingle
         SlotUI originSlot = DragSlot.OriginSlot != null ? DragSlot.OriginSlot : previewOriginSlot;
         ClearDragPreview();
         if (targetSlot != null && shopUI != null && shopUI.CanConsumeShopSlotDrop(originSlot, targetSlot))
-            targetSlot.SetDragOverlay(SlotDragOverlayState.WillUnlock);
+            targetSlot.SetDragOverlay(SlotDragOverlayState.DropTarget);
     }
 
     public void ClearDragPreview()

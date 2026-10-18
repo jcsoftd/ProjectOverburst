@@ -164,9 +164,6 @@ namespace Overburst.Persistence
             foreach (var quick in state.quickSlots)
             {
                 if (quick.flaskInstanceId == item.instanceId) quick.flaskInstanceId = null;
-                if (quick.consumableContentId == item.contentId && !state.inventory.Any(id =>
-                    !string.IsNullOrEmpty(id) && state.items.Any(x => x.instanceId == id && x.contentId == item.contentId)))
-                    quick.consumableContentId = null;
             }
             if (item.flask != null) { item.flask.equippedSlot = -1; item.flask.cooldownRemaining = 0f; }
             item.originRunId = null;

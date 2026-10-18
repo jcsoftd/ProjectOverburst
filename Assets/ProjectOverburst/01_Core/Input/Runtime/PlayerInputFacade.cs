@@ -211,7 +211,7 @@ public sealed class PlayerInputFacade : MonoBehaviour
     public bool AimHeld => IsPressed("Aim");
     public bool AimReleasedThisFrame => WasReleasedThisFrame("Aim");
 
-    public bool QuickSlotPressedThisFrame(int key) => key >= 1 && key <= 10 && WasPressedThisFrame("QuickSlot" + key);
+    public bool QuickSlotPressedThisFrame(int key) => consumedQuickSlotFrame != Time.frameCount && key >= 1 && key <= 10 && WasPressedThisFrame("QuickSlot" + key);
     public bool EquipmentPressedThisFrame => WasPressedThisFrame("Equipment") || WasUiPressedThisFrame("Equipment");
 
     public bool QuickSlot1PressedThisFrame => WasPressedThisFrame("QuickSlot1");
@@ -247,7 +247,11 @@ public sealed class PlayerInputFacade : MonoBehaviour
     public bool UiSubmitHeld => IsUiPressed("Submit");
     public bool UiSubmitReleasedThisFrame => WasUiReleasedThisFrame("Submit");
 
-    public bool UiCancelPressedThisFrame => WasUiPressedThisFrame("Cancel");
+    private int consumedUiCancelFrame = -1;
+    private int consumedQuickSlotFrame = -1;
+    public void ConsumeUiCancel() => consumedUiCancelFrame = Time.frameCount;
+    public void ConsumeQuickSlotInput() => consumedQuickSlotFrame = Time.frameCount;
+    public bool UiCancelPressedThisFrame => consumedUiCancelFrame != Time.frameCount && WasUiPressedThisFrame("Cancel");
     public bool UiCancelHeld => IsUiPressed("Cancel");
     public bool UiCancelReleasedThisFrame => WasUiReleasedThisFrame("Cancel");
 

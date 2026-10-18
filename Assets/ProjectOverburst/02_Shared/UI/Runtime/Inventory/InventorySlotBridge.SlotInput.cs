@@ -11,17 +11,7 @@ public partial class InventorySlotBridge
 
         if (MapDungeonPortalPanel.HandleInventoryClick(context)) return true;
 
-        if (TryHandleOpenShopPlayerSlot(context))
-            return true;
-
         bool handled;
-        StashSlotBridge openStashBridge = StashSlotBridge.FindOpenBridge(); // 열린 창고
-        if (openStashBridge != null && !context.Slot.IsWeaponSlot && !context.Slot.IsBagSlot)
-        {
-            handled = openStashBridge.TryMoveInventorySlotToFirstAvailableStashSlot(context.Slot.SlotIndex); // 창고 우선 이동
-            return handled;
-        }
-
         if (context.Slot.IsBagSlot)
             handled = UnequipBagToFirstAvailableSlot(context.Slot.SlotIndex);
         else if (context.Item.itemType == "Bag")
@@ -30,6 +20,15 @@ public partial class InventorySlotBridge
             handled = ElementGemEquipmentService.EquipFromInventorySlot(context.Slot.SlotIndex, context.Item.runtimeInstanceId);
         else if (context.Item.itemType == "Gear" && !context.Slot.IsWeaponSlot)
             handled = GearEquipmentService.EquipFromInventorySlot(context.Slot.SlotIndex);
+        else if (context.Item.baseData is FlaskItemData)
+        {
+            var actions = GetComponent<InventoryItemActionService>();
+            handled = actions != null && actions.EquipFlask(context.Item);
+            if (!handled && actions != null)
+                GetComponent<InventoryContextMenuController>()?.OpenFlaskEquip(context.Item, context.EventData.position);
+        }
+        else if (context.Item.baseData is ConsumableItemData)
+            handled = GetComponent<InventoryItemActionService>()?.UseConsumable(context.Slot) == true;
         else if (context.Item.itemType != "Weapon")
             handled = false;
         else if (context.IsWeaponSlot)
@@ -42,16 +41,13 @@ public partial class InventorySlotBridge
 
     public bool HandleSlotSingleClick(SlotClickContext context)
     {
-        if (MapDungeonPortalPanel.HandleInventoryClick(context)) return true;
-        if (ShopUI.TryConsumeOpenPlayerInventorySingleClick())
-            return true;
+
 
         return false;
     }
 
     public bool HandleSlotRightClick(SlotClickContext context)
     {
-        if (MapDungeonPortalPanel.HandleInventoryClick(context)) return true;
         return ShopUI.TryOpenPlayerInventoryShopContextMenu(context);
     }
 

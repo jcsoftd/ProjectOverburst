@@ -486,8 +486,11 @@ public static class OverburstShopUIPlayVerifier
             var pointer=game.flasks[0].GetComponent<OverburstEquippedFlaskTooltip>();
             Check(pointer!=null,"Actual equipped flask slot has an unequip pointer handler");
             ExecuteEvents.Execute(pointer.gameObject,new PointerEventData(EventSystem.current){button=PointerEventData.InputButton.Right},ExecuteEvents.pointerClickHandler);
-            Check(flasks.GetItem(0)==null && inventory.Items.Count(item=>item?.runtimeInstanceId==first.runtimeInstanceId)==1
-                && !flasks.Effects.Contains(first.runtimeInstanceId),"Right click returns exactly one flask to inventory and clears its effect");
+            Check(menu.IsOpen && flasks.GetItem(0)==first,"Right click opens the menu and keeps the flask equipped");
+            var unequip=FieldArray<Button>(menu,"menuButtons").First(b=>b.gameObject.activeSelf && b.GetComponentInChildren<TMP_Text>(true)?.text=="장착 해제");
+            unequip.onClick.Invoke();
+            Check(!menu.IsOpen && flasks.GetItem(0)==null && inventory.Items.Count(item=>item?.runtimeInstanceId==first.runtimeInstanceId)==1
+                && !flasks.Effects.Contains(first.runtimeInstanceId),"Menu unequip returns exactly one flask to inventory and clears its effect");
             game.CloseEquipment();
             Check(actions.EquipFlask(first) && Mathf.Approximately(first.flaskState.cooldownRemaining,cooldown),"Re-equipping during Run preserves cooldown");
             Check(!flasks.TryUse(0,out _) && first.flaskState.cooldownRemaining>0,"Re-equipping cannot bypass cooldown");

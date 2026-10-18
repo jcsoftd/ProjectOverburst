@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
+[DefaultExecutionOrder(-200)]
 public class InventoryContextMenuController : MonoBehaviour
 {
     private const float MinMenuWidth = 184f;
@@ -41,6 +42,74 @@ public class InventoryContextMenuController : MonoBehaviour
     private int objectizedButtonIndex;
     private bool warnedMissingObjectizedMenu;
     private bool warnedMissingObjectizedSplit;
+    private bool choosingQuickSlot;
+    private int pendingQuickSlot;
+    private Func<bool> externalSelectionIsCurrent;
+
+    private void Update()
+    {
+        var input = PlayerInputFacade.Current;
+        if (input == null) return;
+        if (DragSlot.IsDragging && input.UiCancelPressedThisFrame)
+        { DragSlot.ClearDragState(); input.ConsumeUiCancel(); return; }
+        if (!IsOpen) return;
+        int chosen = 0;
+        if (choosingQuickSlot)
+            for (int key = 1; key <= InventoryQuickSlotBindingController.SlotCount; key++)
+                if (input.QuickSlotPressedThisFrame(key)) { chosen = key; break; }
+        input.ConsumeQuickSlotInput();
+        if (input.UiCancelPressedThisFrame) { Close(); input.ConsumeUiCancel(); return; }
+        if (chosen > 0) { if (ValidateSelectedItem()) actionService?.BindQuickSlot(chosen, selectedItem); Close(); return; }
+        if (splitPopupRoot != null && splitPopupRoot.gameObject.activeSelf
+            && UnityEngine.InputSystem.Keyboard.current?.enterKey.wasPressedThisFrame == true)
+            ConfirmObjectizedSplit();
+    }
+
+    private void OpenExternal(ItemData item, Vector2 position, Func<bool> isCurrent)
+    {
+        Close(); EnsureView();
+        selectedItem = item; lastScreenPosition = position;
+        externalSelectionIsCurrent = isCurrent;
+        tooltipManager?.SetSuppressed(true); tooltipManager?.HideNow();
+        blockerRoot.gameObject.SetActive(true); blockerRoot.SetAsLastSibling();
+        GameplayInputBlocker.Block(this);
+        ClearMenu(); ShowRootMenu();
+    }
+
+    public void OpenForEquipment(EquipmentSlotInteraction slot, Vector2 position)
+    {
+        var item = slot.DisplayItem;
+        if (item == null) return;
+        OpenExternal(item, position, () => slot != null && ReferenceEquals(slot.DisplayItem, item)); selectionController?.Select(slot);
+        AddButton("장착 해제", true, () => { if (ReferenceEquals(slot.DisplayItem, item)) slot.Unequip(); Close(); });
+        if (slot.Kind == EquipmentSlotKind.Flask) AddButton("퀵슬롯 등록", PlayerFlaskController.CanChangeLoadout, ShowQuickSlotSubmenu);
+        AddButton("정보", true, ShowSelectedItemInfo);
+        AddButton("닫기", true, Close); PositionMenu(position);
+    }
+
+    public void OpenMapSelection(MapDungeonPortalPanel panel, Vector2 position)
+    {
+        var item = panel.SelectedMap;
+        OpenExternal(item, position, () => panel != null && ReferenceEquals(panel.SelectedMap, item));
+        AddButton("지도 빼기", item != null, () => { panel.ClearSelection(); Close(); });
+        AddButton("정보", item != null, ShowSelectedItemInfo);
+        AddButton("닫기", true, Close); PositionMenu(position);
+    }
+
+    public void OpenForQuickSlot(ActionSlotHudSlotUI slot, Vector2 position)
+    {
+        object binding = slot.Binding;
+        if (binding == null) return;
+        OpenExternal(null, position, () => slot != null && Equals(binding, slot.Binding));
+        AddButton("등록 해제", true, () => { if (Equals(binding, slot.Binding)) quickSlots?.Clear(slot.KeyNumber); Close(); });
+        AddButton("닫기", true, Close); PositionMenu(position);
+    }
+
+    public void OpenFlaskEquip(ItemData item, Vector2 position, int quickSlotKey = 0)
+    {
+        OpenExternal(item, position, () => PlayerContext.Instance?.CurrentActorInventory?.ContainsItem(item) == true); pendingQuickSlot = quickSlotKey;
+        ShowFlaskEquipSubmenu();
+    }
 
     public bool IsOpen => blockerRoot != null && blockerRoot.gameObject.activeSelf;
 
@@ -91,6 +160,7 @@ public class InventoryContextMenuController : MonoBehaviour
 
         blockerRoot.gameObject.SetActive(true);
         blockerRoot.SetAsLastSibling();
+        GameplayInputBlocker.Block(this);
         BuildRootMenu(slot.DisplayItem);
         RefreshResponsiveMenuWidth();
         PositionMenu(lastScreenPosition);
@@ -103,6 +173,9 @@ public class InventoryContextMenuController : MonoBehaviour
 
     public void Close()
     {
+        choosingQuickSlot = false; pendingQuickSlot = 0;
+        externalSelectionIsCurrent = null;
+        GameplayInputBlocker.Unblock(this);
         if (blockerRoot != null)
             blockerRoot.gameObject.SetActive(false);
 
@@ -142,6 +215,7 @@ public class InventoryContextMenuController : MonoBehaviour
 
         blockerRoot.gameObject.SetActive(true);
         blockerRoot.SetAsLastSibling();
+        GameplayInputBlocker.Block(this);
         BuildWeaponSlotMenu();
         RefreshResponsiveMenuWidth();
         PositionMenu(lastScreenPosition);
@@ -162,6 +236,7 @@ public class InventoryContextMenuController : MonoBehaviour
 
         if (selectedSlot != null && selectedSlot.OwnerBridge is StashSlotBridge)
         {
+            AddButton("꺼내기 · Shift+클릭", true, () => { selectedSlot.OwnerBridge.HandleSlotClick(SlotClickContext.Create(selectedSlot, null, true)); Close(); });
             AddButton("정보", true, ShowSelectedItemInfo);
             AddSplitButtonIfAvailable(item);
             AddButton("닫기", true, Close);
@@ -174,6 +249,12 @@ public class InventoryContextMenuController : MonoBehaviour
             AddButton("정보", true, ShowSelectedItemInfo);
             AddButton("닫기", true, Close);
             return;
+        }
+
+        if (selectedSlot != null && selectedSlot.OwnerBridge is InventorySlotBridge && !selectedSlot.IsWeaponSlot && !selectedSlot.IsBagSlot)
+        {
+            var stash = StashSlotBridge.FindOpenBridge();
+            if (stash != null) AddButton("보관 · Shift+클릭", true, () => { stash.TryMoveInventorySlotToFirstAvailableStashSlot(selectedSlot.SlotIndex); Close(); });
         }
 
         if (item.baseData is FlaskItemData)
@@ -204,6 +285,13 @@ public class InventoryContextMenuController : MonoBehaviour
         }
         switch (item.itemType)
         {
+            case "Map":
+                if (MapDungeonPortalPanel.Active != null)
+                    AddButton("지도 넣기", true, () => { MapDungeonPortalPanel.Active.TryInsert(selectedSlot); Close(); });
+                AddButton("정보", true, ShowSelectedItemInfo);
+                AddButton("버리기", true, DropSelectedItem);
+                AddButton("닫기", true, Close);
+                break;
             case "ElementGem":
                 string gemId = item.runtimeInstanceId;
                 AddButton("장착", true, () => { if (selectedSlot != null && ElementGemEquipmentService.EquipFromInventorySlot(selectedSlot.SlotIndex, gemId)) Close(); });
@@ -254,7 +342,7 @@ public class InventoryContextMenuController : MonoBehaviour
     {
         ClearMenu();
         ShowRootMenu();
-        AddButton("장착해제", true, UnequipSelectedWeaponSlot);
+        AddButton("장착 해제", true, UnequipSelectedWeaponSlot);
         AddButton("닫기", true, Close);
     }
 
@@ -280,7 +368,8 @@ public class InventoryContextMenuController : MonoBehaviour
     {
         ClearMenu();
         ShowRootMenu();
-        ItemData item = selectedSlot != null ? selectedSlot.DisplayItem : null;
+        ItemData item = selectedSlot != null ? selectedSlot.DisplayItem : selectedItem;
+        selectedItem = item; choosingQuickSlot = true;
 
         for (int key = InventoryQuickSlotBindingController.FirstKey; key <= InventoryQuickSlotBindingController.SlotCount; key++)
         {
@@ -301,7 +390,7 @@ public class InventoryContextMenuController : MonoBehaviour
     {
         ClearMenu();
         ShowRootMenu();
-        ItemData item = selectedSlot != null ? selectedSlot.DisplayItem : null;
+        ItemData item = selectedSlot != null ? selectedSlot.DisplayItem : selectedItem;
         PlayerFlaskController flasks = PlayerFlaskController.Current;
         for (int i = 0; i < PlayerFlaskController.SlotCount; i++)
         {
@@ -310,10 +399,11 @@ public class InventoryContextMenuController : MonoBehaviour
             string label = "물약 " + (i + 1) + "칸" + (current != null ? " · " + current.itemName : " · 비어있음");
             AddButton(label, item != null, () =>
             {
-                if (actionService != null && actionService.EquipFlaskToSlot(item, target)) Close();
+                if (actionService != null && actionService.EquipFlaskToSlot(item, target, pendingQuickSlot)) Close();
             });
         }
-        AddButton("뒤로", true, () => BuildRootMenu(item));
+        if (selectedSlot != null) AddButton("뒤로", true, () => BuildRootMenu(item));
+        else AddButton("취소", true, Close);
         PositionMenu(lastScreenPosition);
     }
 
@@ -363,7 +453,7 @@ public class InventoryContextMenuController : MonoBehaviour
 
     private void ShowSelectedItemInfo()
     {
-        ItemData item = selectedSlot != null ? selectedSlot.DisplayItem : null;
+        ItemData item = selectedSlot != null ? selectedSlot.DisplayItem : selectedItem;
         Close();
         if(item!=null)tooltipManager?.ShowTooltip(item);
     }
@@ -488,6 +578,11 @@ public class InventoryContextMenuController : MonoBehaviour
 
     private bool ValidateSelectedItem()
     {
+        if (externalSelectionIsCurrent != null)
+        {
+            if (externalSelectionIsCurrent()) return true;
+            Close(); return false;
+        }
         ItemData current = selectedWeaponSlotIndex >= 0
             ? actionService?.GetWeaponSlotItem(selectedWeaponSlotIndex)
             : selectedSlot?.DisplayItem;
@@ -588,6 +683,7 @@ public class InventoryContextMenuController : MonoBehaviour
         splitPopupRoot.gameObject.SetActive(true);
         splitPopupRoot.SetAsLastSibling();
         PositionRect(splitPopupRoot, lastScreenPosition, splitPopupRoot.rect.width);
+        splitAmountInput.Select(); splitAmountInput.ActivateInputField();
         return true;
     }
 
@@ -669,6 +765,7 @@ public class InventoryContextMenuController : MonoBehaviour
 
     private void ClearMenu()
     {
+        choosingQuickSlot = false;
         if (menuRoot == null)
             return;
 

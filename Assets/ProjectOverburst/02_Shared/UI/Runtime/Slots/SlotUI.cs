@@ -7,15 +7,18 @@ public enum SlotDragOverlayState
 {
     None,
     WillUnlock,
-    WillLock
+    WillLock,
+    DropTarget,
+    Equip,
+    Unequip,
+    Swap
 }
 
-public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
+public class SlotUI : MonoBehaviour, IPointerClickHandler, IPointerEnterHandler, IPointerExitHandler // 공통 슬롯
 {
     private static readonly Color DefaultSlotBackgroundColor = new Color(0.24f, 0.25f, 0.27f, 0.96f); // 기본 배경
     private static readonly Color LockedSlotBackgroundColor = new Color(0.045f, 0.048f, 0.055f, 0.9f); // 잠금 배경
     private static readonly Color LockedSlotSpriteTintColor = Color.black; // 잠금 슬롯 배경 tint
-    private static readonly Color ActiveWeaponSlotBorderColor = new Color(0.35f, 0.72f, 1f, 0.95f); // 장착 테두리
 
     [SerializeField] private Image iconImage;
     [SerializeField] private TextMeshProUGUI infoText;
@@ -30,14 +33,16 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
     private DragSlot dragSlot; // 드래그
     private DropSlot dropSlot; // 드롭
     private ISlotInteractionBridge ownerBridge; // 정책 Bridge
-    private float lastClickTime; // 더블클릭 시간
+    private float lastClickTime = float.NegativeInfinity; // 더블클릭 시간
     private const float DoubleClickInterval = 0.3f; // 더블클릭 간격
     private Image lockedOverlay; // 잠금 표시
-    private Image dragOverlay; // 드래그 표시
-    private GameObject activeWeaponBorder; // 장착 표시
     private Color emptyBackgroundColor = DefaultSlotBackgroundColor; // 빈 배경
 
-    private Image contextSelectionOverlay;
+    private SlotStateMarker stateMarker;
+    private bool contextSelected;
+    private bool hovered;
+    private SlotDragOverlayState dragState;
+    private bool vendorOverlaysConfigured;
     private TextMeshProUGUI newItemMarker; // 신규 획득 표시
     private TextMeshProUGUI stackCountText; // 스택 수 표시
     private TextMeshProUGUI compareMarker; // 2026-10-01 장착품보다 나은 무기(단일 DPS)·방어구·장신구(주능력치) ▲
@@ -66,6 +71,9 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
     private void OnDisable()
     {
         EquippedWeaponComparison.EquippedChanged -= RefreshCompareMarker;
+        hovered = false;
+        dragState = SlotDragOverlayState.None;
+        RefreshStateMarker();
     }
 
     public void Init(ISlotInteractionBridge bridge, int slotIndex, bool isWeaponSlot)
@@ -116,7 +124,7 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
 
         RefreshBackgroundVisual();
 
-        RefreshActiveWeaponBorder();
+        RefreshStateMarker();
         RefreshCompareMarker();
     }
 
@@ -159,35 +167,40 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
 
         RefreshStackCount(DisplayItem);
 
-        RefreshActiveWeaponBorder();
+        RefreshStateMarker();
         RefreshCompareMarker();
     }
 
     public void SetDragOverlay(SlotDragOverlayState state)
     {
         EnsureInitialized();
-        EnsureDragOverlay();
-
-        if (dragOverlay == null)
-            return;
-
-        dragOverlay.gameObject.SetActive(state != SlotDragOverlayState.None);
-        dragOverlay.color = GetDragOverlayColor(state);
+        dragState = state;
+        RefreshStateMarker();
     }
 
     public void ClearDragOverlay()
     {
-        if (dragOverlay != null)
-            dragOverlay.gameObject.SetActive(false);
+        dragState = SlotDragOverlayState.None;
+        RefreshStateMarker();
     }
 
     public void SetContextSelected(bool selected)
     {
         EnsureInitialized();
-        EnsureContextSelectionOverlay();
+        contextSelected = selected;
+        RefreshStateMarker();
+    }
 
-        if (contextSelectionOverlay != null)
-            contextSelectionOverlay.gameObject.SetActive(selected);
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        hovered = true;
+        RefreshStateMarker();
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        hovered = false;
+        RefreshStateMarker();
     }
 
     public void SetActiveWeaponSlot(bool active)
@@ -197,11 +210,15 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
 
         RefreshBackgroundVisual();
 
-        RefreshActiveWeaponBorder();
+        RefreshStateMarker();
     }
+
+    public void ResetClickSequence() => lastClickTime = float.NegativeInfinity;
 
     public void OnPointerClick(PointerEventData eventData)
     {
+        if (eventData == null || eventData.dragging || DragSlot.IsDragging) return;
+        if (eventData.button == PointerEventData.InputButton.Right) ResetClickSequence();
         if (eventData != null && eventData.button == PointerEventData.InputButton.Right)
         {
             if (DisplayItem == null || ownerBridge == null || IsLocked)
@@ -226,12 +243,21 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
             return;
 
         bool isDoubleClick = Time.unscaledTime - lastClickTime <= DoubleClickInterval; // 더블클릭
-        lastClickTime = Time.unscaledTime; // 클릭 시간
+        lastClickTime = isDoubleClick ? float.NegativeInfinity : Time.unscaledTime;
         SlotClickContext context = SlotClickContext.Create(this, eventData, isDoubleClick); // 클릭 context
 
+        if (!isDoubleClick && UnityEngine.InputSystem.Keyboard.current?.shiftKey.isPressed == true)
+        {
+            if (ownerBridge is StashSlotBridge) { ownerBridge.HandleSlotClick(context); ResetClickSequence(); return; }
+            var stash = StashSlotBridge.FindOpenBridge();
+            if (stash != null && ownerBridge is InventorySlotBridge && !IsWeaponSlot && !IsBagSlot)
+            { stash.TryMoveInventorySlotToFirstAvailableStashSlot(SlotIndex); ResetClickSequence(); return; }
+        }
         if (!isDoubleClick && ownerBridge is ISlotSingleClickInteractionBridge singleClickBridge && singleClickBridge.HandleSlotSingleClick(context))
             return;
 
+        if (!isDoubleClick)
+            FindFirstObjectByType<InventorySelectionController>(FindObjectsInactive.Include)?.Select(this);
         if (isDoubleClick)
         {
             context?.Bridge.HandleSlotClick(context);
@@ -256,6 +282,12 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
         if (backgroundImage != null)
             emptyBackgroundColor = DefaultSlotBackgroundColor; // 빈 배경
 
+        if (!vendorOverlaysConfigured)
+        {
+            foreach (Image image in GetComponentsInChildren<Image>(true))
+                if (image.name == "Hover Overlay" || image.name == "Press Overlay") image.color = Color.clear;
+            vendorOverlaysConfigured = true;
+        }
         EnsureSlotBackgroundImage();
         RefreshBackgroundVisual();
 
@@ -284,13 +316,10 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
 
         dropSlot.Init(this); // 슬롯 연결
         EnsureLockOverlay();
-        EnsureDragOverlay();
-        EnsureContextSelectionOverlay();
         EnsureNewItemMarker();
         EnsureCompareMarker();
         EnsureStackCountText();
-        EnsureActiveWeaponBorder();
-        RefreshActiveWeaponBorder();
+        RefreshStateMarker();
     }
 
     private void RefreshWeaponElementIcon()
@@ -361,7 +390,7 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
 
         RefreshBackgroundVisual();
 
-        RefreshActiveWeaponBorder();
+        RefreshStateMarker();
         RefreshCompareMarker();
     }
 
@@ -502,7 +531,7 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
         if (objectName == "Icon" || objectName == "Info" || objectName == "GradeOverlay" || objectName == "ExperimentalGradeOutline"
             || objectName == "LockOverlay" || objectName == "DragStateOverlay" || objectName == "ContextSelectionOverlay"
             || objectName == "ActiveWeaponBorder" || objectName == "NewItemMarker" || objectName == "StackCountText"
-            || objectName == "Weapon Element Badge")
+            || objectName == "Weapon Element Badge" || objectName == "Slot State Marker")
             return false;
 
         return objectName == "SlotBackground" || objectName == "Image" || candidate.sprite != null;
@@ -540,108 +569,9 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
         overlayObject.SetActive(IsLocked); // 잠금 상태
     }
 
-    private void EnsureDragOverlay()
-    {
-        if (dragOverlay != null)
-            return;
 
-        Transform existing = transform.Find("DragStateOverlay");
-        GameObject overlayObject = existing != null ? existing.gameObject : new GameObject("DragStateOverlay"); // 드래그 overlay
-        overlayObject.transform.SetParent(transform, false);
 
-        dragOverlay = overlayObject.GetComponent<Image>();
-        if (dragOverlay == null)
-            dragOverlay = overlayObject.AddComponent<Image>(); // Image 보장
 
-        dragOverlay.color = Color.clear;
-        dragOverlay.raycastTarget = false; // 입력 통과
-
-        RectTransform rect = overlayObject.GetComponent<RectTransform>();
-        rect.anchorMin = Vector2.zero;
-        rect.anchorMax = Vector2.one;
-        rect.offsetMin = Vector2.zero;
-        rect.offsetMax = Vector2.zero;
-
-        overlayObject.SetActive(false); // 기본 숨김
-        overlayObject.transform.SetAsLastSibling(); // 최상단
-
-        if (lockedOverlay != null)
-            lockedOverlay.transform.SetAsLastSibling(); // 잠금 우선
-    }
-
-    private void EnsureActiveWeaponBorder()
-    {
-        if (activeWeaponBorder != null)
-            return;
-
-        Transform existing = transform.Find("ActiveWeaponBorder");
-        activeWeaponBorder = existing != null ? existing.gameObject : new GameObject("ActiveWeaponBorder", typeof(RectTransform)); // 장착 border
-        activeWeaponBorder.transform.SetParent(transform, false);
-
-        RectTransform rootRect = activeWeaponBorder.GetComponent<RectTransform>();
-        rootRect.anchorMin = Vector2.zero;
-        rootRect.anchorMax = Vector2.one;
-        rootRect.offsetMin = Vector2.zero;
-        rootRect.offsetMax = Vector2.zero;
-
-        CreateBorderSegment("Top", new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0f, -3f), Vector2.zero);
-        CreateBorderSegment("Bottom", Vector2.zero, new Vector2(1f, 0f), Vector2.zero, new Vector2(0f, 3f));
-        CreateBorderSegment("Left", Vector2.zero, new Vector2(0f, 1f), Vector2.zero, new Vector2(3f, 0f));
-        CreateBorderSegment("Right", new Vector2(1f, 0f), Vector2.one, new Vector2(-3f, 0f), Vector2.zero);
-        activeWeaponBorder.SetActive(false); // 기본 숨김
-        activeWeaponBorder.transform.SetAsLastSibling(); // 최상단
-
-        if (lockedOverlay != null)
-            lockedOverlay.transform.SetAsLastSibling(); // 잠금 우선
-    }
-
-    private void CreateBorderSegment(string segmentName, Vector2 anchorMin, Vector2 anchorMax, Vector2 offsetMin, Vector2 offsetMax)
-    {
-        Transform existing = activeWeaponBorder.transform.Find(segmentName);
-        GameObject segmentObject = existing != null ? existing.gameObject : new GameObject(segmentName, typeof(RectTransform)); // 테두리 조각
-        segmentObject.transform.SetParent(activeWeaponBorder.transform, false);
-
-        Image segmentImage = segmentObject.GetComponent<Image>();
-        if (segmentImage == null)
-            segmentImage = segmentObject.AddComponent<Image>(); // Image 보장
-
-        segmentImage.color = ActiveWeaponSlotBorderColor;
-        segmentImage.raycastTarget = false; // 입력 통과
-
-        RectTransform rect = segmentObject.GetComponent<RectTransform>();
-        rect.anchorMin = anchorMin;
-        rect.anchorMax = anchorMax;
-        rect.offsetMin = offsetMin;
-        rect.offsetMax = offsetMax;
-    }
-
-    private void EnsureContextSelectionOverlay()
-    {
-        if (contextSelectionOverlay != null)
-            return;
-
-        Transform existing = transform.Find("ContextSelectionOverlay");
-        GameObject overlayObject = existing != null ? existing.gameObject : new GameObject("ContextSelectionOverlay", typeof(RectTransform));
-        overlayObject.transform.SetParent(transform, false);
-
-        contextSelectionOverlay = overlayObject.GetComponent<Image>();
-        if (contextSelectionOverlay == null)
-            contextSelectionOverlay = overlayObject.AddComponent<Image>();
-
-        contextSelectionOverlay.color = new Color(1f, 0.72f, 0.18f, 0.28f);
-        contextSelectionOverlay.raycastTarget = false;
-
-        RectTransform rect = overlayObject.GetComponent<RectTransform>();
-        rect.anchorMin = Vector2.zero;
-        rect.anchorMax = Vector2.one;
-        rect.offsetMin = Vector2.zero;
-        rect.offsetMax = Vector2.zero;
-
-        overlayObject.SetActive(false);
-        overlayObject.transform.SetAsLastSibling();
-        if (lockedOverlay != null)
-            lockedOverlay.transform.SetAsLastSibling();
-    }
 
     // 2026-10-01 장착 무기 비교: 왼쪽 위 작은 초록 ▲. 기존 신규 표시와 같은 방식으로 슬롯에 붙이고 이름이 있으면 재사용한다.
     private void EnsureCompareMarker()
@@ -795,30 +725,33 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
             lockedOverlay.transform.SetAsLastSibling(); // 잠금 우선
     }
 
-    private void RefreshActiveWeaponBorder()
+    private void RefreshStateMarker()
     {
-        if (activeWeaponBorder == null)
-            return;
-
-        activeWeaponBorder.SetActive(IsWeaponSlot && IsActiveWeaponSlot && !IsLocked && DisplayItem != null); // 장착 표시
-
-        if (activeWeaponBorder.activeSelf)
-            activeWeaponBorder.transform.SetAsLastSibling(); // 최상단
-
-        if (lockedOverlay != null)
-            lockedOverlay.transform.SetAsLastSibling(); // 잠금 우선
-    }
-
-    private Color GetDragOverlayColor(SlotDragOverlayState state)
-    {
-        switch (state)
+        string label = null;
+        bool corners = false;
+        bool warning = false;
+        if (dragState != SlotDragOverlayState.None)
         {
-            case SlotDragOverlayState.WillUnlock:
-                return new Color(0.08f, 1f, 0.25f, 0.32f);
-            case SlotDragOverlayState.WillLock:
-                return new Color(1f, 0.08f, 0.08f, 0.42f);
-            default:
-                return Color.clear;
+            corners = true;
+            warning = dragState == SlotDragOverlayState.WillLock;
+            label = warning ? "잠김" : dragState == SlotDragOverlayState.WillUnlock ? "확장"
+                : dragState == SlotDragOverlayState.Equip ? "장착" : dragState == SlotDragOverlayState.Unequip ? "해제"
+                : dragState == SlotDragOverlayState.Swap ? "교환" : "이동";
         }
+        else if (!IsLocked && DisplayItem != null)
+        {
+            if (contextSelected) { label = "선택"; corners = true; }
+            else if (IsWeaponSlot && IsActiveWeaponSlot) label = "사용 중";
+        }
+        bool showHover = hovered && !IsLocked;
+        if (label == null && !showHover)
+        {
+            if (stateMarker != null) stateMarker.gameObject.SetActive(false);
+            return;
+        }
+        if (stateMarker == null) stateMarker = SlotStateMarker.Create(transform);
+        stateMarker.Present(label, corners, warning, showHover);
     }
+
+
 }

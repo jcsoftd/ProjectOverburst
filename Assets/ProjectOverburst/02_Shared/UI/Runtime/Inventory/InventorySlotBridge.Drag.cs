@@ -12,6 +12,13 @@ public partial class InventorySlotBridge
 
     public void ShowDragPreviewForTarget(SlotUI targetSlot)
     {
+        if (DragSlot.EquipmentOrigin != null)
+        {
+            ClearAllDragOverlays();
+            if (DragSlot.EquipmentOrigin.CanReturnTo(targetSlot))
+                targetSlot.SetDragOverlay(targetSlot.DisplayItem == null ? SlotDragOverlayState.Unequip : SlotDragOverlayState.Swap);
+            return;
+        }
         if (previewOriginSlot == null)
         {
             previewOriginSlot = DragSlot.OriginSlot; // 다른 bridge에서 시작한 드래그 보정
@@ -24,7 +31,9 @@ public partial class InventorySlotBridge
         ApplyBagCapacityPreview(targetSlot, canDrop); // 가방 칸 변화
 
         if (canDrop)
-            targetSlot.SetDragOverlay(SlotDragOverlayState.WillUnlock); // 드롭 가능 표시
+            targetSlot.SetDragOverlay(targetSlot.DisplayItem != null ? SlotDragOverlayState.Swap
+                : targetSlot.IsWeaponSlot || targetSlot.IsBagSlot ? SlotDragOverlayState.Equip
+                : previewOriginSlot.IsWeaponSlot || previewOriginSlot.IsBagSlot ? SlotDragOverlayState.Unequip : SlotDragOverlayState.DropTarget);
     }
 
     public void ClearDragPreview()
@@ -149,7 +158,7 @@ public partial class InventorySlotBridge
             return CanPreviewWeaponSlotTarget(sourceSlot, targetSlot);
 
         if (sourceSlot.IsWeaponSlot)
-            return targetSlot.DisplayItem == null;
+            return targetSlot.DisplayItem == null || targetSlot.DisplayItem.itemType == "Weapon";
 
         return !targetSlot.IsBagSlot && !targetSlot.IsWeaponSlot;
     }
@@ -159,8 +168,10 @@ public partial class InventorySlotBridge
         if (sourceBagSlot == null || !sourceBagSlot.IsBagSlot || targetSlot == null || targetSlot.IsWeaponSlot || targetSlot.IsBagSlot || targetSlot.IsLocked)
             return false;
 
-        if (inventory == null || targetSlot.DisplayItem != null)
+        if (inventory == null)
             return false;
+        if (targetSlot.DisplayItem != null)
+            return IsBagItem(targetSlot.DisplayItem) && CanPreviewEquipBagIntoSlot(targetSlot, sourceBagSlot.SlotIndex);
 
         ItemData[] proposedBags = CopyEquippedBags();
         if (!IsBagSlotIndexValid(sourceBagSlot.SlotIndex))

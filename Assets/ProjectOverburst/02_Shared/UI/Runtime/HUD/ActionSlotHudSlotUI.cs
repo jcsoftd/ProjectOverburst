@@ -3,18 +3,86 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 
-public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler,
+    IPointerClickHandler, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler
 {
+    public int KeyNumber { get; private set; }
+    private InventoryQuickSlotBindingController bindings;
+    private InventoryItemActionService actions;
+    private SlotStateMarker dropMarker;
+    public Sprite DragSprite => itemIcon != null ? itemIcon.sprite : displayedSkill?.Icon;
+    public object Binding { get { ResolveActions(); return bindings != null ? bindings.GetBinding(KeyNumber) : null; } }
+    public void ConfigureKey(int key)
+    {
+        KeyNumber = key;
+        if (slotBackground != null) slotBackground.raycastTarget = true;
+        var graphic = GetComponent<UnityEngine.UI.Graphic>();
+        if (graphic != null) graphic.raycastTarget = true;
+    }
+    private void ResolveActions()
+    {
+        if (bindings == null) bindings = FindFirstObjectByType<InventoryQuickSlotBindingController>(FindObjectsInactive.Include);
+        if (actions == null) actions = FindFirstObjectByType<InventoryItemActionService>(FindObjectsInactive.Include);
+    }
+    public void OnPointerClick(PointerEventData data)
+    {
+        if (data == null || data.dragging || DragSlot.IsDragging || KeyNumber < 1) return;
+        ResolveActions();
+        if (data.button == PointerEventData.InputButton.Right)
+            FindFirstObjectByType<InventoryContextMenuController>(FindObjectsInactive.Include)?.OpenForQuickSlot(this, data.position);
+        else if (data.button == PointerEventData.InputButton.Left && data.clickCount == 1)
+            actions?.UseQuickSlot(KeyNumber);
+    }
+    public void OnBeginDrag(PointerEventData data)
+    { if (data.button == PointerEventData.InputButton.Left) DragSlot.BeginQuickSlotDrag(this, GetComponentInParent<Canvas>(), data.position); }
+    public void OnDrag(PointerEventData data) => DragSlot.MoveExternalDrag(data.position);
+    public void OnEndDrag(PointerEventData data) => DragSlot.CompleteDrag(data);
+    public void OnDrop(PointerEventData data)
+    { if (DragSlot.HasCurrentOrigin) { ReceiveDrop(data.position); DragSlot.MarkDropHandled(); } ClearDropMarker(); }
+    private bool AcceptsDrag()
+    {
+        if (KeyNumber < 1 || !DragSlot.HasCurrentOrigin) return false;
+        if (DragSlot.QuickOrigin != null) return true;
+        if (DragSlot.EquipmentOrigin != null) return DragSlot.EquipmentOrigin.Kind == EquipmentSlotKind.Flask;
+        var slot = DragSlot.OriginSlot;
+        return slot != null && slot.OwnerBridge is InventorySlotBridge && !slot.IsWeaponSlot && !slot.IsBagSlot
+            && slot.DisplayItem?.baseData is ConsumableItemData
+            && ReferenceEquals(PlayerContext.Instance?.CurrentActorInventory?.GetItemAt(slot.SlotIndex), slot.DisplayItem);
+    }
+    public bool ReceiveDrop(Vector2 position)
+    {
+        if (!AcceptsDrag()) return false;
+        ResolveActions();
+        if (DragSlot.QuickOrigin != null)
+            return bindings != null && bindings.MoveOrSwap(DragSlot.QuickOrigin.KeyNumber, KeyNumber);
+        ItemData item = DragSlot.DraggedItem;
+        if (item?.baseData is FlaskItemData && FlaskRuntime.State(item)?.equippedSlot < 0)
+        {
+            if (!PlayerFlaskController.CanChangeLoadout) return false;
+            int target = actions != null ? actions.FindFlaskEquipTarget(item) : -1;
+            if (target >= 0) return actions.EquipFlaskToSlot(item, target, KeyNumber);
+            FindFirstObjectByType<InventoryContextMenuController>(FindObjectsInactive.Include)?.OpenFlaskEquip(item, position, KeyNumber);
+            return true;
+        }
+        return actions != null && actions.BindQuickSlot(KeyNumber, item);
+    }
+    private void ClearDropMarker() { if (dropMarker != null) dropMarker.gameObject.SetActive(false); }
     private ItemData tooltipItem;
     private TooltipManager flaskTooltip;
     public void OnPointerEnter(PointerEventData eventData)
     {
+        if (AcceptsDrag())
+        {
+            if (dropMarker == null) dropMarker = SlotStateMarker.Create(transform);
+            dropMarker.Present(DragSlot.QuickOrigin != null ? Binding == null ? "이동" : "교환" : "등록", true, false, false);
+            return;
+        }
         if (tooltipItem == null) return;
         if (flaskTooltip == null) flaskTooltip = TooltipManager.Instance != null ? TooltipManager.Instance : FindFirstObjectByType<TooltipManager>();
         flaskTooltip?.ShowTooltip(tooltipItem);
     }
-    public void OnPointerExit(PointerEventData eventData) { flaskTooltip?.HideTooltip(); }
-    private void OnDisable() { flaskTooltip?.HideTooltip(); EndReadyFlash(); }
+    public void OnPointerExit(PointerEventData eventData) { flaskTooltip?.HideTooltip(); ClearDropMarker(); }
+    private void OnDisable() { flaskTooltip?.HideTooltip(); EndReadyFlash(); ClearDropMarker(); if (DragSlot.QuickOrigin == this) DragSlot.ClearDragState(); }
 
     // 2026-09-30: 쿨다운이 끝나 다시 쓸 수 있게 된 순간 슬롯을 한 번 번쩍이고 작은 소리를 낸다.
     private const float ReadyFlashSeconds = .38f;
@@ -28,6 +96,7 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
 
     private void Update()
     {
+        if (!DragSlot.IsDragging && dropMarker != null && dropMarker.gameObject.activeSelf) ClearDropMarker();
         if (readyFlashStartedAt < 0f) return;
         float t = (Time.unscaledTime - readyFlashStartedAt) / ReadyFlashSeconds;
         if (t >= 1f) { EndReadyFlash(); return; }
@@ -139,7 +208,7 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
         displayedFlaskInstanceId = null;
         tooltipItem = displayItem;
         BindVisuals();
-        if (slotBackground != null) slotBackground.raycastTarget = displayItem != null;
+        if (slotBackground != null) slotBackground.raycastTarget = true;
 
         if (consumableData == null)
         {
@@ -147,15 +216,16 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
             return;
         }
 
-        ItemGrade grade = displayItem != null ? displayItem.grade : ItemGrade.Common;
+        ItemGrade grade = displayItem != null ? displayItem.grade : displayedBaseData == consumableData ? displayedGrade : ItemGrade.Common;
         ApplyItemVisual(consumableData, grade, count, false, !consumableData.IsPermanentSingleItem);
+        if (itemIcon != null) itemIcon.color = count > 0 ? Color.white : new Color(.4f, .4f, .4f, 1f);
         ItemQualityIconEffect.Present(itemIcon, displayItem);
     }
 
     public void SetFlask(ItemData item, float remaining, float cooldownRemaining, bool matchesWeapon)
     {
         BindVisuals();
-        if (slotBackground != null) slotBackground.raycastTarget = item != null;
+        if (slotBackground != null) slotBackground.raycastTarget = true;
         if (item == null) { SetEmpty(false); SetCooldown(0f); return; }
         var stats = FlaskRuntime.Stats(item);
         SetItem(item, 0, remaining > 0f, false);
@@ -212,7 +282,7 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
         BindVisuals();
         if (skill == null) { SetEmpty(false); SetCooldown(0f); return; }
         if (ReferenceEquals(displayedSkill, skill)) { SetCooldown(skill.CooldownRemaining); return; }
-        if (slotBackground != null) slotBackground.raycastTarget = false;
+        if (slotBackground != null) slotBackground.raycastTarget = true;
         if (itemIcon != null)
         {
             itemIcon.gameObject.SetActive(true);

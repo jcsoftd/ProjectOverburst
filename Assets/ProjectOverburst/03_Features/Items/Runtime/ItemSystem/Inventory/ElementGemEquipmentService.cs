@@ -15,14 +15,15 @@ public static class ElementGemEquipmentService
         equipment.SetElementGem(item);
         return true;
     }
-    public static bool UnequipToInventory()
+    public static bool UnequipToInventory(int inventorySlot = -1)
     {
         if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
-            return Overburst.Persistence.AccountGameplaySession.Run(UnequipToInventory);
+            return Overburst.Persistence.AccountGameplaySession.Run(() => UnequipToInventory(inventorySlot));
         var equipment = PlayerContext.Instance?.CurrentActorEquipment;
         var inventory = PlayerContext.Instance?.CurrentActorInventory;
         if (equipment == null || inventory == null || equipment.EquippedElementGem == null) return false;
-        int empty = inventory.FindFirstEmptySlot();
+        int empty = inventorySlot >= 0 ? inventorySlot : inventory.FindFirstEmptySlot();
+        if (empty >= 0 && inventory.GetItemAt(empty) != null) return EquipFromInventorySlot(empty);
         if (empty < 0 || !inventory.TryReplaceOwnedItemAt(empty, null, equipment.EquippedElementGem)) return false;
         equipment.SetElementGem(null);
         return true;

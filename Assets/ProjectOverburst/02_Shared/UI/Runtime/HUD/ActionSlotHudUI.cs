@@ -37,8 +37,6 @@ public class ActionSlotHudUI : MonoBehaviour
         if (quickSlotBindingController != null)
         {
             quickSlotBindingController.ImportLegacyFlasks();
-            if (playerInventory != null)
-                quickSlotBindingController.ClearMissingConsumables(playerInventory);
             quickSlotBindingController.ClearMissingFlasks();
         }
 
@@ -49,6 +47,7 @@ public class ActionSlotHudUI : MonoBehaviour
             if (slot == null)
                 continue;
 
+            slot.ConfigureKey(key);
             slot.SetKeyLabel(QuickSlotKeyLabels.Short(key));
             ItemData boundFlask = quickSlotBindingController != null ? quickSlotBindingController.GetBoundFlask(key) : null;
             if (boundFlask != null)
@@ -77,14 +76,6 @@ public class ActionSlotHudUI : MonoBehaviour
 
             ItemData displayItem = playerInventory != null ? playerInventory.FindFirstItemByBaseData(consumableData) : null;
             int quantity = actionService != null ? actionService.GetConsumableQuantity(consumableData) : playerInventory != null ? playerInventory.CountItemsByBaseData(consumableData) : 0;
-            if (quantity <= 0)
-            {
-                quickSlotBindingController?.Clear(key);
-                slot.SetEmpty(false);
-                slot.SetCooldown(0f);
-                continue;
-            }
-
             slot.SetConsumable(consumableData, displayItem, quantity);
             slot.SetCooldown(actionService != null ? actionService.GetConsumableCooldownRemaining(consumableData) : 0f);
         }

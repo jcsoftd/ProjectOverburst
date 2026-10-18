@@ -52,8 +52,9 @@ public partial class InventorySlotBridge
         if (sourceBagSlot == null || !sourceBagSlot.IsBagSlot || targetSlot == null || targetSlot.IsWeaponSlot || targetSlot.IsBagSlot || targetSlot.IsLocked)
             return false;
 
-        if (inventory == null || inventory.GetItemAt(targetSlot.SlotIndex) != null)
-            return false;
+        if (inventory == null) return false;
+        if (inventory.GetItemAt(targetSlot.SlotIndex) != null)
+            return IsBagItem(targetSlot.DisplayItem) && EquipBagIntoSlot(targetSlot, sourceBagSlot.SlotIndex);
 
         return UnequipBagToInventorySlot(sourceBagSlot.SlotIndex, targetSlot.SlotIndex);
     }

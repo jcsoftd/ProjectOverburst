@@ -20,17 +20,18 @@ public static class GearEquipmentService
         return false;
     }
 
-    public static bool UnequipToInventory(int gearSlot)
+    public static bool UnequipToInventory(int gearSlot, int inventorySlot = -1)
     {
         if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
-            return Overburst.Persistence.AccountGameplaySession.Run(() => UnequipToInventory(gearSlot));
+            return Overburst.Persistence.AccountGameplaySession.Run(() => UnequipToInventory(gearSlot, inventorySlot));
         PlayerContext context = PlayerContext.Instance;
         PlayerInventory inventory = context != null ? context.CurrentActorInventory : null;
         PlayerEquipment equipment = context != null ? context.CurrentActorEquipment : null;
         if (inventory == null || equipment == null) return false;
         ItemData item = equipment.GetGearSlotItem(gearSlot);
-        int empty = inventory.FindFirstEmptySlot();
+        int empty = inventorySlot >= 0 ? inventorySlot : inventory.FindFirstEmptySlot();
         if (item == null || empty < 0) return false;
+        if (inventory.GetItemAt(empty) != null) return EquipFromInventorySlot(empty, gearSlot);
         if (!inventory.TryReplaceOwnedItemAt(empty, null, item)) return false;
         if (equipment.ClearGearSlot(gearSlot, out _)) return true;
         inventory.TryReplaceOwnedItemAt(empty, item, null);

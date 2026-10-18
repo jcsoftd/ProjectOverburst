@@ -100,7 +100,7 @@ public sealed class MapDungeonPortalPanel : MonoBehaviour, ISlotInteractionBridg
         socket.transform.localScale = Vector3.one;
         socket.Init(this,-1,false); socket.SetLocked(false); socket.SetNewItemMarker(false);
         socketName = Label("지도 이름", "아직 지도가 없습니다",33,370,354,30,18,Muted,true);
-        socketSummary = Label("슬롯 안내", "오른쪽 인벤토리의 지도를\n우클릭하거나 이 슬롯에 끌어 넣으세요.",33,407,354,54,14,Muted,true);
+        socketSummary = Label("슬롯 안내", "오른쪽 인벤토리의 지도를\n두 번 클릭하거나 이 슬롯에 끌어 넣으세요.",33,407,354,54,14,Muted,true);
         remove = Button("RemoveMap", "지도 빼기",139,466,142,36,false,ClearSelection);
         status = Label("입장 안내", "입장할 지도를 슬롯에 넣어 주세요.",33,645,354,38,13,Muted,true);
         enter = Button("Enter", "던전 입장",94,675,232,52,true,TryEnter);
@@ -148,14 +148,15 @@ public sealed class MapDungeonPortalPanel : MonoBehaviour, ISlotInteractionBridg
         socket.SetContextSelected(false);
         socketName.text = map == null ? "아직 지도가 없습니다" : map.itemName;
         socketName.color = map == null ? Muted : GradeConfig.GetGradeColor(map.grade);
-        socketSummary.text = map == null ? "오른쪽 인벤토리의 지도를\n우클릭하거나 이 슬롯에 끌어 넣으세요."
+        socketSummary.text = map == null ? "오른쪽 인벤토리의 지도를\n두 번 클릭하거나 이 슬롯에 끌어 넣으세요."
             : ItemTooltipFormatter.GetGradeName(map.grade)+" · Lv."+map.mapState.level+"\n선택한 지도 · 입장 대기";
         remove.gameObject.SetActive(selectedId != null);
         SetButtonText(enter,"던전 입장");
         foreach (var slot in inventorySlots)
         {
             var group=slot.GetComponent<CanvasGroup>();
-            if (group) group.alpha = slot.DisplayItem == null || CanUse(slot) ? priorAlphas[group] : priorAlphas[group]*.23f;
+            if (group) group.alpha = priorAlphas[group];
+            slot.SetContextSelected(slot.DisplayItem != null && slot.DisplayItem.runtimeInstanceId == selectedId);
         }
         foreach (Transform child in details) { child.gameObject.SetActive(false); Destroy(child.gameObject); }
         if (map == null)
@@ -225,29 +226,31 @@ public sealed class MapDungeonPortalPanel : MonoBehaviour, ISlotInteractionBridg
         Overburst.Quests.QuestSession.Current?.RecordMapSelected(selectedId);
         TooltipManager.Instance?.HideTooltip(); Refresh(); return true;
     }
-    private void ClearSelection()
+    public void ClearSelection()
     { if(submitting)return; selectedId=null; status.text="입장할 지도를 슬롯에 넣어 주세요."; Refresh(); }
     public static bool HandleInventoryClick(SlotClickContext context)
     {
-        if(!Active)return false;
-        if(context?.EventData?.button == PointerEventData.InputButton.Right)
-            Active.TryInsert(context.Slot);
-        return true;
+        if(!Active || context?.Item?.baseData is not MapItemData) return false;
+        return context.IsDoubleClick && Active.TryInsert(context.Slot);
     }
     public static bool HandleInventoryDrop(SlotDropContext context)
     {
         if(!Active)return false;
         if(context!=null&&context.OriginSlot==Active.socket&&Active.Owns(context.TargetSlot)&&!context.TargetSlot.IsLocked)
-            Active.ClearSelection();
-        return true;
+        { Active.ClearSelection(); return true; }
+        return false;
     }
-    public static bool AllowsSlotDrag(SlotUI slot) => !Active || slot==Active.socket || Active.CanUse(slot);
+    public static bool AllowsSlotDrag(SlotUI slot) => slot != null && !slot.IsLocked;
     public void BeginDragPreview(SlotUI originSlot) { }
     public void ShowDragPreviewForTarget(SlotUI targetSlot) { }
     public void ClearDragPreview() { }
     public bool HandleSlotClick(SlotClickContext context) { ClearSelection(); return true; }
     public bool HandleSlotSingleClick(SlotClickContext context) => true;
-    public bool HandleSlotRightClick(SlotClickContext context) { ClearSelection(); return true; }
+    public bool HandleSlotRightClick(SlotClickContext context)
+    {
+        FindFirstObjectByType<InventoryContextMenuController>(FindObjectsInactive.Include)?.OpenMapSelection(this, context.EventData.position);
+        return true;
+    }
     public bool HandleSlotDrop(SlotDropContext context) => context!=null&&context.TargetSlot==socket&&TryInsert(context.OriginSlot);
     public bool HandleExternalDrop(SlotUI sourceSlot,Vector2 screenPosition) => true;
 

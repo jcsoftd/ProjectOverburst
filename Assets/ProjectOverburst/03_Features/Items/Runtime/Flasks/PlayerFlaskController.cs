@@ -106,12 +106,12 @@ public sealed class PlayerFlaskController : MonoBehaviour
         Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged); return true;
     }
 
-    public bool TryUnequip(int index, out string reason)
+    public bool TryUnequip(int index, out string reason, int inventorySlot = -1)
     {
         if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
         {
             string failure = string.Empty;
-            bool committed = Overburst.Persistence.AccountGameplaySession.Run(() => TryUnequip(index, out failure));
+            bool committed = Overburst.Persistence.AccountGameplaySession.Run(() => TryUnequip(index, out failure, inventorySlot));
             reason = committed ? string.Empty : string.IsNullOrEmpty(failure) ? "물약 장착 변경을 저장하지 못했습니다." : failure;
             return committed;
         }
@@ -122,7 +122,7 @@ public sealed class PlayerFlaskController : MonoBehaviour
             || !Overburst.Persistence.AccountGameplaySession.UsesAccountStorage(inventory)) return false;
         ItemData item = GetItem(index);
         if (item == null) { reason = "물약 슬롯이 비어 있습니다."; return false; }
-        int destination = inventory.FindFirstEmptySlot();
+        int destination = inventorySlot >= 0 ? inventorySlot : inventory.FindFirstEmptySlot();
         if (destination < 0 || !inventory.TryReplaceOwnedItemAt(destination, null, item, false))
         { reason = "인벤토리에 물약을 돌려놓을 빈칸이 없습니다."; return false; }
         FlaskRuntime.State(item).equippedSlot = -1;
