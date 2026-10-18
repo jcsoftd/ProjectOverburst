@@ -45,12 +45,19 @@ public sealed class OverburstHudKeyGuide : MonoBehaviour
         foreach (var row in rows)
         {
             row.Finish();
-            row.content.localScale *= .7f;
-            row.content.anchoredPosition = Vector2.zero;
-            foreach (var glyph in row.glyphs)
-            {
-                glyph.fontSize = glyph.fontSizeMax = glyph.text.Length > 1 ? 18 : 20;
-            }
+            // A fixed key column keeps short keys, modifiers and mouse icons aligned.
+            const float keyWidth = 58f;
+            row.content.sizeDelta = new Vector2(keyWidth, 36);
+            row.content.localScale = Vector3.one * .7f;
+            row.content.anchoredPosition = new Vector2(0, -.4f);
+            row.slots[0].sizeDelta = new Vector2(keyWidth, 36);
+            var icon = row.icons[0];
+            bool keyboard = icon.sprite == row.keycap;
+            icon.rectTransform.anchoredPosition = new Vector2(keyWidth * .5f, keyboard ? 0 : -1);
+            icon.rectTransform.sizeDelta = new Vector2(keyboard ? keyWidth + 16 : 52, keyboard ? 52 : 56);
+            var glyph = row.glyphs[0];
+            glyph.rectTransform.sizeDelta = new Vector2(keyWidth, 36);
+            glyph.fontSize = glyph.fontSizeMax = glyph.text.Length > 1 ? 18 : 20;
         }
     }
 }
