@@ -357,13 +357,19 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
     private void ResolveReferences()
     {
         if (targetInventory == null)
-            targetInventory = FindFirstObjectByType<PlayerInventory>();
+            targetInventory = PlayerContext.Instance != null ? PlayerContext.Instance.CurrentActorInventory : PlayerAccountInventoryService.SharedInventory;
+        if (targetInventory == null) targetInventory = FindFirstObjectByType<PlayerInventory>();
 
         if (player != null)
             return;
 
-        GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
-        player = playerObject != null ? playerObject.transform : null;
+        var actor = PlayerContext.Instance != null ? PlayerContext.Instance.CurrentActor : null;
+        if (actor != null) player = actor.transform;
+        else
+        {
+            GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
+            player = playerObject != null ? playerObject.transform : null;
+        }
 
     }
 
